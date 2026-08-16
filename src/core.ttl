@@ -17,9 +17,10 @@ propositions with truth conditions, and probability assignments. This is the sha
 vocabulary that lets a weather forecast and a Kalshi market be compared: both attach a
 probability to the SAME proposition object.
 
-This layer is deliberately IAO-shaped (Information Artifact Ontology) but does not import
-IAO, so that the project has a single upstream dependency (BFO) for now. See
-align/iao.ttl for the mapping axioms if/when IAO is adopted.""" ;
+This layer covers the same ground as the Information Artifact Ontology (IAO) and does not
+import it. That is a settled decision, not a deferral: IAO's value here would have been
+standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
+the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     owl:versionInfo "0.1.0" .
 

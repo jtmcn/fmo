@@ -156,6 +156,55 @@ category errors — treating a listing as an event, a datum as a quality, a prot
 and a lightweight vocabulary has nothing to say about them. If the ontology is not going to
 prevent those, it is an ORM layer with extra steps.
 
+**Import IAO for the information layer.** The [Information Artifact
+Ontology](https://github.com/information-artifact-ontology/IAO) is the OBO Foundry mid-level
+ontology sitting directly under BFO, covering exactly what `wtl:` covers. Roughly eight of our
+terms have IAO counterparts:
+
+| Ours | IAO |
+|---|---|
+| `wtl:InformationContentEntity` | `IAO_0000030` information content entity |
+| `wtl:MeasurementDatum` | `IAO_0000109` measurement datum |
+| `wtl:Document` | `IAO_0000310` document |
+| `wtl:DirectiveInformationEntity` | `IAO_0000033` directive information entity |
+| `wtl:Plan` | `IAO_0000104` plan specification |
+| `wtl:InformationBearingEntity` | `IAO_0000015` information carrier |
+| `wtl:isAbout` | `IAO_0000136` is about |
+| `wtl:hasUnit` | `IAO_0000039` + `IAO_0000003` measurement unit label |
+
+Rejected, because the benefit of IAO is standard IRIs for downstream consumers and this
+ontology has none. Without that, importing 210 classes to replace eight is a net loss in
+legibility.
+
+The compatibility picture, checked against IAO release 2026-03-30 rather than assumed, since
+it is the part most likely to be misremembered later:
+
+- **Classes are byte-identical.** Every BFO class we use appears in IAO under the same
+  `obo/BFO_XXXXXXX` IRI. Class-level merging would have been free.
+- **Properties diverge.** IAO uses Relation Ontology IDs where BFO-2020 defines the relation
+  natively: `RO_0000057` not `BFO_0000057` for *has participant*; `RO_0000052` *characteristic
+  of* not `BFO_0000197` *inheres in*; `RO_0000059`/`RO_0000058` for concretization;
+  `BFO_0000051` *has part* where we use `BFO_0000178` *has continuant part*. There is no IAO
+  counterpart to `BFO_0000101` *is carrier of*. RO has further deprecated its own
+  `RO_0004096`/`RO_0004097` inheres-in and bearer-of in favour of the *characteristic* naming,
+  moving away from BFO-2020 rather than toward it.
+- **IAO declares zero `owl:equivalentProperty` axioms.** Merged, `BFO_0000057` and `RO_0000057`
+  would be two unrelated properties sharing a label. Nothing errors; inferences silently stop
+  firing. Bridging is only about six axioms given our small property surface, but a broken
+  bridge is invisible, so it would need its own competency test.
+- **No BFO-2020 temporal terms.** IAO references `BFO_0000008`, `BFO_0000038`, `BFO_0000148`,
+  but not `BFO_0000202` temporal interval or `BFO_0000203` temporal instant. Our
+  climatological-day boundaries use those, so we would keep our own regardless. Absence, not
+  conflict.
+
+Consequence for units: IAO's `measurement unit label` was the one clear win, so with IAO
+rejected, `wtl:hasUnit` being a string is now our problem to solve directly. It remains the
+one genuine soundness gap in 0.1.0.
+
+**Register the w3id namespace IRIs.** Rejected for the same reason. The IRIs are stable
+identifiers, not addresses; `src/catalog-v001.xml` resolves them offline, and Protégé and ROBOT
+both honour it. Registering redirects would serve consumers who do not exist.
+
 **One namespace instead of three.** Simpler prefixes, but the weather module is reusable
 independently of prediction markets and the market module is reusable for non-weather markets.
 Splitting costs three prefix declarations.

@@ -49,8 +49,10 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/validate.py` | structural checks (no Java needed) |
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
-Namespaces are `https://w3id.org/wantology/{core,weather,kalshi}#`. **The w3id redirects are
-not registered yet** — the IRIs do not resolve. See [Open questions](#open-questions).
+Namespaces are `https://w3id.org/wantology/{core,weather,kalshi}#`. These are deliberately
+non-resolving: the ontology has no external consumers, so `src/catalog-v001.xml` handles
+resolution locally and registering w3id redirects would buy nothing. Tools that want to
+dereference the IRIs need the catalog, which Protégé and ROBOT both pick up automatically.
 
 ## Usage
 
@@ -108,15 +110,10 @@ making the class unsatisfiable. Run them.
 
 Flagged rather than silently decided:
 
-- **IAO.** The `wtl:` layer is IAO-shaped but does not import it, to keep BFO as the sole
-  upstream dependency. Adopting IAO would replace roughly a dozen terms with community-standard
-  ones. Worth doing before the term count grows; the cost rises with every downstream commit.
-- **w3id registration.** The namespace IRIs do not resolve yet. Registering requires a PR to
-  [perma-id/w3id.org](https://github.com/perma-id/w3id.org). Until then the catalog handles
-  resolution locally.
 - **Units are strings.** `wtl:hasUnit` takes a string. Fahrenheit and Celsius both appear in
-  this domain and inches and millimetres both appear for precipitation. Move to QUDT before any
-  arithmetic crosses unit systems.
+  this domain, and inches and millimetres both appear for precipitation. This is the one real
+  soundness gap in 0.1.0 — fix it before any arithmetic crosses unit systems, either with QUDT
+  or with a local unit vocabulary in `wtl:`.
 - **Kalshi enums are unverified.** `docs.kalshi.com` was unreachable from the environment this
   was drafted in, so `ksh:MarketStatus` individuals and some field names come from search results
   and prior knowledge rather than the live schema. Terms at risk carry an `unverified` scope
