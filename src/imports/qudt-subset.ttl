@@ -1,0 +1,216 @@
+# QUDT subset, extracted by scripts/extract_qudt_subset.py -- DO NOT HAND-EDIT.
+#
+# 16 units and 10 quantity kinds pulled from the QUDT public
+# repo, preserving authoritative IRIs, conversion factors, and dimension vectors.
+# Regenerate with:
+#     python3 scripts/extract_qudt_subset.py /path/to/qudt-public-repo
+#
+# QUDT is licensed CC BY 4.0. See https://github.com/qudt/qudt-public-repo.
+#
+# Note: units link to quantity kinds via qudt:unitForQuantityKind. QUDT's published
+# distribution also carries the inverse, qudt:applicableUnit, but that is derived by
+# their build rather than asserted in source, so do not rely on it being present.
+
+@prefix dimensionvector: <http://qudt.org/vocab/dimensionvector/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+unit:CentiM a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Centimetre"@en ;
+    qudt:conversionMultiplier 0.01 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T0D0 ;
+    qudt:symbol "cm" ;
+    qudt:unitForQuantityKind quantitykind:Length .
+
+unit:DEG a qudt:Unit ;
+    rdfs:label "Degree"@en ;
+    qudt:conversionMultiplier 0.01745329251994329576923690768488613 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H0T0D1 ;
+    qudt:symbol "°" ;
+    qudt:unitForQuantityKind quantitykind:Angle,
+        quantitykind:PlaneAngle .
+
+unit:DEG_C a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Degree Celsius"@en ;
+    qudt:conversionMultiplier 1.0 ;
+    qudt:conversionOffset 273.15 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H1T0D0 ;
+    qudt:symbol "°C" ;
+    qudt:unitForQuantityKind quantitykind:Temperature .
+
+unit:DEG_F a qudt:Unit ;
+    rdfs:label "Degree Fahrenheit"@en ;
+    qudt:conversionMultiplier 0.5555555555555555555555555555555556 ;
+    qudt:conversionOffset 459.67 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H1T0D0 ;
+    qudt:symbol "°F" ;
+    qudt:unitForQuantityKind quantitykind:Temperature .
+
+unit:HectoPA a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Hectopascal"@en ;
+    qudt:conversionMultiplier 100.0 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 ;
+    qudt:symbol "hPa" ;
+    qudt:unitForQuantityKind quantitykind:ForcePerArea .
+
+unit:IN a qudt:Unit ;
+    rdfs:label "Inch"@en ;
+    qudt:conversionMultiplier 0.0254 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T0D0 ;
+    qudt:symbol "in" ;
+    qudt:unitForQuantityKind quantitykind:Length .
+
+unit:IN_HG a qudt:Unit ;
+    rdfs:label "Inch of Mercury"@en ;
+    qudt:conversionMultiplier 3386.389 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 ;
+    qudt:symbol "inHg" ;
+    qudt:unitForQuantityKind quantitykind:ForcePerArea,
+        quantitykind:VapourPressure .
+
+unit:K a qudt:Unit ;
+    rdfs:label "Kelvin"@en ;
+    qudt:conversionMultiplier 1.0 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H1T0D0 ;
+    qudt:symbol "K" ;
+    qudt:unitForQuantityKind quantitykind:Temperature .
+
+unit:KN a qudt:Unit ;
+    rdfs:label "Knot"@en ;
+    qudt:conversionMultiplier 0.5144444444444444444444444444444445 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "kn" ;
+    qudt:unitForQuantityKind quantitykind:LinearVelocity,
+        quantitykind:Velocity .
+
+unit:KiloM-PER-HR a qudt:Unit ;
+    rdfs:label "Kilometre per Hour"@en ;
+    qudt:conversionMultiplier 0.2777777777777777777777777777777778 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "km/h" ;
+    qudt:unitForQuantityKind quantitykind:LinearVelocity,
+        quantitykind:Velocity .
+
+unit:M-PER-SEC a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Metre per Second"@en ;
+    qudt:conversionMultiplier 1.0 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "m/s" ;
+    qudt:unitForQuantityKind quantitykind:LinearVelocity,
+        quantitykind:Speed,
+        quantitykind:Velocity .
+
+unit:MI-PER-HR a qudt:Unit ;
+    rdfs:label "International Mile per Hour"@en ;
+    qudt:conversionMultiplier 0.44704 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "mi/h" ;
+    qudt:unitForQuantityKind quantitykind:LinearVelocity,
+        quantitykind:Velocity .
+
+unit:MilliBAR a qudt:Unit ;
+    rdfs:label "Millibar"@en ;
+    qudt:conversionMultiplier 100.0 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 ;
+    qudt:symbol "mbar" ;
+    qudt:unitForQuantityKind quantitykind:ForcePerArea,
+        quantitykind:VapourPressure .
+
+unit:MilliM a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Millimetre"@en ;
+    qudt:conversionMultiplier 0.001 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T0D0 ;
+    qudt:symbol "mm" ;
+    qudt:unitForQuantityKind quantitykind:Length .
+
+unit:PA a qudt:DerivedUnit,
+        qudt:Unit ;
+    rdfs:label "Pascal"@en ;
+    qudt:conversionMultiplier 1.0 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 ;
+    qudt:symbol "Pa" ;
+    qudt:unitForQuantityKind quantitykind:ForcePerArea .
+
+unit:PERCENT a qudt:Unit ;
+    rdfs:label "Percent"@en ;
+    qudt:conversionMultiplier 0.01 ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H0T0D1 ;
+    qudt:symbol "%" ;
+    qudt:unitForQuantityKind quantitykind:DimensionlessRatio .
+
+<https://w3id.org/wantology/imports/qudt-subset> a owl:Ontology ;
+    rdfs:label "QUDT subset for Wantology" ;
+    rdfs:comment "Units and quantity kinds extracted from the QUDT public repo. Generated by scripts/extract_qudt_subset.py; do not hand-edit." .
+
+quantitykind:Angle a qudt:QuantityKind ;
+    rdfs:label "Angle"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H0T0D1 .
+
+quantitykind:DimensionlessRatio a qudt:QuantityKind ;
+    rdfs:label "Dimensionless Ratio"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H0T0D1 .
+
+quantitykind:PlaneAngle a qudt:QuantityKind ;
+    rdfs:label "Plane Angle"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H0T0D1 .
+
+quantitykind:Speed a qudt:QuantityKind ;
+    rdfs:label "Speed"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 .
+
+quantitykind:VapourPressure a qudt:QuantityKind ;
+    rdfs:label "Vapour Pressure"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 .
+
+quantitykind:Length a qudt:QuantityKind ;
+    rdfs:label "Length"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T0D0 ;
+    qudt:symbol "l" .
+
+quantitykind:Temperature a qudt:QuantityKind ;
+    rdfs:label "Temperature"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L0I0M0H1T0D0 .
+
+dimensionvector:A0E0L0I0M0H1T0D0 a qudt:QuantityKindDimensionVector .
+
+dimensionvector:A0E0L1I0M0H0T0D0 a qudt:QuantityKindDimensionVector .
+
+quantitykind:ForcePerArea a qudt:QuantityKind ;
+    rdfs:label "Force per Area"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L-1I0M1H0T-2D0 ;
+    qudt:symbol "p" .
+
+quantitykind:LinearVelocity a qudt:QuantityKind ;
+    rdfs:label "Linear Velocity"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "v" .
+
+quantitykind:Velocity a qudt:QuantityKind ;
+    rdfs:label "Velocity"@en ;
+    qudt:hasDimensionVector dimensionvector:A0E0L1I0M0H0T-1D0 ;
+    qudt:symbol "v" .
+
+qudt:QuantityKindDimensionVector a owl:Class .
+
+dimensionvector:A0E0L0I0M0H0T0D1 a qudt:QuantityKindDimensionVector .
+
+qudt:DerivedUnit a owl:Class ;
+    rdfs:subClassOf qudt:Unit .
+
+dimensionvector:A0E0L-1I0M1H0T-2D0 a qudt:QuantityKindDimensionVector .
+
+dimensionvector:A0E0L1I0M0H0T-1D0 a qudt:QuantityKindDimensionVector .
+
+qudt:QuantityKind a owl:Class .
+
+qudt:Unit a owl:Class .
+

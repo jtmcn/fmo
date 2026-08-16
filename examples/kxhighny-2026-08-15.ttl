@@ -17,6 +17,9 @@
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
 
 <https://w3id.org/wantology/examples/kxhighny-2026-08-15>
     a owl:Ontology ;
@@ -71,7 +74,7 @@ ex:Target-HighTemp a wx:WeatherObservationTarget ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:underProtocol ex:NWSDailyClimateProtocol ;
-    wtl:hasUnit "degree Fahrenheit" .
+    wtl:hasUnit unit:DEG_F .
 
 ################################################################
 # 4. The proposition -- the pivot
@@ -83,7 +86,7 @@ ex:Prop-82-83 a wtl:Proposition ;
     wtl:hasComparator wtl:Between ;
     wtl:floorValue "82"^^xsd:decimal ;
     wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit "degree Fahrenheit" ;
+    wtl:hasUnit unit:DEG_F ;
     wtl:statedAs "The maximum air temperature at the Central Park station of record over the climatological day of 15 August 2026, as published in the NWS daily climatological report, is between 82 and 83 degrees Fahrenheit inclusive." .
 
 ################################################################
@@ -183,7 +186,7 @@ ex:Datum-Max a wx:WeatherObservationDatum ;
     rdfs:label "max temperature 82 F" ;
     wx:reportsValueFor ex:Target-HighTemp ;
     wtl:realizedValue "82"^^xsd:decimal ;
-    wtl:hasUnit "degree Fahrenheit" .
+    wtl:hasUnit unit:DEG_F .
 
 ex:CLINYC-2026-08-16 a wx:DailyClimatologicalReport ;
     rdfs:label "CLINYC issued 2026-08-16" ;

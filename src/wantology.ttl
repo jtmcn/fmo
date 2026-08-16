@@ -5,7 +5,7 @@
 
 <https://w3id.org/wantology/wantology>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/wantology/0.1.0> ;
+    owl:versionIRI <https://w3id.org/wantology/wantology/0.2.0> ;
     owl:imports
         <https://w3id.org/wantology/core> ,
         <https://w3id.org/wantology/weather> ,
@@ -17,4 +17,4 @@ listings on those forecasts, built on Basic Formal Ontology 2020.
 Import this module to get everything. Import the individual modules if you want only the
 meteorological or only the market vocabulary; core is a dependency of both.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.1.0" .
+    owl:versionInfo "0.2.0" .

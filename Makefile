@@ -15,13 +15,24 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all test validate reason competency merge clean
+.PHONY: all test validate validate-negative reason competency merge qudt clean
 
 all: validate
 
-## Structural checks: parsing, BFO grounding, disjointness, docs coverage. No Java needed.
+## Structural checks: parsing, BFO grounding, disjointness, unit coherence, docs. No Java.
 validate:
 	python3 scripts/validate.py
+
+## Negative tests: prove the validator actually fails on each defect it claims to catch.
+validate-negative:
+	python3 scripts/test_validate.py
+
+## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
+##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt
+##   make qudt QUDT_REPO=/tmp/qudt
+QUDT_REPO ?= /tmp/qudt
+qudt:
+	python3 scripts/extract_qudt_subset.py $(QUDT_REPO)
 
 ## HermiT consistency over the schema, then over schema plus examples.
 reason: $(BUILD)/merged.owl $(BUILD)/full.owl
@@ -58,7 +69,7 @@ endif
 
 merge: $(BUILD)/merged.owl $(BUILD)/full.owl
 
-$(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(CATALOG)
+$(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(SRC)/imports/qudt-subset.ttl $(CATALOG)
 	@mkdir -p $(BUILD)
 ifeq ($(strip $(ROBOT)),)
 	@echo "SKIP merge: ROBOT not found."
@@ -76,7 +87,7 @@ else
 endif
 
 ## Everything.
-test: validate reason competency
+test: validate validate-negative reason competency
 
 clean:
 	rm -rf $(BUILD)

@@ -6,11 +6,15 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
 
 <https://w3id.org/wantology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/core/0.1.0> ;
-    owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ;
+    owl:versionIRI <https://w3id.org/wantology/core/0.2.0> ;
+    owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
+                <https://w3id.org/wantology/imports/qudt-subset> ;
     dcterms:title "Wantology Core: information, propositions, and probability" ;
     dcterms:description """A minimal BFO-conformant layer for information content entities,
 propositions with truth conditions, and probability assignments. This is the shared
@@ -22,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.1.0" .
+    owl:versionInfo "0.2.0" .
 
 ################################################################
 # Information content entities
@@ -132,6 +136,40 @@ wtl:LessThanOrEqual    a wtl:Comparator, owl:NamedIndividual ; rdfs:label "less 
 wtl:Between            a wtl:Comparator, owl:NamedIndividual ; rdfs:label "between" ;               skos:definition "Floor value <= realized value <= cap value. Bound inclusivity is a property of the issuing venue's rules and should be checked against those rules." .
 wtl:EqualTo            a wtl:Comparator, owl:NamedIndividual ; rdfs:label "equal to" ;              skos:definition "Realized value = floor value." .
 wtl:Custom             a wtl:Comparator, owl:NamedIndividual ; rdfs:label "custom" ;                skos:definition "The condition is stated in natural language in the governing rules and is not reducible to a numeric threshold comparison." .
+
+################################################################
+# Units and quantity kinds (QUDT bridge)
+#
+# QUDT is not BFO-conformant and makes no upper-level commitment, so its two
+# classes are grounded here. Without this they float under owl:Thing, which is
+# exactly the defect scripts/validate.py exists to catch.
+#
+# Only a vendored subset of QUDT is imported -- see src/imports/qudt-subset.ttl
+# and scripts/extract_qudt_subset.py. Sixteen units, not sixty thousand triples.
+################################################################
+
+wtl:MeasurementUnit a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "measurement unit" ;
+    skos:definition "An information content entity designating a conventionally fixed magnitude of some quantity kind, against which magnitudes of that kind are expressed as multiples." ;
+    skos:scopeNote """A unit is a convention, not a property of the world, so it is a generically
+dependent continuant rather than a quality. The degree Fahrenheit does not inhere in anything.""" .
+
+qudt:Unit rdfs:subClassOf wtl:MeasurementUnit .
+qudt:QuantityKind rdfs:subClassOf wtl:Designation .
+
+# QUDT does not assert that its units are pairwise distinct, and OWL does not assume
+# it. Without this, any axiom that accidentally forces two units together -- most
+# easily by making a multi-valued property a sub-property of the functional
+# wtl:hasUnit -- would quietly identify degrees Fahrenheit with degrees Celsius and
+# produce wrong answers rather than an error. Stated so that the reasoner reports it.
+[] a owl:AllDifferent ;
+   owl:distinctMembers (
+       unit:DEG_F unit:DEG_C unit:K
+       unit:IN unit:MilliM unit:CentiM
+       unit:MI-PER-HR unit:KN unit:M-PER-SEC unit:KiloM-PER-HR
+       unit:PA unit:HectoPA unit:MilliBAR unit:IN_HG
+       unit:PERCENT unit:DEG ) .
 
 ################################################################
 # Probability
@@ -328,10 +366,24 @@ wtl:realizedValue a owl:DatatypeProperty ;
     rdfs:range xsd:decimal ;
     skos:definition "The value actually determined for an observation target by the authoritative measurement process, once available." .
 
-wtl:hasUnit a owl:DatatypeProperty ;
+wtl:hasUnit a owl:ObjectProperty ;
     rdfs:label "has unit" ;
-    rdfs:range xsd:string ;
-    skos:scopeNote "Held as a string in 0.1.0. Replace with a QUDT unit individual before any arithmetic crosses unit systems; degrees Fahrenheit and degrees Celsius both appear in this domain." .
+    rdfs:range qudt:Unit ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates an entity carrying a numeric magnitude to the measurement unit in which that magnitude is expressed." ;
+    skos:scopeNote """Was an xsd:string in 0.1.0. Now a QUDT unit individual, so that
+scripts/validate.py can check dimensional compatibility between a proposition's threshold
+and the target it is asserted over. Degrees Fahrenheit and Celsius both occur in this domain,
+as do inches and millimetres for precipitation; a string could not catch the mismatch.""" .
+
+wtl:hasQuantityKind a owl:ObjectProperty ;
+    rdfs:label "has quantity kind" ;
+    rdfs:range qudt:QuantityKind ;
+    skos:definition "Relates an entity to the kind of quantity it measures, independently of the unit used to express it." ;
+    skos:scopeNote """Documentation rather than a constraint. QUDT's unit-to-quantity-kind links
+are uneven: pressure units link to ForcePerArea and not to quantitykind:Pressure, and PERCENT
+links to thirty-nine kinds. Dimensional checking uses qudt:hasDimensionVector instead, which is
+complete and consistent across every unit vendored here.""" .
 
 wtl:statedAs a owl:DatatypeProperty ;
     rdfs:label "stated as" ;

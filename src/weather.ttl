@@ -7,10 +7,13 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+@prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
 
 <https://w3id.org/wantology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/weather/0.1.0> ;
+    owl:versionIRI <https://w3id.org/wantology/weather/0.2.0> ;
     owl:imports <https://w3id.org/wantology/core> ;
     dcterms:title "Wantology Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -18,7 +21,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.1.0" .
+    owl:versionInfo "0.2.0" .
 
 ################################################################
 # Material entities
@@ -203,17 +206,48 @@ wx:WeatherVariable a owl:Class ;
 
 wx:MaximumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "maximum air temperature" ;
-    skos:definition "The greatest magnitude attained by air temperature at an observing site over a temporal interval." .
+    skos:definition "The greatest magnitude attained by air temperature at an observing site over a temporal interval." ;
+    wtl:hasQuantityKind quantitykind:Temperature ;
+    wx:conventionalUnit unit:DEG_F , unit:DEG_C .
+
 wx:MinimumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
-    rdfs:label "minimum air temperature" .
+    rdfs:label "minimum air temperature" ;
+    skos:definition "The least magnitude attained by air temperature at an observing site over a temporal interval." ;
+    wtl:hasQuantityKind quantitykind:Temperature ;
+    wx:conventionalUnit unit:DEG_F , unit:DEG_C .
+
 wx:MeanAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
-    rdfs:label "mean air temperature" .
+    rdfs:label "mean air temperature" ;
+    skos:definition "The arithmetic mean of the maximum and minimum air temperature at an observing site over a temporal interval." ;
+    skos:scopeNote "The NWS daily mean is the midpoint of the day's max and min, not a time-weighted average. A market settling on \"average temperature\" needs its protocol checked against this." ;
+    wtl:hasQuantityKind quantitykind:Temperature ;
+    wx:conventionalUnit unit:DEG_F , unit:DEG_C .
+
 wx:TotalPrecipitation a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total precipitation" ;
-    skos:definition "The accumulated liquid-water-equivalent precipitation depth at an observing site over a temporal interval." .
-wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ; rdfs:label "total snowfall" .
-wx:MaximumSustainedWindSpeed a wx:WeatherVariable, owl:NamedIndividual ; rdfs:label "maximum sustained wind speed" .
-wx:PeakWindGust a wx:WeatherVariable, owl:NamedIndividual ; rdfs:label "peak wind gust" .
+    skos:definition "The accumulated liquid-water-equivalent precipitation depth at an observing site over a temporal interval." ;
+    wtl:hasQuantityKind quantitykind:Length ;
+    wx:conventionalUnit unit:IN , unit:MilliM .
+
+wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ;
+    rdfs:label "total snowfall" ;
+    skos:definition "The accumulated settled depth of snow at an observing site over a temporal interval." ;
+    skos:scopeNote "Settled depth, not liquid-water equivalent. Same dimension as total precipitation but not the same quantity, so dimensional compatibility alone will not catch a confusion between them." ;
+    wtl:hasQuantityKind quantitykind:Length ;
+    wx:conventionalUnit unit:IN , unit:CentiM .
+
+wx:MaximumSustainedWindSpeed a wx:WeatherVariable, owl:NamedIndividual ;
+    rdfs:label "maximum sustained wind speed" ;
+    skos:definition "The greatest wind speed sustained over the averaging period stated by the measurement protocol, at an observing site over a temporal interval." ;
+    skos:scopeNote "The averaging period is part of the protocol, not of the variable. US practice is a one-minute mean; WMO practice is ten minutes. The two give materially different numbers for the same wind." ;
+    wtl:hasQuantityKind quantitykind:Velocity ;
+    wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC , unit:KiloM-PER-HR .
+
+wx:PeakWindGust a wx:WeatherVariable, owl:NamedIndividual ;
+    rdfs:label "peak wind gust" ;
+    skos:definition "The greatest instantaneous wind speed recorded at an observing site over a temporal interval." ;
+    wtl:hasQuantityKind quantitykind:Velocity ;
+    wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC .
 
 wx:MeasurementProtocol a owl:Class ;
     rdfs:subClassOf wtl:Plan ;
@@ -320,6 +354,18 @@ wx:targetVariable a owl:ObjectProperty ;
     rdfs:range wx:WeatherVariable ;
     a owl:FunctionalProperty ;
     skos:definition "Relates an observation target to the weather variable whose value it specifies is to be determined." .
+
+wx:conventionalUnit a owl:ObjectProperty ;
+    rdfs:label "conventional unit" ;
+    skos:scopeNote """Deliberately NOT a sub-property of wtl:hasUnit. wtl:hasUnit is functional --
+one entity, one unit -- so making this a sub-property of it would force every unit listed for a
+variable to be inferred identical, silently identifying degrees Fahrenheit with degrees Celsius.
+The owl:AllDifferent assertion in core.ttl turns that mistake into an inconsistency rather than
+a wrong answer.""" ;
+    rdfs:domain wx:WeatherVariable ;
+    rdfs:range qudt:Unit ;
+    skos:definition "Relates a weather variable to a measurement unit in which it is conventionally reported by meteorological authorities." ;
+    skos:scopeNote "Advisory, not restrictive. A target may legitimately use a dimensionally compatible unit not listed here; validation checks the dimension vector, not membership of this set." .
 
 wx:atSite a owl:ObjectProperty ;
     rdfs:label "at site" ;

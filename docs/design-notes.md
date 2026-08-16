@@ -108,6 +108,44 @@ the bearer's physical make-up. An obligation to pay is grounded in an institutio
 external to the bearer. That is the textbook role/disposition line and this falls cleanly on the
 role side.
 
+## Units
+
+Adopted QUDT in 0.2.0, replacing the `xsd:string` unit of 0.1.0. Sixteen units and ten quantity
+kinds are vendored via `scripts/extract_qudt_subset.py`; QUDT proper is ~74k triples.
+
+**Grounding.** QUDT makes no upper-level commitment, so `qudt:Unit` is asserted under
+`wtl:MeasurementUnit` and `qudt:QuantityKind` under `wtl:Designation` in `core.ttl`. A unit is a
+convention rather than a property of the world — the degree Fahrenheit does not inhere in
+anything — so it is a generically dependent continuant, not a quality.
+
+**Why dimension vectors and not quantity kinds.** The obvious compatibility check is
+`qudt:unitForQuantityKind`, and it does not work. QUDT's links there are uneven: pressure units
+link to `ForcePerArea` and not to `quantitykind:Pressure`; of the four wind-speed units only
+`M-PER-SEC` links to `Speed`, the rest to `Velocity` and `LinearVelocity`; `PERCENT` links to
+thirty-nine kinds, none of them `RelativeHumidity`. Every unit does carry exactly one
+`qudt:hasDimensionVector`, consistently. So dimension vectors do the checking and quantity kind
+is carried as documentation.
+
+**Why identity and not just dimension where values are compared.** The first version of the
+check compared dimension vectors everywhere and passed a °C threshold over a °F target in
+silence — the exact mistake units were adopted to prevent, since °F and °C share a dimension.
+Where two values are actually compared the units must be the same unit; same-dimension-different-unit
+means a conversion is required and has not been recorded, which is worth failing on rather than
+assuming. Only when choosing a unit for a variable does dimension alone suffice.
+
+Dimension equality stays necessary but not sufficient. Snowfall depth and liquid-water-equivalent
+precipitation are both lengths and would pass; percent and plane-angle degrees are both
+dimensionless. Quantity confusions need the variable to be right, which is what
+`wx:WeatherVariable` is for.
+
+**The functional sub-property trap.** `wx:conventionalUnit` lists several units per variable.
+Making it `rdfs:subPropertyOf wtl:hasUnit` — which looked tidy — would have been a serious bug:
+`wtl:hasUnit` is functional, so every listed unit would be inferred identical, silently
+identifying knots with metres per second and °F with °C. OWL does not assume named individuals
+are distinct, so nothing would have complained. The `owl:AllDifferent` block over the vendored
+units in `core.ttl` exists to turn that class of mistake into a HermiT inconsistency. Verified by
+reintroducing the bug and confirming the reasoner reports it.
+
 ## Bugs the checks caught
 
 Recorded because they are representative of what goes wrong, not for posterity.
