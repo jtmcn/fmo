@@ -1,0 +1,358 @@
+@prefix wtl:  <https://w3id.org/wantology/core#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+<https://w3id.org/wantology/core>
+    a owl:Ontology ;
+    owl:versionIRI <https://w3id.org/wantology/core/0.1.0> ;
+    owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ;
+    dcterms:title "Wantology Core: information, propositions, and probability" ;
+    dcterms:description """A minimal BFO-conformant layer for information content entities,
+propositions with truth conditions, and probability assignments. This is the shared
+vocabulary that lets a weather forecast and a Kalshi market be compared: both attach a
+probability to the SAME proposition object.
+
+This layer is deliberately IAO-shaped (Information Artifact Ontology) but does not import
+IAO, so that the project has a single upstream dependency (BFO) for now. See
+align/iao.ttl for the mapping axioms if/when IAO is adopted.""" ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    owl:versionInfo "0.1.0" .
+
+################################################################
+# Information content entities
+################################################################
+
+wtl:InformationContentEntity a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000031 ;   # generically dependent continuant
+    rdfs:label "information content entity" ;
+    skos:definition "A generically dependent continuant that is about some entity, or that carries propositional or directive content, and that generically depends on some material entity carrying it." ;
+    skos:scopeNote """Copyable. The same forecast can be carried by a file, a screen, and a printed
+bulletin; all three carry one information content entity. Note the BFO chain precisely: the
+information content entity generically depends on the material carrier, and it is concretized
+by a quality of that carrier or by a process in it. It is not concretized by the carrier
+itself, because in BFO 2020 the domain of 'concretizes' is process or specifically dependent
+continuant.""" ;
+    skos:example "The text of the NWS point forecast for Central Park issued 2026-08-15T09:00Z." .
+
+wtl:InformationBearingEntity a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000040 ;   # material entity
+    rdfs:label "information bearing entity" ;
+    skos:definition "A material entity that is the carrier of at least one information content entity." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty bfo:BFO_0000101 ;    # is carrier of
+        owl:someValuesFrom wtl:InformationContentEntity ] ;
+    skos:scopeNote "Uses 'is carrier of', not 'concretizes'. Asserting that a material entity concretizes an information content entity makes the class unsatisfiable, because BFO restricts the domain of 'concretizes' to processes and specifically dependent continuants." ;
+    skos:example "The disk sectors holding a JSON response from the Kalshi API; the ink on a printed bulletin." .
+
+wtl:MeasurementDatum a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "measurement datum" ;
+    skos:definition "An information content entity that is the output of a measurement process and that reports the magnitude of some quality of some entity." ;
+    skos:example "\"82 degrees Fahrenheit\" as recorded for the maximum air temperature at KNYC on 2026-08-15." .
+
+wtl:Document a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "document" ;
+    skos:definition "An information content entity intended to be understood as a whole and issued as a unit by some agent." ;
+    skos:example "An NWS Climatological Report (Daily), product CLINYC." .
+
+wtl:DirectiveInformationEntity a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "directive information entity" ;
+    skos:definition "An information content entity whose content prescribes how some process ought to proceed, rather than describing how some entity is." ;
+    skos:scopeNote "Market rules, settlement procedures, measurement protocols, and orders are all directive." .
+
+wtl:Plan a owl:Class ;
+    rdfs:subClassOf wtl:DirectiveInformationEntity ;
+    rdfs:label "plan" ;
+    skos:definition "A directive information entity that specifies a sequence of actions to be carried out in order to realize some objective." ;
+    skos:example "The settlement procedure defined by a Kalshi series." .
+
+################################################################
+# Propositions and truth
+#
+# A proposition is the pivot of this ontology. Forecasts and markets do not
+# talk to each other directly; they each attach to a proposition, and the
+# proposition is what gets evaluated against the observational record.
+################################################################
+
+wtl:Proposition a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "proposition" ;
+    skos:definition "An information content entity that has a truth value, or that would have one once the state of affairs it concerns is determinate." ;
+    skos:scopeNote """Propositions here are typically about FUTURE states of affairs, so their subject
+matter may not yet exist. This is why a proposition is not modelled as standing in an
+'is about' relation to a quality instance: at forecast time there is no such instance to
+point at. Instead a proposition is composed of a subject (an observation target, which is
+itself an information content entity specifying what would be measured), a comparator, and
+threshold values.""" ;
+    skos:example "\"The maximum air temperature at KNYC over the climatological day 2026-08-15 is between 82 and 83 degrees Fahrenheit inclusive.\"" .
+
+wtl:ObservationTarget a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "observation target" ;
+    skos:definition "An information content entity that specifies what would be measured, of what, where, when, and under which protocol; the referential core shared by a proposition, a forecast, and a market." ;
+    skos:scopeNote "Two propositions with different thresholds over the same observation target are directly comparable, and their forecast and market probabilities can be joined." .
+
+wtl:Designation a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "designation" ;
+    skos:definition "An information content entity that is a member of a controlled set of labels, used to classify some other entity by assigning it exactly one member of that set." ;
+    skos:scopeNote """Truth values, comparators, market statuses, and resolution outcomes are all
+designations. They are information content entities rather than qualities because the entities
+they classify are themselves information content entities, and BFO qualities inhere only in
+independent continuants. Modelling them as individuals in a controlled vocabulary, rather than
+as classes, keeps the ontology inside OWL DL by avoiding punning.""" .
+
+wtl:TruthValue a owl:Class ;
+    rdfs:subClassOf wtl:Designation ;
+    rdfs:label "truth value" ;
+    skos:definition "A designation assigned to a proposition once its subject matter is determinate." .
+
+wtl:True    a wtl:TruthValue, owl:NamedIndividual ; rdfs:label "true" .
+wtl:False   a wtl:TruthValue, owl:NamedIndividual ; rdfs:label "false" .
+wtl:Indeterminate a wtl:TruthValue, owl:NamedIndividual ; rdfs:label "indeterminate" ;
+    skos:definition "Assigned when the authoritative record needed to evaluate the proposition was not produced, or was produced but is unusable." .
+
+wtl:Comparator a owl:Class ;
+    rdfs:subClassOf wtl:Designation ;
+    rdfs:label "comparator" ;
+    skos:definition "A designation of the relation that must hold between the realized value of an observation target and the threshold values of a proposition for that proposition to be true." .
+
+wtl:GreaterThan        a wtl:Comparator, owl:NamedIndividual ; rdfs:label "greater than" ;          skos:definition "Realized value > floor value." .
+wtl:GreaterThanOrEqual a wtl:Comparator, owl:NamedIndividual ; rdfs:label "greater than or equal" ; skos:definition "Realized value >= floor value." .
+wtl:LessThan           a wtl:Comparator, owl:NamedIndividual ; rdfs:label "less than" ;             skos:definition "Realized value < cap value." .
+wtl:LessThanOrEqual    a wtl:Comparator, owl:NamedIndividual ; rdfs:label "less than or equal" ;    skos:definition "Realized value <= cap value." .
+wtl:Between            a wtl:Comparator, owl:NamedIndividual ; rdfs:label "between" ;               skos:definition "Floor value <= realized value <= cap value. Bound inclusivity is a property of the issuing venue's rules and should be checked against those rules." .
+wtl:EqualTo            a wtl:Comparator, owl:NamedIndividual ; rdfs:label "equal to" ;              skos:definition "Realized value = floor value." .
+wtl:Custom             a wtl:Comparator, owl:NamedIndividual ; rdfs:label "custom" ;                skos:definition "The condition is stated in natural language in the governing rules and is not reducible to a numeric threshold comparison." .
+
+################################################################
+# Probability
+#
+# Both halves of this ontology exist to produce these. A forecast probability
+# and a market-implied probability are the same kind of thing pointed at the
+# same proposition by different agents through different processes.
+################################################################
+
+wtl:ProbabilityAssignment a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "probability assignment" ;
+    skos:definition "An information content entity that assigns a numeric degree of belief, in the closed interval from 0 to 1, to exactly one proposition, as of some reference time and by some agent or process." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty wtl:assignsProbabilityTo ;
+        owl:cardinality "1"^^xsd:nonNegativeInteger ] ;
+    skos:example "A 62% chance of the high at KNYC landing in the 82-83F bracket, per the 12Z GEFS run." .
+
+wtl:ForecastProbability a owl:Class ;
+    rdfs:subClassOf wtl:ProbabilityAssignment ;
+    rdfs:label "forecast probability" ;
+    skos:definition "A probability assignment produced by a prediction process, such as a numerical weather prediction model run or a human forecaster's judgement." .
+
+wtl:MarketImpliedProbability a owl:Class ;
+    rdfs:subClassOf wtl:ProbabilityAssignment ;
+    rdfs:label "market implied probability" ;
+    skos:definition "A probability assignment derived by transformation from the price of a contract in a market whose payout is conditional on the proposition." ;
+    skos:scopeNote "This is derived, not observed. The transformation from price to probability is not identity: it ignores fees, the bid-ask spread, the cost of capital over the holding period, and any risk premium. Record the derivation used." .
+
+################################################################
+# Agents and roles
+#
+# BFO has no primitive 'agent'. Agency is carried by roles borne by material
+# entities, realized in processes.
+################################################################
+
+wtl:Agent a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000040 ;   # material entity
+    rdfs:label "agent" ;
+    skos:definition "A material entity capable of bearing a role that is realized in a process it initiates." .
+
+wtl:Person a owl:Class ;
+    rdfs:subClassOf wtl:Agent, bfo:BFO_0000030 ;   # object
+    rdfs:label "person" ;
+    skos:definition "An agent that is a single human being." .
+
+wtl:Organization a owl:Class ;
+    rdfs:subClassOf wtl:Agent, bfo:BFO_0000027 ;   # object aggregate
+    rdfs:label "organization" ;
+    skos:definition "An object aggregate of persons and other material entities, bound by a common set of directive information entities, that bears roles as a unit." ;
+    skos:example "The National Weather Service; Kalshi Inc." .
+
+wtl:AgentRole a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000023 ;   # role
+    rdfs:label "agent role" ;
+    skos:definition "A role borne by a material entity in virtue of its place in some social or institutional context, realized when that entity participates in a process characteristic of the role." .
+
+################################################################
+# Processes
+################################################################
+
+wtl:InformationProcess a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000015 ;   # process
+    rdfs:label "information process" ;
+    skos:definition "A process whose completion has as an output at least one information content entity." .
+
+wtl:MeasurementProcess a owl:Class ;
+    rdfs:subClassOf wtl:InformationProcess ;
+    rdfs:label "measurement process" ;
+    skos:definition "An information process in which the magnitude of a quality of some entity is determined, yielding a measurement datum." .
+
+wtl:PredictionProcess a owl:Class ;
+    rdfs:subClassOf wtl:InformationProcess ;
+    rdfs:label "prediction process" ;
+    skos:definition "An information process that yields one or more propositions or probability assignments concerning a state of affairs that is not yet determinate at the time the process concludes." .
+
+wtl:EvaluationProcess a owl:Class ;
+    rdfs:subClassOf wtl:InformationProcess ;
+    rdfs:label "evaluation process" ;
+    skos:definition "An information process that takes a proposition and an authoritative record as input and assigns a truth value to that proposition." ;
+    skos:scopeNote "Market settlement is a species of this, as is the scoring of a forecast." .
+
+################################################################
+# Object properties
+################################################################
+
+wtl:isAbout a owl:ObjectProperty ;
+    rdfs:label "is about" ;
+    rdfs:domain wtl:InformationContentEntity ;
+    rdfs:range bfo:BFO_0000001 ;   # entity
+    skos:definition "Relates an information content entity to the entity it concerns. Asserting this commits to the existence of the relatum, so it is NOT used for propositions about the future." ;
+    owl:inverseOf wtl:isSubjectOf .
+
+wtl:isSubjectOf a owl:ObjectProperty ;
+    rdfs:label "is subject of" ;
+    skos:definition "Relates an entity to an information content entity that is about it." .
+
+wtl:hasSubject a owl:ObjectProperty ;
+    rdfs:label "has subject" ;
+    rdfs:domain wtl:Proposition ;
+    rdfs:range wtl:ObservationTarget ;
+    skos:definition "Relates a proposition to the observation target whose realized value determines the proposition's truth value." .
+
+wtl:hasComparator a owl:ObjectProperty ;
+    rdfs:label "has comparator" ;
+    rdfs:domain wtl:Proposition ;
+    rdfs:range wtl:Comparator ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a proposition to the designation of the relation that must hold between the realized value of its subject and its threshold values for it to be true." .
+
+wtl:hasTruthValue a owl:ObjectProperty ;
+    rdfs:label "has truth value" ;
+    rdfs:domain wtl:Proposition ;
+    rdfs:range wtl:TruthValue ;
+    a owl:FunctionalProperty ;
+    skos:scopeNote "Absent until the proposition has been evaluated. Absence means undetermined, not false." .
+
+wtl:assignsProbabilityTo a owl:ObjectProperty ;
+    rdfs:label "assigns probability to" ;
+    rdfs:domain wtl:ProbabilityAssignment ;
+    rdfs:range wtl:Proposition ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a probability assignment to the single proposition whose degree of belief it states." .
+
+wtl:hasAgent a owl:ObjectProperty ;
+    rdfs:subPropertyOf bfo:BFO_0000057 ;   # has participant
+    rdfs:label "has agent" ;
+    rdfs:domain bfo:BFO_0000015 ;
+    rdfs:range wtl:Agent ;
+    skos:definition "Relates a process to a material entity that bears an agent role realized in that process." .
+
+wtl:hasOutput a owl:ObjectProperty ;
+    rdfs:label "has output" ;
+    rdfs:domain bfo:BFO_0000015 ;   # process
+    rdfs:range bfo:BFO_0000001 ;
+    skos:definition "Relates a process to an entity that exists, or comes to have the character it has, as a result of that process." ;
+    owl:inverseOf wtl:isOutputOf .
+
+wtl:isOutputOf a owl:ObjectProperty ; rdfs:label "is output of" ;
+    skos:definition "Relates an entity to the process as a result of which it exists, or comes to have the character it has." .
+
+wtl:hasInput a owl:ObjectProperty ;
+    rdfs:label "has input" ;
+    rdfs:domain bfo:BFO_0000015 ;
+    rdfs:range bfo:BFO_0000001 ;
+    skos:definition "Relates a process to an entity that is present at the start of the process and is used by it." .
+
+wtl:issuedBy a owl:ObjectProperty ;
+    rdfs:label "issued by" ;
+    rdfs:domain wtl:InformationContentEntity ;
+    rdfs:range wtl:Agent ;
+    skos:definition "Relates an information content entity to the agent that made it publicly available under its own authority." .
+
+wtl:governedBy a owl:ObjectProperty ;
+    rdfs:label "governed by" ;
+    rdfs:range wtl:DirectiveInformationEntity ;
+    skos:definition "Relates an entity to a directive information entity that prescribes how it is to be interpreted, produced, or resolved." .
+
+wtl:overTemporalInterval a owl:ObjectProperty ;
+    rdfs:label "over temporal interval" ;
+    rdfs:domain wtl:InformationContentEntity ;
+    rdfs:range bfo:BFO_0000202 ;   # temporal interval
+    skos:definition "Relates an information content entity to the temporal interval its content concerns. Distinct from BFO 'occupies temporal region', which relates an occurrent to when it happens." ;
+    skos:scopeNote "A forecast issued Monday about Friday's weather occupies Monday but is 'over' Friday." .
+
+################################################################
+# Data properties
+################################################################
+
+wtl:probabilityValue a owl:DatatypeProperty ;
+    rdfs:label "probability value" ;
+    rdfs:domain wtl:ProbabilityAssignment ;
+    rdfs:range [ a rdfs:Datatype ;
+        owl:onDatatype xsd:decimal ;
+        owl:withRestrictions ( [ xsd:minInclusive "0.0"^^xsd:decimal ]
+                               [ xsd:maxInclusive "1.0"^^xsd:decimal ] ) ] ;
+    a owl:FunctionalProperty ;
+    skos:definition "The numeric degree of belief a probability assignment states, in the closed interval from 0 to 1." .
+
+wtl:floorValue a owl:DatatypeProperty ;
+    rdfs:label "floor value" ;
+    rdfs:domain wtl:Proposition ;
+    rdfs:range xsd:decimal ;
+    skos:definition "The lower threshold against which the realized value of the observation target is compared." .
+
+wtl:capValue a owl:DatatypeProperty ;
+    rdfs:label "cap value" ;
+    rdfs:domain wtl:Proposition ;
+    rdfs:range xsd:decimal ;
+    skos:definition "The upper threshold against which the realized value of the observation target is compared." .
+
+wtl:realizedValue a owl:DatatypeProperty ;
+    rdfs:label "realized value" ;
+    rdfs:range xsd:decimal ;
+    skos:definition "The value actually determined for an observation target by the authoritative measurement process, once available." .
+
+wtl:hasUnit a owl:DatatypeProperty ;
+    rdfs:label "has unit" ;
+    rdfs:range xsd:string ;
+    skos:scopeNote "Held as a string in 0.1.0. Replace with a QUDT unit individual before any arithmetic crosses unit systems; degrees Fahrenheit and degrees Celsius both appear in this domain." .
+
+wtl:statedAs a owl:DatatypeProperty ;
+    rdfs:label "stated as" ;
+    rdfs:domain wtl:InformationContentEntity ;
+    rdfs:range xsd:string ;
+    skos:definition "A natural language rendering of the content, for human inspection. Not authoritative." .
+
+wtl:referenceTime a owl:DatatypeProperty ;
+    rdfs:label "reference time" ;
+    rdfs:range xsd:dateTime ;
+    skos:definition "The instant as of which an information content entity's content is asserted to hold." ;
+    a owl:FunctionalProperty .
+
+wtl:instantDateTime a owl:DatatypeProperty ;
+    rdfs:label "instant date time" ;
+    rdfs:domain bfo:BFO_0000203 ;   # temporal instant
+    rdfs:range xsd:dateTime ;
+    a owl:FunctionalProperty ;
+    skos:definition "Locates a temporal instant on a calendar and clock." ;
+    skos:scopeNote "Always record the offset. Half of the settlement subtleties in this domain are timezone boundaries." .
+
+wtl:identifier a owl:DatatypeProperty ;
+    rdfs:label "identifier" ;
+    rdfs:range xsd:string ;
+    skos:definition "A string assigned by some authority that picks out an entity within that authority's scheme." .

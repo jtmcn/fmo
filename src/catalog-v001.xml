@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Maps ontology IRIs to local files so that Protege, ROBOT, and the
+     validation script resolve imports offline and reproducibly. -->
+<catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <uri id="bfo"      name="http://purl.obolibrary.org/obo/bfo.owl"    uri="imports/bfo-core.ttl"/>
+    <uri id="bfo-purl" name="http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl" uri="imports/bfo-core.ttl"/>
+    <uri id="core"     name="https://w3id.org/wantology/core"           uri="core.ttl"/>
+    <uri id="weather"  name="https://w3id.org/wantology/weather"        uri="weather.ttl"/>
+    <uri id="kalshi"   name="https://w3id.org/wantology/kalshi"         uri="kalshi.ttl"/>
+    <uri id="top"      name="https://w3id.org/wantology/wantology"      uri="wantology.ttl"/>
+</catalog>
