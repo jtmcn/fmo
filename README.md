@@ -64,17 +64,19 @@ dereference the IRIs need the catalog, which Protégé and ROBOT both pick up au
 ## Usage
 
 ```bash
-pip install rdflib
-python3 scripts/validate.py          # structure, BFO grounding, unit coherence, docs
+make setup                           # poetry install, plus robot.jar if it is missing
+make validate                        # structure, BFO grounding, unit coherence, docs
 make cq                              # competency questions 1, 2, 4, 5, 6, 7 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make reason                          # HermiT consistency (needs robot.jar)
 make test                            # all of the above, plus the competency check
 ```
 
-`make` picks up ROBOT from `$ROBOT_JAR`, or `robot` on `PATH`. Get it from
-[ontodev/robot](https://github.com/ontodev/robot/releases). Reasoner steps are skipped with a
-notice if ROBOT is absent; `validate.py` always runs.
+Python deps are managed by poetry (`pyproject.toml`); every target runs through
+`poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
+`PATH` — `make setup` downloads it if none of those exist, but it needs a JRE
+(`brew install openjdk`). Reasoner steps skip with a notice if ROBOT or Java is absent; the
+Python checks always run.
 
 To open in Protégé, open `src/wantology.ttl` — the catalog next to it resolves the imports.
 
