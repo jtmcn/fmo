@@ -9,4 +9,8 @@
     <uri id="weather"  name="https://w3id.org/wantology/weather"        uri="weather.ttl"/>
     <uri id="kalshi"   name="https://w3id.org/wantology/kalshi"         uri="kalshi.ttl"/>
     <uri id="top"      name="https://w3id.org/wantology/wantology"      uri="wantology.ttl"/>
+    <!-- Example data. The bracket-set file imports the base example, so this entry is
+         required for ROBOT and Protege to resolve it offline. -->
+    <uri id="ex-base"     name="https://w3id.org/wantology/examples/kxhighny-2026-08-15"           uri="../examples/kxhighny-2026-08-15.ttl"/>
+    <uri id="ex-brackets" name="https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset" uri="../examples/kxhighny-2026-08-15-bracketset.ttl"/>
 </catalog>

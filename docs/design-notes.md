@@ -183,7 +183,7 @@ this", which was true and not the same as tested; only 3 had a real check. Made 
 | 2 | Which forecast probabilities and market-implied probabilities target the same proposition, and what is the gap? | `queries/cq02-probability-gap.rq` |
 | 3 | Which markets are weather markets? | `make competency` — inferred, so it needs a reasoner |
 | 4 | What document settled this market, and what value did it report? | `queries/cq04-settlement-provenance.rq` |
-| 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | not yet |
+| 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | `queries/cq05-bracket-coherence.rq` |
 | 6 | Given a lead time, what is the historical calibration of a model against settled markets? | not yet |
 | 7 | Which settled markets were contradicted by a later correction to their settlement source? | not yet |
 
@@ -202,15 +202,38 @@ Two things learned wiring these up, both recorded because they generalise:
   as the missing `owl:equivalentProperty` axioms in the IAO analysis above: nothing errors,
   answers just quietly go missing.
 
-Questions 5 to 7 are the ones that would justify the modelling, and they were the stated target
-for 0.2.0 before the units work took that slot. Where they stand:
+Question 5 landed in 0.3.0 and needed no new terms, only a fuller example: the bracket ladder in
+`examples/kxhighny-2026-08-15-bracketset.ttl`, since one market cannot overshoot. It reports
 
-- **5** is the cheapest real signal and needs no new terms — a SPARQL aggregate over the markets
-  of a mutually-exclusive `ksh:EventGrouping`, plus arithmetic. It does need the worked example
-  extended to a full bracket set, since one market cannot overshoot. Interpreting the overshoot
-  above 1.0 as spread and fee drag needs a fee model that does not exist yet.
+```
+eventTicker       asOf                  markets  sumImplied  overshoot  bids  asks  arbitrage
+KXHIGHNY-26AUG15  2026-08-15T12:00:00Z  4        1.04        0.04       96    110   none
+KXHIGHNY-26AUG15  2026-08-15T18:00:00Z  4        1.02        0.02       94    108   none
+```
+
+Three things about that query generalise:
+
+- **Grouping by snapshot time is load-bearing.** Quotes accumulate, so summing without binding
+  one `?asOf` across both the quote and the implied probability adds noon prices to evening
+  prices and yields a meaningless total that still looks like a number. The example carries two
+  snapshots specifically so a regression here changes the answer instead of hiding.
+- **The overshoot is not profit.** It is what the market charges for immediacy. Turning it into
+  an arbitrage claim needs the ask side, so the query reports cents alongside probabilities and
+  flags the degenerate cases — a ladder costing ≤ 100c for a guaranteed \$1, or selling for
+  ≥ 100c against a \$1 liability. On real data those almost always mean stale quotes or a
+  misparse, not free money.
+- **`?marketCount` is the honest denominator.** The query only sums markets that have both a
+  quote and an implied probability at that instant. A ladder missing a bracket undershoots and
+  looks like an arbitrage, so the count has to be checked against the true bracket count.
+
+Interpreting the overshoot as spread plus fee drag still needs a fee model, which does not exist
+yet. Remaining:
+
 - **6** is the most work and the most valuable: `wx:ForecastVerification` instances, a scoring
-  rule (Brier or logarithmic), and enough settled history to be more than anecdote.
+  rule (Brier or logarithmic), and enough settled history to be more than anecdote. Note that
+  the example already shows why this matters — CQ2 reports the gap widening from 0.08 to 0.16
+  purely because the forecast is a stale 06Z run while the market kept moving. Calibration work
+  has to control for forecast age or it will measure staleness and call it skill.
 - **7** has its terms already (`wx:ReportCorrection`, `wx:supersedes`, and the deliberate
   separation of `ksh:settlementValue` from `wtl:realizedValue`) but no worked case.
 

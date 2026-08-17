@@ -4,8 +4,8 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.2.0.** Consistent under HermiT, structurally validated, unit-checked against
-QUDT, one worked example. Term coverage is deliberately shallow in places; see
+Status: **0.3.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Competency questions 1–5 are mechanically tested; 6 and 7 are not built. Term coverage is deliberately shallow in places; see
 [Open questions](#open-questions).
 
 ## What it is for
@@ -47,7 +47,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/imports/bfo-core.ttl` | vendored BFO 2020 core, unmodified |
 | `src/imports/qudt-subset.ttl` | 16 units + 10 quantity kinds extracted from QUDT (generated) |
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
-| `examples/` | worked instance data |
+| `examples/` | worked instance data: one bracket end-to-end, plus the full ladder |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
@@ -65,7 +65,7 @@ dereference the IRIs need the catalog, which Protégé and ROBOT both pick up au
 ```bash
 pip install rdflib
 python3 scripts/validate.py          # structure, BFO grounding, unit coherence, docs
-make cq                              # competency questions 1, 2, 4 as SPARQL
+make cq                              # competency questions 1, 2, 4, 5 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make reason                          # HermiT consistency (needs robot.jar)
 make test                            # all of the above, plus the competency check

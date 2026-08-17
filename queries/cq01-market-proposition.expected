@@ -1,2 +1,5 @@
 ticker	comparator	floor	cap	unit	variable	site	protocol	from	to
 KXHIGHNY-26AUG15-B82.5	wtl:Between	82	83	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:NWSDailyClimateProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
+KXHIGHNY-26AUG15-B84.5	wtl:Between	84	85	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:NWSDailyClimateProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
+KXHIGHNY-26AUG15-T81	wtl:LessThanOrEqual	-	81	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:NWSDailyClimateProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
+KXHIGHNY-26AUG15-T86	wtl:GreaterThanOrEqual	86	-	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:NWSDailyClimateProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00

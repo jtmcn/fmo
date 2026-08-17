@@ -1,0 +1,259 @@
+# The rest of the KXHIGHNY-26AUG15 bracket ladder.
+#
+# Extends examples/kxhighny-2026-08-15.ttl, which carries one bracket end-to-end to
+# show the forecast/market join. This file adds the other three brackets so that the
+# event grouping is genuinely mutually exclusive AND exhaustive, which is what CQ5
+# needs: a single market cannot overshoot.
+#
+# All four markets share ONE observation target. That is what an event grouping is --
+# its markets partition the possible values of one target, they do not each have their
+# own. Only the propositions differ, in comparator and thresholds.
+#
+#   Prop-LE81     high <= 81
+#   Prop-82-83    high in [82, 83]     <- defined in the base file, resolved yes
+#   Prop-84-85    high in [84, 85]
+#   Prop-GE86     high >= 86
+#
+# Two quote snapshots, 12:00Z and 18:00Z, so CQ5 has to group by time rather than
+# summing every quote it can find. As the day progresses toward the actual 82, the
+# 82-83 bracket firms from 0.60 to 0.68 and the overshoot narrows from 4 to 2 points.
+#
+# Prices are illustrative, not real quotes. The bracket ticker convention (T/B
+# prefixes) follows the pattern in the base file and is unverified -- Kalshi's API
+# reference was not reachable when this was written.
+
+@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
+@prefix wtl:  <https://w3id.org/wantology/core#> .
+@prefix wx:   <https://w3id.org/wantology/weather#> .
+@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+
+<https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset>
+    a owl:Ontology ;
+    owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15> ;
+    rdfs:label "Worked example: the full KXHIGHNY-26AUG15 bracket ladder" .
+
+################################################################
+# The three additional propositions.
+# Same subject target as Prop-82-83; only the condition differs.
+################################################################
+
+ex:Prop-LE81 a wtl:Proposition ;
+    rdfs:label "high is 81F or below" ;
+    wtl:hasSubject ex:Target-HighTemp ;
+    wtl:hasComparator wtl:LessThanOrEqual ;
+    wtl:capValue "81"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F ;
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is 81 degrees Fahrenheit or below." .
+
+ex:Prop-84-85 a wtl:Proposition ;
+    rdfs:label "high is between 84 and 85 degrees F" ;
+    wtl:hasSubject ex:Target-HighTemp ;
+    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "84"^^xsd:decimal ;
+    wtl:capValue "85"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F ;
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is between 84 and 85 degrees Fahrenheit inclusive." .
+
+ex:Prop-GE86 a wtl:Proposition ;
+    rdfs:label "high is 86F or above" ;
+    wtl:hasSubject ex:Target-HighTemp ;
+    wtl:hasComparator wtl:GreaterThanOrEqual ;
+    wtl:floorValue "86"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F ;
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is 86 degrees Fahrenheit or above." .
+
+################################################################
+# The three additional markets
+################################################################
+
+ex:Market-T81 a ksh:WeatherMarket ;
+    rdfs:label "KXHIGHNY-26AUG15-T81" ;
+    ksh:marketTicker "KXHIGHNY-26AUG15-T81" ;
+    ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
+    ksh:expressesProposition ex:Prop-LE81 ;
+    ksh:hasStatus ksh:Settled ;
+    ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
+    ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+
+ex:Market-B84 a ksh:WeatherMarket ;
+    rdfs:label "KXHIGHNY-26AUG15-B84.5" ;
+    ksh:marketTicker "KXHIGHNY-26AUG15-B84.5" ;
+    ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
+    ksh:expressesProposition ex:Prop-84-85 ;
+    ksh:hasStatus ksh:Settled ;
+    ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
+    ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+
+ex:Market-T86 a ksh:WeatherMarket ;
+    rdfs:label "KXHIGHNY-26AUG15-T86" ;
+    ksh:marketTicker "KXHIGHNY-26AUG15-T86" ;
+    ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
+    ksh:expressesProposition ex:Prop-GE86 ;
+    ksh:hasStatus ksh:Settled ;
+    ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
+    ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+
+################################################################
+# Snapshot 1: 12:00Z
+#
+# asks 13 + 62 + 27 + 8 = 110c to buy the whole ladder for a guaranteed $1.
+# bids 10 + 58 + 23 + 5 =  96c to sell it against a $1 liability.
+# Bids below 100 below asks: no arbitrage either way, which is the sane case.
+################################################################
+
+ex:Quote-T81-1200Z a ksh:Quote ;
+    rdfs:label "quote, T81, 12:00Z" ;
+    ksh:quoteForMarket ex:Market-T81 ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 10 ; ksh:yesAskCents 13 ; ksh:lastPriceCents 12 ;
+    ksh:volume 3120 ; ksh:openInterest 2050 .
+
+ex:Quote-B84-1200Z a ksh:Quote ;
+    rdfs:label "quote, B84.5, 12:00Z" ;
+    ksh:quoteForMarket ex:Market-B84 ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 23 ; ksh:yesAskCents 27 ; ksh:lastPriceCents 25 ;
+    ksh:volume 6740 ; ksh:openInterest 4310 .
+
+ex:Quote-T86-1200Z a ksh:Quote ;
+    rdfs:label "quote, T86, 12:00Z" ;
+    ksh:quoteForMarket ex:Market-T86 ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 5 ; ksh:yesAskCents 8 ; ksh:lastPriceCents 7 ;
+    ksh:volume 1890 ; ksh:openInterest 1120 .
+
+ex:MarketProb-T81-1200Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(<=81F), 12:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-LE81 ;
+    wtl:probabilityValue "0.12"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-T81-1200Z .
+
+ex:MarketProb-B84-1200Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(84-85F), 12:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-84-85 ;
+    wtl:probabilityValue "0.25"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-B84-1200Z .
+
+ex:MarketProb-T86-1200Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(>=86F), 12:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-GE86 ;
+    wtl:probabilityValue "0.07"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-T86-1200Z .
+
+################################################################
+# Snapshot 2: 18:00Z
+#
+# asks 9 + 70 + 23 + 6 = 108c, bids 6 + 66 + 19 + 3 = 94c.
+# Implied probabilities now sum to 1.02 rather than 1.04.
+################################################################
+
+ex:Quote-T81-1800Z a ksh:Quote ;
+    rdfs:label "quote, T81, 18:00Z" ;
+    ksh:quoteForMarket ex:Market-T81 ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 6 ; ksh:yesAskCents 9 ; ksh:lastPriceCents 8 ;
+    ksh:volume 4880 ; ksh:openInterest 2310 .
+
+ex:Quote-B82-1800Z a ksh:Quote ;
+    rdfs:label "quote, B82.5, 18:00Z" ;
+    ksh:quoteForMarket ex:Market-B82 ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 66 ; ksh:yesAskCents 70 ; ksh:lastPriceCents 68 ;
+    ksh:volume 21400 ; ksh:openInterest 9870 .
+
+ex:Quote-B84-1800Z a ksh:Quote ;
+    rdfs:label "quote, B84.5, 18:00Z" ;
+    ksh:quoteForMarket ex:Market-B84 ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 19 ; ksh:yesAskCents 23 ; ksh:lastPriceCents 21 ;
+    ksh:volume 8020 ; ksh:openInterest 4650 .
+
+ex:Quote-T86-1800Z a ksh:Quote ;
+    rdfs:label "quote, T86, 18:00Z" ;
+    ksh:quoteForMarket ex:Market-T86 ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 3 ; ksh:yesAskCents 6 ; ksh:lastPriceCents 5 ;
+    ksh:volume 2240 ; ksh:openInterest 1180 .
+
+ex:MarketProb-T81-1800Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(<=81F), 18:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-LE81 ;
+    wtl:probabilityValue "0.08"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-T81-1800Z .
+
+ex:MarketProb-B82-1800Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(82-83F), 18:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-82-83 ;
+    wtl:probabilityValue "0.68"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-B82-1800Z .
+
+ex:MarketProb-B84-1800Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(84-85F), 18:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-84-85 ;
+    wtl:probabilityValue "0.21"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-B84-1800Z .
+
+ex:MarketProb-T86-1800Z a wtl:MarketImpliedProbability ;
+    rdfs:label "market implied P(>=86F), 18:00Z" ;
+    wtl:assignsProbabilityTo ex:Prop-GE86 ;
+    wtl:probabilityValue "0.05"^^xsd:decimal ;
+    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote ex:Quote-T86-1800Z .
+
+################################################################
+# Settlement of the losing brackets.
+#
+# One document settles all four markets. The observed high was 82, so the other
+# three propositions are false. Recorded rather than left absent, because absence
+# of a truth value means undetermined, not false.
+################################################################
+
+ex:Settlement-T81 a ksh:MarketSettlement ;
+    rdfs:label "settlement of KXHIGHNY-26AUG15-T81" ;
+    wtl:hasAgent ksh:Kalshi ;
+    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasOutput ex:Resolution-T81 .
+
+ex:Resolution-T81 a ksh:Resolution ;
+    rdfs:label "KXHIGHNY-26AUG15-T81 resolved no" ;
+    ksh:resolutionOf ex:Market-T81 ;
+    ksh:resolvesTo ksh:ResolvedNo ;
+    ksh:settlementValue "82"^^xsd:decimal .
+
+ex:Settlement-B84 a ksh:MarketSettlement ;
+    rdfs:label "settlement of KXHIGHNY-26AUG15-B84.5" ;
+    wtl:hasAgent ksh:Kalshi ;
+    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasOutput ex:Resolution-B84 .
+
+ex:Resolution-B84 a ksh:Resolution ;
+    rdfs:label "KXHIGHNY-26AUG15-B84.5 resolved no" ;
+    ksh:resolutionOf ex:Market-B84 ;
+    ksh:resolvesTo ksh:ResolvedNo ;
+    ksh:settlementValue "82"^^xsd:decimal .
+
+ex:Settlement-T86 a ksh:MarketSettlement ;
+    rdfs:label "settlement of KXHIGHNY-26AUG15-T86" ;
+    wtl:hasAgent ksh:Kalshi ;
+    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasOutput ex:Resolution-T86 .
+
+ex:Resolution-T86 a ksh:Resolution ;
+    rdfs:label "KXHIGHNY-26AUG15-T86 resolved no" ;
+    ksh:resolutionOf ex:Market-T86 ;
+    ksh:resolvesTo ksh:ResolvedNo ;
+    ksh:settlementValue "82"^^xsd:decimal .
+
+ex:Prop-LE81  wtl:hasTruthValue wtl:False .
+ex:Prop-84-85 wtl:hasTruthValue wtl:False .
+ex:Prop-GE86  wtl:hasTruthValue wtl:False .

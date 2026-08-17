@@ -1,0 +1,68 @@
+# CQ5. For a mutually exclusive event grouping, do the implied probabilities sum
+# to one, and by how much do they overshoot?
+#
+# The brackets of a temperature event grouping are mutually exclusive and, taken
+# together, exhaustive: exactly one resolves yes. So a coherent set of beliefs
+# about them sums to 1. Real quotes never do, and the excess is informative --
+# it is roughly the spread and fee drag a taker pays to hold the whole ladder.
+#
+# THE OVERSHOOT IS NOT PURE PROFIT. It is what the market charges for immediacy.
+# Reading it as an arbitrage requires the ask side, which is why this query
+# reports cents alongside the derived probabilities:
+#
+#   sumAskCents  -- cost of buying every bracket, which guarantees exactly $1 back.
+#                   At or below 100 this is free money, and in practice means
+#                   stale quotes or a misparse rather than an actual arbitrage.
+#   sumBidCents  -- proceeds from selling every bracket against a $1 liability.
+#                   At or above 100, the same thing in reverse.
+#
+# ?arbitrageCheck flags either case. On sane data it reads "none".
+#
+# GROUPING BY TIME IS LOAD-BEARING. Quotes accumulate: each market has a quote at
+# every snapshot. Summing without binding a single ?asOf across both the quote and
+# the implied probability would add 12:00Z prices to 18:00Z prices and produce a
+# meaningless total that still looks like a number.
+#
+# Sums only over markets that HAVE both a quote and an implied probability at a
+# given instant, so ?marketCount is the honest denominator -- compare it against
+# the grouping's true bracket count before trusting a total. A ladder missing a
+# bracket will undershoot and look like an arbitrage.
+
+SELECT ?eventTicker ?asOf ?marketCount ?sumImplied ?overshoot
+       ?sumBidCents ?sumAskCents ?arbitrageCheck
+WHERE {
+    {
+        SELECT ?grouping ?asOf
+               (COUNT(DISTINCT ?market) AS ?marketCount)
+               (SUM(?p)    AS ?sumImplied)
+               (SUM(?bid)  AS ?sumBidCents)
+               (SUM(?ask)  AS ?sumAskCents)
+        WHERE {
+            ?grouping a/rdfs:subClassOf* ksh:EventGrouping ;
+                      ksh:mutuallyExclusive true .
+
+            ?market ksh:inEventGrouping ?grouping ;
+                    ksh:expressesProposition ?proposition .
+
+            ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
+                wtl:assignsProbabilityTo ?proposition ;
+                wtl:probabilityValue ?p ;
+                wtl:referenceTime ?asOf .
+
+            # Same ?asOf on both sides: one snapshot, not a mixture.
+            ?quote ksh:quoteForMarket ?market ;
+                   wtl:referenceTime ?asOf ;
+                   ksh:yesBidCents ?bid ;
+                   ksh:yesAskCents ?ask .
+        }
+        GROUP BY ?grouping ?asOf
+    }
+
+    ?grouping ksh:eventTicker ?eventTicker .
+
+    BIND((?sumImplied - 1) AS ?overshoot)
+    BIND(IF(?sumAskCents <= 100, "buy-side: ladder costs <= $1 for a guaranteed $1",
+         IF(?sumBidCents >= 100, "sell-side: ladder sells for >= $1 against a $1 liability",
+            "none")) AS ?arbitrageCheck)
+}
+ORDER BY ?eventTicker ?asOf

@@ -18,6 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
+BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -57,6 +58,13 @@ CASES = [
         "not grounded in BFO",
     ),
     (
+        "the only forecast probability downgraded, breaking the join",
+        EXAMPLE,
+        """ex:ForecastProb-82-83 a wtl:ForecastProbability ;""",
+        """ex:ForecastProb-82-83 a wtl:ProbabilityAssignment ;""",
+        "the forecast/market join is not demonstrated",
+    ),
+    (
         "information artifact misfiled as a process",
         "src/kalshi.ttl",
         """ksh:Resolution a owl:Class ;
@@ -93,11 +101,30 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         "differs from",
     ),
     (
+        "a bracket drops out of the ladder",
+        BRACKETS,
+        """    ksh:marketTicker "KXHIGHNY-26AUG15-T86" ;
+    ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;""",
+        """    ksh:marketTicker "KXHIGHNY-26AUG15-T86" ;""",
+        "differs from",
+    ),
+    (
+        "ladder priced so the whole set costs under a dollar",
+        EXAMPLE,
+        """    ksh:yesAskCents 62 ;""",
+        """    ksh:yesAskCents 30 ;""",
+        "differs from",
+    ),
+    (
+        # Was "returned 0 rows" when the example held a single settlement. With the
+        # full ladder there are four, so dropping one leaves three and the failure
+        # mode is a differing result rather than an empty one. The empty-result path
+        # is still covered by the broken-join case above.
         "settlement no longer records the document it read",
         EXAMPLE,
         """    wtl:hasInput ex:CLINYC-2026-08-16 ;""",
         """""",
-        "returned 0 rows",
+        "differs from",
     ),
 ]
 

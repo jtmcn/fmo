@@ -297,15 +297,35 @@ def main() -> int:
     check_dimensions(ex)
 
     # Domain sanity: the join the ontology exists for.
+    #
+    # All three conditions are required. An earlier version intersected "expressed
+    # by a market" with "assigned any probability", which a bracket ladder satisfies
+    # trivially -- every market has an implied probability, so the count rose with
+    # the data while proving strictly less. The join is only demonstrated when the
+    # SAME proposition carries a forecast probability AND a market-implied one.
     KSH = "https://w3id.org/wantology/kalshi#"
-    WTL = "https://w3id.org/wantology/core#"
-    joined = set(
-        ex.objects(None, URIRef(KSH + "expressesProposition"))
-    ) & set(ex.objects(None, URIRef(WTL + "assignsProbabilityTo")))
+    expressed = set(ex.objects(None, URIRef(KSH + "expressesProposition")))
+    with_forecast = {
+        p for s in ex.subjects(RDF.type, URIRef(WTL + "ForecastProbability"))
+        for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))
+    }
+    with_market = {
+        p for s in ex.subjects(RDF.type, URIRef(WTL + "MarketImpliedProbability"))
+        for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))
+    }
+    joined = expressed & with_forecast & with_market
     if EXAMPLES and not joined:
-        fail("no proposition is both expressed by a market and assigned a probability; the forecast/market join is not demonstrated")
+        fail(
+            "no proposition is expressed by a market AND carries both a forecast "
+            "probability and a market-implied probability; the forecast/market join "
+            "is not demonstrated"
+        )
     elif joined:
-        notes.append(f"forecast/market join demonstrated on {len(joined)} proposition(s)")
+        notes.append(
+            f"forecast/market join demonstrated on {len(joined)} proposition(s) "
+            f"({len(expressed)} expressed by markets, {len(with_forecast)} forecast, "
+            f"{len(with_market)} market-implied)"
+        )
 
     return report()
 
