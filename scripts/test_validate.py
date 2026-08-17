@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
+CORRECTION = "examples/kxhighny-2026-08-15-correction.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -113,6 +114,22 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         EXAMPLE,
         """    ksh:yesAskCents 62 ;""",
         """    ksh:yesAskCents 30 ;""",
+        "differs from",
+    ),
+    (
+        # Restores empty-result coverage: with no supersedes link there is no
+        # correction to check against, so CQ7 has nothing to report.
+        "correction no longer supersedes the report it replaces",
+        CORRECTION,
+        """    wx:supersedes ex:CLINYC-2026-08-16 ;""",
+        """""",
+        "returned 0 rows",
+    ),
+    (
+        "corrected value changed, so the contradiction verdicts flip",
+        CORRECTION,
+        """    wtl:realizedValue "84"^^xsd:decimal ;""",
+        """    wtl:realizedValue "81"^^xsd:decimal ;""",
         "differs from",
     ),
     (

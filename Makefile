@@ -34,7 +34,7 @@ QUDT_REPO ?= /tmp/qudt
 qudt:
 	python3 scripts/extract_qudt_subset.py $(QUDT_REPO)
 
-## Competency questions 1, 2, 4 and 5: run queries/*.rq and compare to checked-in results.
+## Competency questions 1, 2, 4, 5 and 7: run queries/*.rq against checked-in results.
 ## An empty result set fails -- a query matching nothing is how a broken check looks fine.
 ##   make cq-update   regenerates the .expected files; review the diff before committing.
 cq:

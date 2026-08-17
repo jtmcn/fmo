@@ -254,6 +254,23 @@ ex:Resolution-T86 a ksh:Resolution ;
     ksh:resolvesTo ksh:ResolvedNo ;
     ksh:settlementValue "82"^^xsd:decimal .
 
-ex:Prop-LE81  wtl:hasTruthValue wtl:False .
-ex:Prop-84-85 wtl:hasTruthValue wtl:False .
-ex:Prop-GE86  wtl:hasTruthValue wtl:False .
+ex:Assessment-LE81-at-settlement a wtl:TruthAssessment ;
+    rdfs:label "assessment of Prop-LE81 at settlement" ;
+    wtl:assessesProposition ex:Prop-LE81 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+
+ex:Assessment-84-85-at-settlement a wtl:TruthAssessment ;
+    rdfs:label "assessment of Prop-84-85 at settlement" ;
+    wtl:assessesProposition ex:Prop-84-85 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+
+ex:Assessment-GE86-at-settlement a wtl:TruthAssessment ;
+    rdfs:label "assessment of Prop-GE86 at settlement" ;
+    wtl:assessesProposition ex:Prop-GE86 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .

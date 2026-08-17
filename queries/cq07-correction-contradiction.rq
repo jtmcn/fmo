@@ -1,0 +1,74 @@
+# CQ7. Which settled markets were contradicted by a later correction to their
+# settlement source?
+#
+# NWS reissues CLI products when a sensor fault or transcription error is found,
+# sometimes days after the fact. Exchanges generally do not re-settle. So the
+# observational record and the exchange's payout permanently disagree, and both
+# are correct about what they record. That separation is why ksh:settlementValue
+# and wtl:realizedValue are distinct properties rather than one field.
+#
+# The verdict is COMPUTED, not looked up: the query re-evaluates each proposition's
+# comparator and thresholds against the currently authoritative value and compares
+# the result to what the exchange actually did. ?recordedAssessment is the stored
+# wtl:TruthAssessment for the same document, carried alongside as a cross-check --
+# if it ever disagrees with ?impliedOutcome, the stored assessment is wrong.
+#
+# RETURNS EVERY AFFECTED MARKET, not only the contradicted ones. Filtering to
+# contradictions would return zero rows whenever a correction happened to change
+# nothing, which the runner treats as failure -- and would also hide the useful
+# fact that a correction was issued and checked. Read the ?verdict column.
+#
+# LIMITATION: wtl:Custom conditions are not evaluable here. They are stated in
+# natural language in the market rules and need a human. They are excluded by the
+# comparator filter rather than silently defaulting to "consistent".
+
+SELECT ?ticker ?settledOutcome ?settlementValue ?currentValue
+       ?impliedOutcome ?verdict ?recordedAssessment ?currentDocument
+WHERE {
+    ?resolution ksh:resolutionOf ?market ;
+                ksh:resolvesTo   ?settledOutcome .
+    OPTIONAL { ?resolution ksh:settlementValue ?settlementValue }
+
+    ?market ksh:marketTicker ?ticker ;
+            ksh:expressesProposition ?proposition .
+
+    ?proposition wtl:hasSubject ?target ;
+                 wtl:hasComparator ?comparator .
+    OPTIONAL { ?proposition wtl:floorValue ?floor }
+    OPTIONAL { ?proposition wtl:capValue   ?cap }
+
+    FILTER(?comparator IN (wtl:Between, wtl:LessThan, wtl:LessThanOrEqual,
+                           wtl:GreaterThan, wtl:GreaterThanOrEqual, wtl:EqualTo))
+
+    # The document the exchange actually read, and the fact something superseded it.
+    ?settlement wtl:hasOutput ?resolution ;
+                wtl:hasInput  ?settledDocument .
+    ?currentDocument wx:supersedes+ ?settledDocument .
+    FILTER NOT EXISTS { ?newer wx:supersedes ?currentDocument }
+
+    # What that document now says the value was.
+    ?currentDocument bfo:BFO_0000178 ?datum .
+    ?datum wx:reportsValueFor ?target ;
+           wtl:realizedValue ?currentValue .
+
+    # Re-evaluate the proposition's own condition against it.
+    BIND(
+        IF(?comparator = wtl:Between,            ?currentValue >= ?floor && ?currentValue <= ?cap,
+        IF(?comparator = wtl:LessThanOrEqual,    ?currentValue <= ?cap,
+        IF(?comparator = wtl:LessThan,           ?currentValue <  ?cap,
+        IF(?comparator = wtl:GreaterThanOrEqual, ?currentValue >= ?floor,
+        IF(?comparator = wtl:GreaterThan,        ?currentValue >  ?floor,
+                                                 ?currentValue =  ?floor)))))
+        AS ?holdsNow)
+
+    BIND(IF(?holdsNow, ksh:ResolvedYes, ksh:ResolvedNo) AS ?impliedOutcome)
+    BIND(IF(?impliedOutcome = ?settledOutcome, "consistent", "CONTRADICTED") AS ?verdict)
+
+    # Cross-check against the stored assessment for the same document.
+    OPTIONAL {
+        ?assessment wtl:assessesProposition ?proposition ;
+                    wtl:basedOnRecord ?currentDocument ;
+                    wtl:assessedTruthValue ?recordedAssessment .
+    }
+}
+ORDER BY ?ticker

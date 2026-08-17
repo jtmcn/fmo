@@ -7,8 +7,8 @@
 # read, not merely what the current authoritative value is.
 #
 # ?settlementValue is what the exchange applied. ?reportedValue is what the
-# observational record says. They agree here, and are kept separate precisely
-# because they can diverge.
+# document it read says. They agree here, and are kept separate precisely because
+# they can diverge -- CQ7 shows the case where a correction makes them disagree.
 #
 # NOTE ON TYPE MATCHING. Class patterns below use `a/rdfs:subClassOf*` rather than
 # plain `a`. SPARQL does no subclass reasoning, so `?m a ksh:Market` does NOT match
@@ -16,7 +16,7 @@
 # the path was added. The property-path form keeps the queries runnable against the
 # raw graph without a reasoner in the loop.
 
-SELECT ?ticker ?outcome ?settlementValue ?document ?issuer ?reportedValue ?truthValue
+SELECT ?ticker ?outcome ?settlementValue ?document ?issuer ?reportedValue ?assessedAtSettlement
 WHERE {
     ?settlement a/rdfs:subClassOf* ksh:MarketSettlement ;
                 wtl:hasInput  ?document ;
@@ -28,7 +28,15 @@ WHERE {
 
     ?market ksh:marketTicker ?ticker ;
             ksh:expressesProposition ?proposition .
-    OPTIONAL { ?proposition wtl:hasTruthValue ?truthValue }
+
+    # The truth value assessed FROM THIS DOCUMENT. Bound to ?document rather than
+    # read off the proposition, because a later correction produces a second
+    # assessment of the same proposition with the opposite value -- see CQ7.
+    OPTIONAL {
+        ?assessment wtl:assessesProposition ?proposition ;
+                    wtl:basedOnRecord ?document ;
+                    wtl:assessedTruthValue ?assessedAtSettlement .
+    }
 
     OPTIONAL { ?document wtl:issuedBy ?issuer }
 

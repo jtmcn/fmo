@@ -185,7 +185,7 @@ this", which was true and not the same as tested; only 3 had a real check. Made 
 | 4 | What document settled this market, and what value did it report? | `queries/cq04-settlement-provenance.rq` |
 | 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | `queries/cq05-bracket-coherence.rq` |
 | 6 | Given a lead time, what is the historical calibration of a model against settled markets? | not yet |
-| 7 | Which settled markets were contradicted by a later correction to their settlement source? | not yet |
+| 7 | Which settled markets were contradicted by a later correction to their settlement source? | `queries/cq07-correction-contradiction.rq` |
 
 Questions 1, 2 and 4 are answered by SPARQL over the asserted graph; 3 needs OWL reasoning
 because the answer is derived from the `ksh:WeatherMarket` equivalent-class axiom rather than
@@ -234,8 +234,56 @@ yet. Remaining:
   the example already shows why this matters — CQ2 reports the gap widening from 0.08 to 0.16
   purely because the forecast is a stale 06Z run while the market kept moving. Calibration work
   has to control for forecast age or it will measure staleness and call it skill.
-- **7** has its terms already (`wx:ReportCorrection`, `wx:supersedes`, and the deliberate
-  separation of `ksh:settlementValue` from `wtl:realizedValue`) but no worked case.
+Question 7 landed in 0.4.0 and forced a real modelling change; see **Truth is not a property of
+a proposition** below. It reports every market whose settlement document was later superseded,
+with a verdict computed by re-evaluating the proposition's own comparator and thresholds against
+the corrected value:
+
+```
+ticker                  settled  settlementValue  currentValue  implied  verdict
+KXHIGHNY-26AUG15-B82.5  Yes      82               84            No       CONTRADICTED
+KXHIGHNY-26AUG15-B84.5  No       82               84            Yes      CONTRADICTED
+KXHIGHNY-26AUG15-T81    No       82               84            No       consistent
+KXHIGHNY-26AUG15-T86    No       82               84            No       consistent
+```
+
+Both directions of error appear, which is what makes the example useful: a query that only
+caught false positives would still pass on half of it. Two design points:
+
+- **The verdict is computed, not looked up.** The query re-evaluates the comparator, which is
+  the first thing in the ontology to actually use `wtl:Comparator` semantics rather than just
+  record them. The stored `wtl:TruthAssessment` is carried alongside as a cross-check; if the
+  two ever disagree, the stored assessment is wrong.
+- **It returns every affected market, not only contradictions.** Filtering to contradictions
+  would return zero rows whenever a correction changed nothing, which the runner treats as
+  failure — and would hide the useful fact that a correction was issued and checked. The
+  finding is in the `verdict` column, not in the row count. `wtl:Custom` conditions are
+  excluded explicitly rather than defaulting to "consistent"; they need a human.
+
+## Truth is not a property of a proposition
+
+Writing CQ7 exposed a modelling error in 0.3.0. `wtl:hasTruthValue` is functional and untimed,
+so it cannot represent a proposition that was true against the record as it stood and false
+against the record as corrected. The proposition did not change and the exchange's resolution
+did not change — only the document did.
+
+Asserting both values would have been worse than wrong. OWL does not assume named individuals
+are distinct, so a functional property forced to take two values *identifies* them: `wtl:True`
+would silently become the same individual as `wtl:False`, and everything downstream would still
+compute. `owl:AllDifferent` blocks over the truth values, comparators, resolution outcomes, and
+market statuses now turn that into a reasoner inconsistency, verified by asserting a
+contradiction and confirming HermiT reports it. Same guard, same reasoning as the units case.
+
+The fix is `wtl:TruthAssessment`: a reified assignment carrying the proposition, the value, the
+record consulted, and the time. Truth is a relation between a proposition and a state of the
+record, not a property the proposition carries alone. `wtl:hasTruthValue` survives for cases
+resting on a record that cannot be superseded, with a scope note saying so — but no example uses
+it, which is the honest signal about how often that case arises here.
+
+This also improved CQ4, which now reports the assessment made *from the document the exchange
+read* rather than the proposition's current truth value. CQ4 and CQ7 consequently show the same
+propositions with opposite values, correctly: one is what was believed at settlement, the other
+what the corrected record implies.
 
 ## Rejected alternatives
 

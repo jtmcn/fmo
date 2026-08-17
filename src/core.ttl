@@ -12,7 +12,7 @@
 
 <https://w3id.org/wantology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/core/0.3.0> ;
+    owl:versionIRI <https://w3id.org/wantology/core/0.4.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/wantology/imports/qudt-subset> ;
     dcterms:title "Wantology Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.3.0" .
+    owl:versionInfo "0.4.0" .
 
 ################################################################
 # Information content entities
@@ -124,6 +124,23 @@ wtl:False   a wtl:TruthValue, owl:NamedIndividual ; rdfs:label "false" .
 wtl:Indeterminate a wtl:TruthValue, owl:NamedIndividual ; rdfs:label "indeterminate" ;
     skos:definition "Assigned when the authoritative record needed to evaluate the proposition was not produced, or was produced but is unusable." .
 
+wtl:TruthAssessment a owl:Class ;
+    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:label "truth assessment" ;
+    skos:definition "An information content entity stating the truth value assigned to a proposition by an evaluation process, together with the record consulted and the time of assessment." ;
+    skos:scopeNote """Reified because a truth value is not stable. It is a function of the
+proposition AND the state of the authoritative record at a time. When a settlement source
+issues a correction, the assessment changes while the proposition and the exchange's
+resolution both stay fixed -- and that divergence is the whole subject of CQ7.
+
+wtl:hasTruthValue cannot express this: it is functional and untimed, so asserting both a
+settlement-era and a post-correction value would force wtl:True and wtl:False to be the same
+individual. Use assessments wherever a record can be superseded; keep wtl:hasTruthValue for
+the simple case where it cannot.""" ;
+    rdfs:subClassOf
+        [ a owl:Restriction ; owl:onProperty wtl:assessesProposition ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
+        [ a owl:Restriction ; owl:onProperty wtl:assessedTruthValue ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
+
 wtl:Comparator a owl:Class ;
     rdfs:subClassOf wtl:Designation ;
     rdfs:label "comparator" ;
@@ -170,6 +187,18 @@ qudt:QuantityKind rdfs:subClassOf wtl:Designation .
        unit:MI-PER-HR unit:KN unit:M-PER-SEC unit:KiloM-PER-HR
        unit:PA unit:HectoPA unit:MilliBAR unit:IN_HG
        unit:PERCENT unit:DEG ) .
+
+# Same reasoning as the owl:AllDifferent over units above. OWL does not assume
+# named individuals are distinct, so a functional property forced to take two of
+# these values would silently identify them -- making wtl:True the same individual
+# as wtl:False -- rather than reporting a contradiction. Stated so the reasoner
+# catches it. This is exactly the trap wtl:TruthAssessment exists to avoid.
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( wtl:True wtl:False wtl:Indeterminate ) .
+
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( wtl:GreaterThan wtl:GreaterThanOrEqual wtl:LessThan
+                         wtl:LessThanOrEqual wtl:Between wtl:EqualTo wtl:Custom ) .
 
 ################################################################
 # Probability
@@ -285,7 +314,32 @@ wtl:hasTruthValue a owl:ObjectProperty ;
     rdfs:domain wtl:Proposition ;
     rdfs:range wtl:TruthValue ;
     a owl:FunctionalProperty ;
-    skos:scopeNote "Absent until the proposition has been evaluated. Absence means undetermined, not false." .
+    skos:definition "Relates a proposition to its truth value, where that value is not expected to change." ;
+    skos:scopeNote """Absent until the proposition has been evaluated. Absence means undetermined,
+not false. Being functional and untimed, this cannot represent a proposition whose assessment
+changed when its settlement source issued a correction -- use wtl:TruthAssessment for anything
+resting on a record that can be superseded.""" .
+
+wtl:assessesProposition a owl:ObjectProperty ;
+    rdfs:label "assesses proposition" ;
+    rdfs:domain wtl:TruthAssessment ;
+    rdfs:range wtl:Proposition ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a truth assessment to the proposition it assigns a truth value to." .
+
+wtl:assessedTruthValue a owl:ObjectProperty ;
+    rdfs:label "assessed truth value" ;
+    rdfs:domain wtl:TruthAssessment ;
+    rdfs:range wtl:TruthValue ;
+    a owl:FunctionalProperty ;
+    skos:definition "The truth value this assessment assigns." .
+
+wtl:basedOnRecord a owl:ObjectProperty ;
+    rdfs:label "based on record" ;
+    rdfs:domain wtl:TruthAssessment ;
+    rdfs:range wtl:Document ;
+    skos:definition "Relates a truth assessment to the document consulted to make it." ;
+    skos:scopeNote "What makes an assessment auditable. Two assessments of one proposition differ only because they read different documents." .
 
 wtl:assignsProbabilityTo a owl:ObjectProperty ;
     rdfs:label "assigns probability to" ;

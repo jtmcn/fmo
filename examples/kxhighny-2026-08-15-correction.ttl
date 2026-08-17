@@ -1,0 +1,107 @@
+# A correction issued after settlement, contradicting two settled markets.
+#
+# This is the case CQ7 exists for, and it is not hypothetical: NWS reissues CLI
+# products when a sensor fault or a transcription error is found, sometimes days
+# later. Exchanges generally do not re-settle. So the observational record and the
+# exchange's payout permanently disagree, and both are correct about what they
+# record.
+#
+# Timeline:
+#   2026-08-16 10:15Z  CLINYC reports the 15 Aug high as 82.
+#   2026-08-16 14:30Z  Kalshi settles the ladder on 82. B82.5 pays yes.
+#   2026-08-17 09:05Z  NWS reissues CLINYC. The high was 84, not 82.
+#
+# Against the corrected record:
+#   Prop-LE81   (<= 81)   84 fails  -> resolved no   -> consistent
+#   Prop-82-83  ([82,83]) 84 fails  -> resolved YES  -> CONTRADICTED
+#   Prop-84-85  ([84,85]) 84 holds  -> resolved NO   -> CONTRADICTED
+#   Prop-GE86   (>= 86)   84 fails  -> resolved no   -> consistent
+#
+# Both directions of error appear, which is what makes this useful test data: a
+# query that only caught false-positives would still pass on half of it.
+#
+# NOTE ON WHAT IS NOT ASSERTED. No wtl:hasTruthValue appears anywhere in these
+# examples. It is functional and untimed, so asserting a settlement-era value and
+# a post-correction value would force wtl:True and wtl:False to be one individual
+# -- and thanks to the owl:AllDifferent block in core.ttl, that is now a reasoner
+# inconsistency rather than a silent wrong answer. Truth lives in
+# wtl:TruthAssessment, which carries the record it read and when.
+
+@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
+@prefix wtl:  <https://w3id.org/wantology/core#> .
+@prefix wx:   <https://w3id.org/wantology/weather#> .
+@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+
+<https://w3id.org/wantology/examples/kxhighny-2026-08-15-correction>
+    a owl:Ontology ;
+    owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset> ;
+    rdfs:label "Worked example: a post-settlement correction to CLINYC" .
+
+################################################################
+# The corrected report
+################################################################
+
+ex:CLINYC-2026-08-17-COR a wx:ReportCorrection ;
+    rdfs:label "CLINYC corrected, issued 2026-08-17" ;
+    wtl:issuedBy ex:NWS ;
+    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    wx:issuanceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
+    wx:supersedes ex:CLINYC-2026-08-16 ;
+    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a sensor fault." ;
+    bfo:BFO_0000178 ex:Datum-Max-Corrected .    # has continuant part
+
+ex:Datum-Max-Corrected a wx:WeatherObservationDatum ;
+    rdfs:label "corrected max temperature, 84 F" ;
+    wx:reportsValueFor ex:Target-HighTemp ;
+    wtl:realizedValue "84"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
+
+################################################################
+# Reassessment against the corrected record.
+#
+# The propositions are unchanged and the exchange's resolutions are unchanged.
+# Only the assessments are new, because only the record changed.
+################################################################
+
+ex:Reassessment-82-83 a wtl:TruthAssessment ;
+    rdfs:label "reassessment of Prop-82-83 after correction" ;
+    wtl:assessesProposition ex:Prop-82-83 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
+    wtl:statedAs "84 is not within [82, 83]. The market nonetheless paid out yes." .
+
+ex:Reassessment-84-85 a wtl:TruthAssessment ;
+    rdfs:label "reassessment of Prop-84-85 after correction" ;
+    wtl:assessesProposition ex:Prop-84-85 ;
+    wtl:assessedTruthValue wtl:True ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
+    wtl:statedAs "84 is within [84, 85]. The market nonetheless paid out no." .
+
+ex:Reassessment-LE81 a wtl:TruthAssessment ;
+    rdfs:label "reassessment of Prop-LE81 after correction" ;
+    wtl:assessesProposition ex:Prop-LE81 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
+
+ex:Reassessment-GE86 a wtl:TruthAssessment ;
+    rdfs:label "reassessment of Prop-GE86 after correction" ;
+    wtl:assessesProposition ex:Prop-GE86 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
+
+# The evaluation process that produced the reassessments. Not a market
+# settlement: nobody was paid, and the exchange was not involved.
+ex:Reassessment-Process a wtl:EvaluationProcess ;
+    rdfs:label "reassessment of the KXHIGHNY-26AUG15 ladder against the corrected CLI" ;
+    wtl:hasInput ex:CLINYC-2026-08-17-COR ;
+    wtl:hasOutput ex:Reassessment-82-83 , ex:Reassessment-84-85 ,
+                  ex:Reassessment-LE81 , ex:Reassessment-GE86 .

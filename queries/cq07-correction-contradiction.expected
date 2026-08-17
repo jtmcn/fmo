@@ -1,0 +1,5 @@
+ticker	settledOutcome	settlementValue	currentValue	impliedOutcome	verdict	recordedAssessment	currentDocument
+KXHIGHNY-26AUG15-B82.5	ksh:ResolvedYes	82	84	ksh:ResolvedNo	CONTRADICTED	wtl:False	ex:CLINYC-2026-08-17-COR
+KXHIGHNY-26AUG15-B84.5	ksh:ResolvedNo	82	84	ksh:ResolvedYes	CONTRADICTED	wtl:True	ex:CLINYC-2026-08-17-COR
+KXHIGHNY-26AUG15-T81	ksh:ResolvedNo	82	84	ksh:ResolvedNo	consistent	wtl:False	ex:CLINYC-2026-08-17-COR
+KXHIGHNY-26AUG15-T86	ksh:ResolvedNo	82	84	ksh:ResolvedNo	consistent	wtl:False	ex:CLINYC-2026-08-17-COR

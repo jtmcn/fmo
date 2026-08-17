@@ -209,4 +209,13 @@ ex:Resolution-B82 a ksh:Resolution ;
 
 # Settlement is what assigns the truth value. Before this, the proposition had
 # none -- which is not the same as being false.
-ex:Prop-82-83 wtl:hasTruthValue wtl:True .
+#
+# Recorded as a wtl:TruthAssessment rather than wtl:hasTruthValue because the
+# document it rests on can be superseded. See examples/...-correction.ttl, where
+# exactly that happens and this assessment stops being the current one.
+ex:Assessment-82-83-at-settlement a wtl:TruthAssessment ;
+    rdfs:label "assessment of Prop-82-83 at settlement" ;
+    wtl:assessesProposition ex:Prop-82-83 ;
+    wtl:assessedTruthValue wtl:True ;
+    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
