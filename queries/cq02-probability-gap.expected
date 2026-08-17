@@ -1,0 +1,2 @@
+proposition	forecastProb	marketProb	gap	asOf	forecastUnit	targetUnit
+ex:Prop-82-83	0.52	0.60	0.08	2026-08-15T12:00:00+00:00	unit:DEG_F	unit:DEG_F

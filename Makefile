@@ -15,7 +15,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all test validate validate-negative reason competency merge qudt clean
+.PHONY: all test validate validate-negative cq cq-update reason competency merge qudt clean
 
 all: validate
 
@@ -34,6 +34,15 @@ QUDT_REPO ?= /tmp/qudt
 qudt:
 	python3 scripts/extract_qudt_subset.py $(QUDT_REPO)
 
+## Competency questions 1, 2 and 4: run queries/*.rq and compare to checked-in results.
+## An empty result set fails -- a query matching nothing is how a broken check looks fine.
+##   make cq-update   regenerates the .expected files; review the diff before committing.
+cq:
+	python3 scripts/run_competency.py
+
+cq-update:
+	python3 scripts/run_competency.py --update
+
 ## HermiT consistency over the schema, then over schema plus examples.
 reason: $(BUILD)/merged.owl $(BUILD)/full.owl
 ifeq ($(strip $(ROBOT)),)
@@ -47,8 +56,9 @@ else
 	@echo "consistent"
 endif
 
-## Competency check: weaken an assertion and confirm the reasoner re-derives it.
-## Proves ksh:WeatherMarket is a working defined class, not decoration.
+## Competency question 3: weaken an assertion and confirm the reasoner re-derives it.
+## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
+## reasoner, unlike `make cq`, because the answer is inferred rather than asserted.
 competency:
 ifeq ($(strip $(ROBOT)),)
 	@echo "SKIP competency: ROBOT not found."
@@ -87,7 +97,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative reason competency
+test: validate validate-negative cq reason competency
 
 clean:
 	rm -rf $(BUILD)

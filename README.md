@@ -51,6 +51,8 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
+| `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
+| `queries/` | competency questions as SPARQL, with `.expected` results |
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
 Namespaces are `https://w3id.org/wantology/{core,weather,kalshi}#`. These are deliberately
@@ -63,7 +65,8 @@ dereference the IRIs need the catalog, which Protégé and ROBOT both pick up au
 ```bash
 pip install rdflib
 python3 scripts/validate.py          # structure, BFO grounding, unit coherence, docs
-make validate-negative               # prove the validator catches what it claims to
+make cq                              # competency questions 1, 2, 4 as SPARQL
+make validate-negative               # prove the checks catch what they claim to
 make reason                          # HermiT consistency (needs robot.jar)
 make test                            # all of the above, plus the competency check
 ```
@@ -138,10 +141,16 @@ continuant and occurrent, that examples use only declared properties, unit coher
 documentation coverage. `make reason` adds HermiT consistency and re-derives
 `ksh:WeatherMarket` from a weakened assertion to prove the defined class actually fires.
 
+`make cq` runs the competency questions in `queries/` and diffs the results against checked-in
+`.expected` files. **An empty result set fails** — a query matching nothing is how a broken
+competency check looks like a passing one, and that rule caught CQ1 on its first run (SPARQL
+does no subclass reasoning, so `?m a ksh:Market` missed an individual typed `ksh:WeatherMarket`;
+the queries now use `a/rdfs:subClassOf*`).
+
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
-the validator claims to catch into a throwaway copy and asserts it fails with the right
-message. A checker nobody has watched fail is not known to work — the first version of the unit
-check passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exposed it.
+the checks claim to catch into a throwaway copy and asserts they fail with the right message.
+A checker nobody has watched fail is not known to work — the first version of the unit check
+passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exposed it.
 
 The checks have caught real bugs at every stage: four classes floating under `owl:Thing`; an
 `InformationBearingEntity` axiom using `concretizes` where BFO requires `is carrier of`, making

@@ -1,0 +1,42 @@
+# CQ2. Which forecast probabilities and which market-implied probabilities
+# target the same proposition, and what is the gap?
+#
+# This is the query the ontology exists to make well-formed. Both sides are
+# joined on the proposition individual alone -- no ticker matching, no station
+# name normalisation, no date arithmetic. If the join is empty, the modelling
+# has failed at its one job.
+#
+# The gap is signed: positive means the market is pricing the outcome higher
+# than the model does.
+#
+# Note what is NOT claimed here. The market-implied probability is derived from
+# a price by a stated transformation (see ksh:PriceToProbabilityDerivation), and
+# the naive price/100 ignores spread, fees, and carry. The gap is a starting
+# point for a comparison, not a signal on its own.
+#
+# NOTE ON TYPE MATCHING. Class patterns below use `a/rdfs:subClassOf*` rather than
+# plain `a`. SPARQL does no subclass reasoning, so `?m a ksh:Market` does NOT match
+# an individual asserted as ksh:WeatherMarket -- this query returned zero rows until
+# the path was added. The property-path form keeps the queries runnable against the
+# raw graph without a reasoner in the loop.
+
+SELECT ?proposition ?forecastProb ?marketProb ?gap ?asOf ?forecastUnit ?targetUnit
+WHERE {
+    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
+        wtl:assignsProbabilityTo ?proposition ;
+        wtl:probabilityValue ?forecastProb .
+
+    ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
+        wtl:assignsProbabilityTo ?proposition ;
+        wtl:probabilityValue ?marketProb .
+    OPTIONAL { ?mp wtl:referenceTime ?asOf }
+
+    # Carry the units through so a reader can see that the two sides are talking
+    # about a target measured in one unit, not silently converted.
+    ?proposition wtl:hasSubject ?target .
+    OPTIONAL { ?proposition wtl:hasUnit ?forecastUnit }
+    OPTIONAL { ?target      wtl:hasUnit ?targetUnit }
+
+    BIND((?marketProb - ?forecastProb) AS ?gap)
+}
+ORDER BY ?proposition ?asOf

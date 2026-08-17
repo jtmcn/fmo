@@ -169,22 +169,50 @@ both are needed.
 
 ## Competency questions
 
-What 0.1.0 should be able to answer. The first four work against the worked example today; the
-rest are the roadmap.
+A competency question is a requirement: a question the ontology must be able to answer, used to
+fix scope and then to test it. If a question cannot be answered, a term or a relation is
+missing. They are the difference between an ontology that earns its keep and a tidy taxonomy.
 
-1. For a given market, what proposition does it express, and over what observation target? ✅
-2. Which forecast probabilities and which market-implied probabilities target the same
-   proposition, and what is the gap? ✅
-3. Which markets are weather markets? (Inferred, not asserted — verified by `make test`.) ✅
-4. What document settled this market, and what value did it report? ✅
-5. For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how
-   much do they overshoot? (Needs SPARQL, and a fee model to interpret the overshoot.)
-6. Given a lead time, what is the historical calibration of a model against settled markets?
-   (Needs `wx:ForecastVerification` instances and a scoring rule.)
-7. Which settled markets were contradicted by a later correction to their settlement source?
-   (Terms exist — `wx:ReportCorrection`, `wx:supersedes` — but no worked case.)
+Each of 1 to 4 is now mechanically checked by `make test` and fails the build if it regresses.
+Through 0.1.0 all four carried a tick mark on the strength of "you could query the example for
+this", which was true and not the same as tested; only 3 had a real check. Made honest in 0.2.0.
 
-Questions 5 to 7 are the ones that would justify the modelling. They should drive 0.2.0.
+| # | Question | Status |
+|---|---|---|
+| 1 | For a given market, what proposition does it express, and over what observation target? | `queries/cq01-market-proposition.rq` |
+| 2 | Which forecast probabilities and market-implied probabilities target the same proposition, and what is the gap? | `queries/cq02-probability-gap.rq` |
+| 3 | Which markets are weather markets? | `make competency` — inferred, so it needs a reasoner |
+| 4 | What document settled this market, and what value did it report? | `queries/cq04-settlement-provenance.rq` |
+| 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | not yet |
+| 6 | Given a lead time, what is the historical calibration of a model against settled markets? | not yet |
+| 7 | Which settled markets were contradicted by a later correction to their settlement source? | not yet |
+
+Questions 1, 2 and 4 are answered by SPARQL over the asserted graph; 3 needs OWL reasoning
+because the answer is derived from the `ksh:WeatherMarket` equivalent-class axiom rather than
+stated. That split is why there are two competency targets in the Makefile.
+
+Two things learned wiring these up, both recorded because they generalise:
+
+- **An empty result set must fail.** A query matching nothing is the most common way for a
+  broken competency check to look like a passing one. `scripts/run_competency.py` treats zero
+  rows as failure, and that rule caught CQ1 the first time it ran.
+- **SPARQL does no subclass reasoning.** `?m a ksh:Market` does not match an individual asserted
+  as `ksh:WeatherMarket`. The queries use `a/rdfs:subClassOf*` so they stay runnable against the
+  raw graph without a reasoner in the loop. This is the same silent-underspecification failure
+  as the missing `owl:equivalentProperty` axioms in the IAO analysis above: nothing errors,
+  answers just quietly go missing.
+
+Questions 5 to 7 are the ones that would justify the modelling, and they were the stated target
+for 0.2.0 before the units work took that slot. Where they stand:
+
+- **5** is the cheapest real signal and needs no new terms — a SPARQL aggregate over the markets
+  of a mutually-exclusive `ksh:EventGrouping`, plus arithmetic. It does need the worked example
+  extended to a full bracket set, since one market cannot overshoot. Interpreting the overshoot
+  above 1.0 as spread and fee drag needs a fee model that does not exist yet.
+- **6** is the most work and the most valuable: `wx:ForecastVerification` instances, a scoring
+  rule (Brier or logarithmic), and enough settled history to be more than anecdote.
+- **7** has its terms already (`wx:ReportCorrection`, `wx:supersedes`, and the deliberate
+  separation of `ksh:settlementValue` from `wtl:realizedValue`) but no worked case.
 
 ## Rejected alternatives
 

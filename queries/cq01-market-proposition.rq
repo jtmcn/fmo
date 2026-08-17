@@ -1,0 +1,44 @@
+# CQ1. For a given market, what proposition does it express, and over what
+# observation target?
+#
+# The point of this one is that a market ticker alone tells you almost nothing.
+# "KXHIGHNY-26AUG15-B82.5" encodes a city, a date, and a strike, but not the
+# station of record, not the interval boundaries, and not the protocol -- and
+# those are what settlement actually turns on. This query walks from the ticker
+# to all of it.
+#
+# Every column after ?ticker is a thing you would otherwise have to know by
+# convention. That is the whole argument for the observation target existing as
+# a first-class entity rather than being flattened into the market row.
+#
+# NOTE ON TYPE MATCHING. Class patterns below use `a/rdfs:subClassOf*` rather than
+# plain `a`. SPARQL does no subclass reasoning, so `?m a ksh:Market` does NOT match
+# an individual asserted as ksh:WeatherMarket -- this query returned zero rows until
+# the path was added. The property-path form keeps the queries runnable against the
+# raw graph without a reasoner in the loop.
+
+SELECT ?ticker ?comparator ?floor ?cap ?unit ?variable ?site ?protocol ?from ?to
+WHERE {
+    ?market a/rdfs:subClassOf* ksh:Market ;
+            ksh:marketTicker ?ticker ;
+            ksh:expressesProposition ?proposition .
+
+    ?proposition wtl:hasSubject ?target ;
+                 wtl:hasComparator ?comparator .
+    OPTIONAL { ?proposition wtl:floorValue ?floor }
+    OPTIONAL { ?proposition wtl:capValue   ?cap }
+    OPTIONAL { ?proposition wtl:hasUnit    ?unit }
+
+    ?target wx:targetVariable ?variable ;
+            wx:atSite ?site ;
+            wtl:overTemporalInterval ?interval .
+    OPTIONAL { ?target wx:underProtocol ?protocol }
+
+    # Interval boundaries written out, because the climatological day is not the
+    # calendar day and this is where settlement disputes live.
+    ?interval bfo:BFO_0000222 ?startInstant ;
+              bfo:BFO_0000224 ?endInstant .
+    ?startInstant wtl:instantDateTime ?from .
+    ?endInstant   wtl:instantDateTime ?to .
+}
+ORDER BY ?ticker

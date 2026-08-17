@@ -1,0 +1,41 @@
+# CQ4. What document settled this market, and what value did it report?
+#
+# Settlement is an evaluation process with a document as input and a resolution
+# as output, so the provenance chain is walkable rather than being an opaque
+# "settled: yes" flag. That matters for the case in CQ7: when a correction is
+# issued after settlement, you need to know which document the exchange actually
+# read, not merely what the current authoritative value is.
+#
+# ?settlementValue is what the exchange applied. ?reportedValue is what the
+# observational record says. They agree here, and are kept separate precisely
+# because they can diverge.
+#
+# NOTE ON TYPE MATCHING. Class patterns below use `a/rdfs:subClassOf*` rather than
+# plain `a`. SPARQL does no subclass reasoning, so `?m a ksh:Market` does NOT match
+# an individual asserted as ksh:WeatherMarket -- this query returned zero rows until
+# the path was added. The property-path form keeps the queries runnable against the
+# raw graph without a reasoner in the loop.
+
+SELECT ?ticker ?outcome ?settlementValue ?document ?issuer ?reportedValue ?truthValue
+WHERE {
+    ?settlement a/rdfs:subClassOf* ksh:MarketSettlement ;
+                wtl:hasInput  ?document ;
+                wtl:hasOutput ?resolution .
+
+    ?resolution ksh:resolutionOf ?market ;
+                ksh:resolvesTo   ?outcome .
+    OPTIONAL { ?resolution ksh:settlementValue ?settlementValue }
+
+    ?market ksh:marketTicker ?ticker ;
+            ksh:expressesProposition ?proposition .
+    OPTIONAL { ?proposition wtl:hasTruthValue ?truthValue }
+
+    OPTIONAL { ?document wtl:issuedBy ?issuer }
+
+    # The datum inside the document that carries the number.
+    OPTIONAL {
+        ?document bfo:BFO_0000178 ?datum .
+        ?datum wtl:realizedValue ?reportedValue .
+    }
+}
+ORDER BY ?ticker

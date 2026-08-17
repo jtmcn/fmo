@@ -1,0 +1,2 @@
+ticker	outcome	settlementValue	document	issuer	reportedValue	truthValue
+KXHIGHNY-26AUG15-B82.5	ksh:ResolvedYes	82	ex:CLINYC-2026-08-16	ex:NWS	82	wtl:True
