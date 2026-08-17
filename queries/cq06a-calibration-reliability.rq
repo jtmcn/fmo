@@ -1,0 +1,75 @@
+# CQ6a. Given a lead time, what is the historical calibration of a model against
+# settled outcomes? (Reliability table. See cq06b for the robust summary.)
+#
+# A reliability table: for each model, lead time, and probability bin, how often
+# did the thing actually happen? A calibrated forecaster who says 70% is right
+# about 70% of the time, so ?observedFreq should track ?meanForecast down each
+# bin. ?calibrationGap is the signed difference -- positive means the model
+# promised more than the world delivered, which is overconfidence.
+#
+# ?meanBrier is the mean squared error of the assignments in the bin. It mixes
+# calibration and sharpness, so read it alongside the gap rather than instead of
+# it: a model that always says 0.5 is perfectly calibrated and useless, and its
+# Brier score is what reveals that.
+#
+# READ ?n BEFORE READING ANY ROW. Per-bin counts here are small -- the synthetic
+# sample is 40 days -- and a bin with n under about 20 is noise. In the checked-in
+# result ModelCalibrated shows a +0.192 gap in one mid bin on n=23, which is
+# sampling error rather than miscalibration: the same construction's Monte Carlo
+# gap is within 0.003 of zero at large n. The per-bin table is the classic
+# presentation and the right shape for the question, but cq06b aggregates over
+# bins and is what should actually be quoted at this sample size.
+#
+# LEAD TIME IS NOT OPTIONAL. Pooling a 72-hour forecast with a 6-hour one measures
+# the mix of lead times in the sample rather than the skill of the model. Lead time
+# is therefore a grouping key, never averaged over.
+#
+# NEGATIVE LEAD TIMES ARE REAL AND APPEAR SEPARATELY. A forecast issued during the
+# period it covers -- a same-day update to a daily maximum -- has a negative lead
+# time and is a different animal from an ahead-of-time forecast. It gets its own
+# row rather than being folded in or silently dropped. Expect small ?n there.
+#
+# THE OUTCOME MUST COME FROM THE CURRENT RECORD. Where a settlement source issued a
+# correction, a proposition carries two assessments with opposite values. Scoring
+# against the superseded one silently measures the wrong thing, so the filter below
+# keeps only assessments resting on a record nothing supersedes. This is the same
+# guard CQ7 uses, applied for the opposite purpose.
+
+SELECT ?model ?leadHours ?bin ?n ?meanForecast ?observedFreq ?calibrationGap ?meanBrier
+WHERE {
+    {
+        SELECT ?model ?leadHours ?bin
+               (COUNT(*) AS ?n)
+               (ROUND(AVG(?p)  * 1000) / 1000 AS ?meanForecast)
+               (ROUND(AVG(?o)  * 1000) / 1000 AS ?observedFreq)
+               (ROUND(AVG(?sq) * 1000) / 1000 AS ?meanBrier)
+        WHERE {
+            ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
+                      wx:producedByModel ?model ;
+                      wx:leadTimeHours   ?leadHours ;
+                      bfo:BFO_0000178    ?fp .
+
+            ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
+                wtl:assignsProbabilityTo ?proposition ;
+                wtl:probabilityValue ?p .
+
+            ?assessment wtl:assessesProposition ?proposition ;
+                        wtl:basedOnRecord ?record ;
+                        wtl:assessedTruthValue ?tv .
+            FILTER NOT EXISTS { ?newer wx:supersedes ?record }
+
+            BIND(IF(?tv = wtl:True, 1, 0) AS ?o)
+            BIND((?p - ?o) * (?p - ?o) AS ?sq)
+
+            # Bins are prefixed so lexical ordering matches numeric ordering.
+            BIND(IF(?p < 0.2, "1: 0.0-0.2",
+                 IF(?p < 0.4, "2: 0.2-0.4",
+                 IF(?p < 0.6, "3: 0.4-0.6",
+                 IF(?p < 0.8, "4: 0.6-0.8",
+                              "5: 0.8-1.0")))) AS ?bin)
+        }
+        GROUP BY ?model ?leadHours ?bin
+    }
+    BIND(ROUND((?meanForecast - ?observedFreq) * 1000) / 1000 AS ?calibrationGap)
+}
+ORDER BY ?model ?leadHours ?bin

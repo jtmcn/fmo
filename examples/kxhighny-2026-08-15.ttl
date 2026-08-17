@@ -160,6 +160,10 @@ ex:Forecast-GEFS-06Z a wx:ProbabilisticForecast ;
     wx:forecastFor ex:Target-HighTemp ;
     wx:producedByModel ex:GEFS ;
     wx:issuanceTime "2026-08-15T09:40:00Z"^^xsd:dateTime ;
+    # Negative: issued 09:40Z, but the climatological day began at 05:00Z. A
+    # same-day update to a daily maximum, which is routine. Recorded rather than
+    # omitted so CQ6 shows it as its own row instead of silently dropping it.
+    wx:leadTimeHours "-4.667"^^xsd:decimal ;
     bfo:BFO_0000178 ex:ForecastProb-82-83 .     # has continuant part
 
 ex:ForecastProb-82-83 a wtl:ForecastProbability ;

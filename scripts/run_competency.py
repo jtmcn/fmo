@@ -39,6 +39,7 @@ PREFIXES = {
     "https://w3id.org/wantology/weather#": "wx:",
     "https://w3id.org/wantology/kalshi#": "ksh:",
     "https://w3id.org/wantology/examples/kxhighny-2026-08-15#": "ex:",
+    "https://w3id.org/wantology/examples/verification#": "vex:",
     "http://purl.obolibrary.org/obo/": "bfo:",
     "http://qudt.org/vocab/unit/": "unit:",
     "http://qudt.org/vocab/quantitykind/": "quantitykind:",

@@ -184,7 +184,7 @@ this", which was true and not the same as tested; only 3 had a real check. Made 
 | 3 | Which markets are weather markets? | `make competency` — inferred, so it needs a reasoner |
 | 4 | What document settled this market, and what value did it report? | `queries/cq04-settlement-provenance.rq` |
 | 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | `queries/cq05-bracket-coherence.rq` |
-| 6 | Given a lead time, what is the historical calibration of a model against settled markets? | not yet |
+| 6 | Given a lead time, what is the historical calibration of a model against settled outcomes? | `queries/cq06a-...`, `cq06b-...` |
 | 7 | Which settled markets were contradicted by a later correction to their settlement source? | `queries/cq07-correction-contradiction.rq` |
 
 Questions 1, 2 and 4 are answered by SPARQL over the asserted graph; 3 needs OWL reasoning
@@ -229,11 +229,69 @@ Three things about that query generalise:
 Interpreting the overshoot as spread plus fee drag still needs a fee model, which does not exist
 yet. Remaining:
 
-- **6** is the most work and the most valuable: `wx:ForecastVerification` instances, a scoring
-  rule (Brier or logarithmic), and enough settled history to be more than anecdote. Note that
-  the example already shows why this matters — CQ2 reports the gap widening from 0.08 to 0.16
-  purely because the forecast is a stale 06Z run while the market kept moving. Calibration work
-  has to control for forecast age or it will measure staleness and call it skill.
+Question 6 landed in 0.5.0, as two queries rather than one. `cq06a` is the reliability table —
+observed frequency against mean forecast probability, per model, per lead time, per probability
+bin. `cq06b` aggregates over bins, and is the one to quote:
+
+```
+model                 leadHours  n    meanForecast  baseRate  meanBrier  climatologyBrier  meanAbsError
+vex:ModelCalibrated   24         160  0.25          0.25      0.134      0.188             0.245
+vex:ModelCalibrated   72         160  0.25          0.25      0.159      0.188             0.314
+vex:ModelOverconfident 24        160  0.25          0.25      0.154      0.188             0.234
+vex:ModelOverconfident 72        160  0.25          0.25      0.165      0.188             0.292
+```
+
+Both models beat climatology, both degrade with lead time, and the overconfident one scores
+worse at both leads despite seeing exactly the same underlying signal. That last difference is
+purely the cost of overstating confidence.
+
+Four things worth carrying forward:
+
+- **Why two queries.** The reliability table is the classic presentation and the right shape for
+  the question, but forty days spread across five bins leaves individual rows dominated by
+  noise: the calibrated model shows a +0.192 gap in one mid bin on n=23, which is sampling
+  error, not miscalibration. The aggregate rests on all 160 assignments per cell. Both are kept
+  because the per-bin shape is what "calibration" means, and the aggregate is what is
+  trustworthy at this sample size. `?n` is in the output of both so the reader can tell.
+- **`meanAbsError` is in `cq06b` as a warning, not a second opinion.** It is not a proper
+  scoring rule — it rewards stating extreme probabilities regardless of warrant — and in the
+  checked-in result the overconfident model scores *better* on it (0.234 vs 0.245 at 24h) while
+  scoring worse on everything honest. That inversion is the argument for Brier, and it is worth
+  having in the output where someone will see it rather than in a footnote.
+- **Lead time is a grouping key, never averaged over.** Pooling a 72-hour forecast with a
+  6-hour one measures the mix of lead times in the sample rather than the skill of the model.
+  Negative lead times — a same-day update to a daily maximum, which is routine — are real, get
+  their own rows, and must not be folded in. The base example's GEFS forecast has a lead time of
+  -4.667 hours and appears as its own n=1 row, which is honest rather than tidy.
+- **The outcome must come from the current record.** After a correction a proposition carries
+  two assessments with opposite values, so both CQ6 queries filter to assessments resting on a
+  record nothing supersedes. Same guard as CQ7, applied for the opposite purpose. Without it,
+  calibration would be scored against a value the record has retracted.
+
+CQ2 already showed why lead time matters: it reports the forecast/market gap widening from 0.08
+to 0.16 purely because the forecast is a stale 06Z run while the market kept moving. Calibration
+work that does not control for forecast age measures staleness and reports it as skill.
+
+## A statistics bug the machinery did not catch
+
+The first version of `scripts/generate_verification_data.py` built its "calibrated" model by
+drawing a noisy signal `mu = T + e` and then forecasting `Normal(mu, sigma)`. That is wrong, and
+CQ6a said so immediately: the supposedly calibrated model over-predicted in every high bin, with
+gaps up to +0.36.
+
+The error is Bayesian rather than ontological. `T` has a climatological prior, so seeing `mu`
+should shift belief *toward* climatology and *narrow* it. Forecasting `Normal(mu, sigma)`
+over-predicts whichever bracket `mu` lands in. A 20,000-draw Monte Carlo put the naive
+construction's gap at +0.17 in the high bins and the posterior construction's within 0.003 of
+zero.
+
+Worth recording for two reasons. First, it is a reminder that none of the validation in this
+repo checks whether the *content* is right — the naive data was structurally perfect, unit
+coherent, BFO conformant and reasoner consistent, and still described a model that was not what
+it claimed to be. Second, the thing that caught it was the competency question itself: a query
+built to detect miscalibration detected miscalibration, in the one place nobody was looking for
+it. That is the argument for competency questions producing numbers a human reads rather than
+booleans.
 Question 7 landed in 0.4.0 and forced a real modelling change; see **Truth is not a property of
 a proposition** below. It reports every market whose settlement document was later superseded,
 with a verdict computed by re-evaluating the proposition's own comparator and thresholds against

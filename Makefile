@@ -15,7 +15,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all test validate validate-negative cq cq-update reason competency merge qudt clean
+.PHONY: all test validate validate-negative cq cq-update reason competency merge qudt verification-data clean
 
 all: validate
 
@@ -34,7 +34,12 @@ QUDT_REPO ?= /tmp/qudt
 qudt:
 	python3 scripts/extract_qudt_subset.py $(QUDT_REPO)
 
-## Competency questions 1, 2, 4, 5 and 7: run queries/*.rq against checked-in results.
+## Regenerate the synthetic verification dataset for CQ6. Deterministic (fixed
+## seed), so a diff means the generator changed, not the data.
+verification-data:
+	python3 scripts/generate_verification_data.py
+
+## Competency questions 1, 2, 4, 5, 6 and 7: run queries/*.rq against checked-in results.
 ## An empty result set fails -- a query matching nothing is how a broken check looks fine.
 ##   make cq-update   regenerates the .expected files; review the diff before committing.
 cq:

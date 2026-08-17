@@ -12,7 +12,7 @@
 
 <https://w3id.org/wantology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/core/0.4.0> ;
+    owl:versionIRI <https://w3id.org/wantology/core/0.5.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/wantology/imports/qudt-subset> ;
     dcterms:title "Wantology Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.4.0" .
+    owl:versionInfo "0.5.0" .
 
 ################################################################
 # Information content entities
@@ -227,6 +227,76 @@ wtl:MarketImpliedProbability a owl:Class ;
     rdfs:label "market implied probability" ;
     skos:definition "A probability assignment derived by transformation from the price of a contract in a market whose payout is conditional on the proposition." ;
     skos:scopeNote "This is derived, not observed. The transformation from price to probability is not identity: it ignores fees, the bid-ask spread, the cost of capital over the holding period, and any risk premium. Record the derivation used." .
+
+################################################################
+# Scoring
+#
+# A probability assignment is only worth something if it can be scored against
+# what happened. Scores are stored per assignment, as atoms; aggregation into a
+# reliability table is a query's job, not the ontology's.
+################################################################
+
+wtl:ScoringRule a owl:Class ;
+    rdfs:subClassOf wtl:Designation ;
+    rdfs:label "scoring rule" ;
+    skos:definition "A designation of the function used to score a probability assignment against the observed outcome of the proposition it concerns." .
+
+wtl:BrierScore a wtl:ScoringRule, owl:NamedIndividual ;
+    rdfs:label "Brier score" ;
+    skos:definition "The squared difference between the assigned probability and the outcome coded as 1 for true and 0 for false. Lower is better; 0 is perfect, 1 is maximally wrong." ;
+    skos:scopeNote "Proper: minimised in expectation by reporting one's actual belief, so it cannot be gamed by hedging. Bounded, unlike the logarithmic score." .
+
+wtl:LogarithmicScore a wtl:ScoringRule, owl:NamedIndividual ;
+    rdfs:label "logarithmic score" ;
+    skos:definition "The negative natural logarithm of the probability assigned to the outcome that occurred. Lower is better." ;
+    skos:scopeNote "Also proper, and more sensitive to confident errors, but unbounded: assigning 0 to something that then happens scores infinitely badly. Needs a floor in practice." .
+
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( wtl:BrierScore wtl:LogarithmicScore ) .
+
+wtl:SkillScore a owl:Class ;
+    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:label "skill score" ;
+    skos:definition "A measurement datum reporting the value obtained by applying a scoring rule to one probability assignment and the observed outcome of its proposition." ;
+    skos:scopeNote """Scores one assignment, not a set. Calibration and mean scores are aggregates
+computed by query over many of these. Storing the aggregate instead would fix the grouping at
+write time and make it impossible to slice by lead time or model afterwards.
+
+The outcome used must come from the assessment based on the currently authoritative record.
+Where a settlement source has issued a correction there are two assessments of one proposition
+with opposite values, and scoring against the superseded one silently measures the wrong
+thing.""" ;
+    rdfs:subClassOf
+        [ a owl:Restriction ; owl:onProperty wtl:scoresAssignment ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
+        [ a owl:Restriction ; owl:onProperty wtl:usesScoringRule ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
+
+wtl:scoresAssignment a owl:ObjectProperty ;
+    rdfs:label "scores assignment" ;
+    rdfs:domain wtl:SkillScore ;
+    rdfs:range wtl:ProbabilityAssignment ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a skill score to the probability assignment it scores." .
+
+wtl:usesScoringRule a owl:ObjectProperty ;
+    rdfs:label "uses scoring rule" ;
+    rdfs:domain wtl:SkillScore ;
+    rdfs:range wtl:ScoringRule ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a skill score to the scoring rule that produced it." .
+
+wtl:scoredAgainst a owl:ObjectProperty ;
+    rdfs:label "scored against" ;
+    rdfs:domain wtl:SkillScore ;
+    rdfs:range wtl:TruthAssessment ;
+    skos:definition "Relates a skill score to the truth assessment supplying the outcome it was scored against." ;
+    skos:scopeNote "Recorded so a score stays interpretable after a correction: it says which reading of the record the score used." .
+
+wtl:scoreValue a owl:DatatypeProperty ;
+    rdfs:label "score value" ;
+    rdfs:domain wtl:SkillScore ;
+    rdfs:range xsd:decimal ;
+    a owl:FunctionalProperty ;
+    skos:definition "The numeric value the scoring rule produced." .
 
 ################################################################
 # Agents and roles

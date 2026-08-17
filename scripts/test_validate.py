@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
 CORRECTION = "examples/kxhighny-2026-08-15-correction.ttl"
+VERIFICATION = "examples/verification-synthetic.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -64,6 +65,15 @@ CASES = [
         """ex:ForecastProb-82-83 a wtl:ForecastProbability ;""",
         """ex:ForecastProb-82-83 a wtl:ProbabilityAssignment ;""",
         "the forecast/market join is not demonstrated",
+    ),
+    (
+        # A stored derived value that no longer matches its inputs. Silent without
+        # this check, and CQ6 would bucket the forecast by the wrong lead time.
+        "lead time no longer matches issuance and interval start",
+        EXAMPLE,
+        """    wx:leadTimeHours "-4.667"^^xsd:decimal ;""",
+        """    wx:leadTimeHours "24"^^xsd:decimal ;""",
+        "wx:leadTimeHours says",
     ),
     (
         "information artifact misfiled as a process",
@@ -130,6 +140,17 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         CORRECTION,
         """    wtl:realizedValue "84"^^xsd:decimal ;""",
         """    wtl:realizedValue "81"^^xsd:decimal ;""",
+        "differs from",
+    ),
+    (
+        "an outcome flipped in the verification sample",
+        VERIFICATION,
+        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;
+    wtl:assessedTruthValue wtl:False ;""",
+        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;
+    wtl:assessedTruthValue wtl:True ;""",
         "differs from",
     ),
     (

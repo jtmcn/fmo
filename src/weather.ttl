@@ -13,7 +13,7 @@
 
 <https://w3id.org/wantology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/weather/0.4.0> ;
+    owl:versionIRI <https://w3id.org/wantology/weather/0.5.0> ;
     owl:imports <https://w3id.org/wantology/core> ;
     dcterms:title "Wantology Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -21,7 +21,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.4.0" .
+    owl:versionInfo "0.5.0" .
 
 ################################################################
 # Material entities
@@ -342,7 +342,14 @@ wx:ForecastLeadTime a owl:Class ;
 wx:ForecastVerification a owl:Class ;
     rdfs:subClassOf wtl:EvaluationProcess ;
     rdfs:label "forecast verification" ;
-    skos:definition "An evaluation process that compares a forecast against the climatological report covering the same observation target and yields a skill score." .
+    skos:definition "An evaluation process that compares a forecast against the climatological report covering the same observation target and yields a skill score." ;
+    skos:scopeNote """Takes a probability assignment and a truth assessment as input and has a
+wtl:SkillScore as output. One verification per assignment; calibration over many of them is a
+query, not a process instance.
+
+Verification must control for lead time. A forecast issued 72 hours out and one issued 6 hours
+out are not comparable, and pooling them measures the mix of lead times in the sample rather
+than the skill of the model.""" .
 
 ################################################################
 # Object properties
@@ -428,6 +435,21 @@ wx:cycleTime a owl:DatatypeProperty ;
     rdfs:domain wx:ModelRun ;
     rdfs:range xsd:dateTime ;
     skos:definition "The instant for which the initial state of a model run was analysed." .
+
+wx:leadTimeHours a owl:DatatypeProperty ;
+    rdfs:label "lead time hours" ;
+    rdfs:domain wx:Forecast ;
+    rdfs:range xsd:decimal ;
+    a owl:FunctionalProperty ;
+    skos:definition "Hours from the issuance of a forecast to the first instant of the temporal interval its observation target covers." ;
+    skos:scopeNote """Derived, and stored anyway because grouping by it is the whole point of
+verification and recomputing it inside every query is worse. scripts/validate.py checks the
+stored value against the issuance time and the interval's first instant, so it cannot go stale
+unnoticed.
+
+MAY BE NEGATIVE. A forecast issued during the period it covers -- a same-day update to a daily
+maximum, which is routine -- has a negative lead time. That is meaningful rather than an error,
+and such forecasts must not be pooled with genuinely ahead-of-time ones.""" .
 
 wx:issuanceTime a owl:DatatypeProperty ;
     rdfs:label "issuance time" ;

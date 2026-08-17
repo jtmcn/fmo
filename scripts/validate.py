@@ -13,7 +13,9 @@ go wrong when hand-authoring a BFO application ontology:
      mistake, typically by filing an information artifact under process.
   4. Every property we use in the examples is declared somewhere.
   5. Every class and property carries a label and a definition.
-  6. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
+  6. Derived values match what they are derived from: wx:leadTimeHours against the
+     forecast's issuance time and its target interval's first instant.
+  7. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
      where a unit is merely chosen for a variable, its QUDT dimension vector must
      match. This catches both a Fahrenheit threshold read against a Celsius target
      (same dimension, still wrong) and inches read against a temperature.
@@ -183,6 +185,56 @@ def check_dimensions(g: Graph) -> None:
     notes.append(f"unit coherence: {compared} comparison pair(s) checked")
 
 
+LEAD_HOURS = URIRef(WX + "leadTimeHours")
+ISSUANCE = URIRef(WX + "issuanceTime")
+FORECAST_FOR = URIRef(WX + "forecastFor")
+OVER_INTERVAL = URIRef(WTL + "overTemporalInterval")
+FIRST_INSTANT = URIRef(BFO + "BFO_0000222")
+INSTANT_DT = URIRef(WTL + "instantDateTime")
+
+
+def check_lead_times(g: Graph) -> None:
+    """wx:leadTimeHours is derived, so verify it against what it is derived from.
+
+    A stored derived value is a liability: it goes stale the moment either input
+    moves, and nothing about the graph complains. Since CQ6 groups by lead time,
+    a wrong value there does not error, it silently reassigns forecasts to the
+    wrong bucket and produces a plausible calibration table.
+    """
+    from datetime import datetime
+
+    checked = 0
+    for forecast, stated in g.subject_objects(LEAD_HOURS):
+        issued = list(g.objects(forecast, ISSUANCE))
+        targets = list(g.objects(forecast, FORECAST_FOR))
+        if not issued or not targets:
+            fail(f"{forecast} has a lead time but no issuance time or no target")
+            continue
+        starts = [
+            dt
+            for target in targets
+            for interval in g.objects(target, OVER_INTERVAL)
+            for instant in g.objects(interval, FIRST_INSTANT)
+            for dt in g.objects(instant, INSTANT_DT)
+        ]
+        if not starts:
+            fail(f"{forecast}: cannot resolve the first instant of its target's interval")
+            continue
+
+        issued_dt = datetime.fromisoformat(str(issued[0]))
+        start_dt = datetime.fromisoformat(str(starts[0]))
+        actual = (start_dt - issued_dt).total_seconds() / 3600.0
+        if abs(float(stated) - actual) > 0.01:
+            fail(
+                f"{forecast}: wx:leadTimeHours says {stated} but issuance "
+                f"{issued_dt.isoformat()} to interval start {start_dt.isoformat()} "
+                f"is {actual:.3f} hours"
+            )
+        checked += 1
+
+    notes.append(f"lead times: {checked} checked against issuance and interval start")
+
+
 def main() -> int:
     g = Graph()
 
@@ -295,6 +347,7 @@ def main() -> int:
     # precipitation are both lengths, and percent and degrees are both dimensionless.
     # This catches unit-system mistakes, not quantity confusions.
     check_dimensions(ex)
+    check_lead_times(ex)
 
     # Domain sanity: the join the ontology exists for.
     #

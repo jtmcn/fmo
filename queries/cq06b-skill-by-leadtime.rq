@@ -1,0 +1,66 @@
+# CQ6b. Aggregate forecast skill by model and lead time.
+#
+# The companion to cq06a. That query bins by forecast probability, which is the
+# classic reliability presentation but spreads a 40-day sample across five bins
+# and leaves individual rows dominated by noise. This one aggregates over bins,
+# so each cell rests on every assignment that model made at that lead time, and
+# is the number to quote at this sample size.
+#
+# ?meanBrier is the headline: mean squared error of the probability assignments,
+# lower is better. Two things should fall out of it, and both are checks on the
+# machinery as much as on the models:
+#
+#   * Skill degrades with lead time. A 72-hour forecast should score worse than
+#     a 24-hour one. If it does not, lead time is not being recorded correctly.
+#   * The overconfident model scores worse than the calibrated one at both leads,
+#     despite the two seeing exactly the same underlying signal. That difference
+#     is purely the cost of overstating confidence.
+#
+# ?baseRate is how often the propositions were actually true. ?climatologyBrier is
+# what a forecaster who ignored the weather and always predicted that base rate
+# would score. Beating it is the minimum bar for a model being worth running.
+#
+# ?meanAbsError is mean |p - o|, and it is here as a WARNING, not as a second
+# opinion. It is not a proper scoring rule: it rewards stating extreme
+# probabilities regardless of whether they are warranted. In the checked-in result
+# the overconfident model scores BETTER on it than the calibrated one (0.234 vs
+# 0.245 at 24h) while scoring worse on every honest measure. That inversion is the
+# whole argument for using Brier, and it is why absolute error should not be used
+# to rank forecasters even though it is the intuitive first choice.
+#
+# Negative lead times appear as their own rows, unpooled. See cq06a.
+
+SELECT ?model ?leadHours ?n ?meanForecast ?baseRate ?meanBrier ?climatologyBrier ?meanAbsError
+WHERE {
+    {
+        SELECT ?model ?leadHours
+               (COUNT(*) AS ?n)
+               (ROUND(AVG(?p)     * 1000) / 1000 AS ?meanForecast)
+               (ROUND(AVG(?o)     * 1000) / 1000 AS ?baseRate)
+               (ROUND(AVG(?sq)    * 1000) / 1000 AS ?meanBrier)
+               (ROUND(AVG(?absErr) * 1000) / 1000 AS ?meanAbsError)
+        WHERE {
+            ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
+                      wx:producedByModel ?model ;
+                      wx:leadTimeHours   ?leadHours ;
+                      bfo:BFO_0000178    ?fp .
+
+            ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
+                wtl:assignsProbabilityTo ?proposition ;
+                wtl:probabilityValue ?p .
+
+            # Only the assessment resting on a record nothing supersedes.
+            ?assessment wtl:assessesProposition ?proposition ;
+                        wtl:basedOnRecord ?record ;
+                        wtl:assessedTruthValue ?tv .
+            FILTER NOT EXISTS { ?newer wx:supersedes ?record }
+
+            BIND(IF(?tv = wtl:True, 1, 0) AS ?o)
+            BIND((?p - ?o) * (?p - ?o) AS ?sq)
+            BIND(IF(?p > ?o, ?p - ?o, ?o - ?p) AS ?absErr)
+        }
+        GROUP BY ?model ?leadHours
+    }
+    BIND(ROUND(?baseRate * (1 - ?baseRate) * 1000) / 1000 AS ?climatologyBrier)
+}
+ORDER BY ?model ?leadHours
