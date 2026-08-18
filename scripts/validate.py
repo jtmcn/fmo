@@ -113,6 +113,9 @@ DIM_VECTOR = URIRef(QUDT + "hasDimensionVector")
 SETTLEMENT_VALUE = URIRef(KSH + "settlementValue")
 RESOLUTION_OF = URIRef(KSH + "resolutionOf")
 EXPRESSES = URIRef(KSH + "expressesProposition")
+ASSESSES = URIRef(WTL + "assessesProposition")
+BASED_ON_RECORD = URIRef(WTL + "basedOnRecord")
+SUPERSEDES = URIRef(WX + "supersedes")
 # Properties whose presence means a unit is mandatory rather than optional.
 VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
                URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
@@ -327,6 +330,39 @@ def check_lead_times(g: Graph) -> None:
     notes.append(f"lead times: {checked} checked against issuance and interval start")
 
 
+def check_current_assessments(g: Graph) -> None:
+    """At most one assessment per proposition may rest on a live record.
+
+    Two make the graph ambiguous rather than wrong: CQ6a and CQ6b aggregate over
+    assessments, so a duplicate silently inflates n and shifts every calibration
+    statistic while every other check stays green. The correction case is the
+    legitimate two-assessment shape, and it is exempt by construction -- the
+    settlement-era record is superseded, so only the later one is current.
+    """
+    superseded = set(g.objects(None, SUPERSEDES))
+    by_proposition: dict[URIRef, list[URIRef]] = {}
+    for assessment, proposition in g.subject_objects(ASSESSES):
+        records = list(g.objects(assessment, BASED_ON_RECORD))
+        if records and all(r in superseded for r in records):
+            continue
+        by_proposition.setdefault(proposition, []).append(assessment)
+
+    for proposition, assessments in sorted(by_proposition.items(), key=lambda kv: str(kv[0])):
+        if len(assessments) > 1:
+            fail(
+                f"more than one current assessment: {proposition} is assessed by "
+                f"{sorted(str(a) for a in assessments)}, none of them resting on a "
+                f"superseded record. Calibration counts assessments, so this "
+                f"double-counts the proposition rather than contradicting itself."
+            )
+    if EXAMPLES and not by_proposition:
+        fail(
+            "no proposition has a current assessment, so the assessment check "
+            "matched nothing; the assessesProposition chain is broken"
+        )
+    notes.append(f"{len(by_proposition)} proposition(s) checked for a single current assessment")
+
+
 def main() -> int:
     g = Graph()
 
@@ -489,6 +525,7 @@ def main() -> int:
     # This catches unit-system mistakes, not quantity confusions.
     check_dimensions(ex)
     check_lead_times(ex)
+    check_current_assessments(ex)
 
     # Domain sanity: the join the ontology exists for.
     #
