@@ -231,7 +231,8 @@ ex:Resolution-T81 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-T81 resolved no" ;
     ksh:resolutionOf ex:Market-T81 ;
     ksh:resolvesTo ksh:ResolvedNo ;
-    ksh:settlementValue "82"^^xsd:decimal .
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
 
 ex:Settlement-B84 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B84.5" ;
@@ -243,7 +244,8 @@ ex:Resolution-B84 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-B84.5 resolved no" ;
     ksh:resolutionOf ex:Market-B84 ;
     ksh:resolvesTo ksh:ResolvedNo ;
-    ksh:settlementValue "82"^^xsd:decimal .
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
 
 ex:Settlement-T86 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-T86" ;
@@ -255,7 +257,8 @@ ex:Resolution-T86 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-T86 resolved no" ;
     ksh:resolutionOf ex:Market-T86 ;
     ksh:resolvesTo ksh:ResolvedNo ;
-    ksh:settlementValue "82"^^xsd:decimal .
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
 
 ex:Assessment-LE81-at-settlement a wtl:TruthAssessment ;
     rdfs:label "assessment of Prop-LE81 at settlement" ;

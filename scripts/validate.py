@@ -102,6 +102,7 @@ def ancestors(g: Graph, cls: URIRef) -> set[URIRef]:
 QUDT = "http://qudt.org/schema/qudt/"
 WTL = "https://w3id.org/wantology/core#"
 WX = "https://w3id.org/wantology/weather#"
+KSH = "https://w3id.org/wantology/kalshi#"
 
 HAS_UNIT = URIRef(WTL + "hasUnit")
 HAS_SUBJECT = URIRef(WTL + "hasSubject")
@@ -109,9 +110,12 @@ REPORTS_FOR = URIRef(WX + "reportsValueFor")
 TARGET_VAR = URIRef(WX + "targetVariable")
 CONVENTIONAL_UNIT = URIRef(WX + "conventionalUnit")
 DIM_VECTOR = URIRef(QUDT + "hasDimensionVector")
+SETTLEMENT_VALUE = URIRef(KSH + "settlementValue")
+RESOLUTION_OF = URIRef(KSH + "resolutionOf")
+EXPRESSES = URIRef(KSH + "expressesProposition")
 # Properties whose presence means a unit is mandatory rather than optional.
 VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
-               URIRef(WTL + "realizedValue"))
+               URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
 
 
 def check_dimensions(g: Graph) -> None:
@@ -209,6 +213,27 @@ def check_dimensions(g: Graph) -> None:
         du, tu = unit_of(datum), unit_of(target)
         check_identical(datum, du, target, tu, "datum vs target")
         compared += 1
+
+    # The exchange's own number, against the target the market settles on. It
+    # reaches the target through the market's proposition rather than directly,
+    # so no earlier loop sees it -- and ksh:settlementValue is a sub-property of
+    # wtl:realizedValue, which rdflib does not follow.
+    settlement_compared = 0
+    for resolution, market in g.subject_objects(RESOLUTION_OF):
+        if not any(g.objects(resolution, SETTLEMENT_VALUE)):
+            continue
+        for prop in g.objects(market, EXPRESSES):
+            for target in g.objects(prop, HAS_SUBJECT):
+                check_identical(resolution, unit_of(resolution),
+                                target, unit_of(target),
+                                "settlement value vs target")
+                settlement_compared += 1
+    if EXAMPLES and not settlement_compared:
+        fail(
+            "no settlement value reaches a target, so the settlement-value check "
+            "matched nothing; the resolutionOf or expressesProposition chain is broken"
+        )
+    compared += settlement_compared
 
     # A target's unit should be dimensionally compatible with its variable's
     # conventional units. Advisory: a target may use an unlisted but valid unit.

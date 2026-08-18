@@ -263,7 +263,8 @@ ex:Resolution-B82 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-B82.5 resolved yes" ;
     ksh:resolutionOf ex:Market-B82 ;
     ksh:resolvesTo ksh:ResolvedYes ;
-    ksh:settlementValue "82"^^xsd:decimal .
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
 
 # Settlement is what assigns the truth value. Before this, the proposition had
 # none -- which is not the same as being false.
