@@ -203,6 +203,28 @@ ex:Target-LowTemp a wx:ObservationTarget ;
 ksh:Position a owl:Class ;""",
         "no rdfs:label: https://w3id.org/wantology/kalshi#UndeclaredPosition",
     ),
+    (
+        # ksh:settlementValue is a sub-property of wtl:realizedValue, and rdflib
+        # does no reasoning, so the unit rules did not reach the one number the
+        # exchange actually pays out on.
+        "settlement value recorded in Celsius against a Fahrenheit target",
+        EXAMPLE,
+        """    ksh:resolvesTo ksh:ResolvedYes ;
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .""",
+        """    ksh:resolvesTo ksh:ResolvedYes ;
+    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_C .""",
+        "unit mismatch (settlement value vs target)",
+    ),
+    (
+        "settlement value with no unit at all",
+        EXAMPLE,
+        """    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .""",
+        """    ksh:settlementValue "82"^^xsd:decimal .""",
+        "missing unit",
+    ),
 ]
 
 
