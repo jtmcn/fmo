@@ -1,5 +1,5 @@
 ticker	outcome	settlementValue	document	issuer	reportedValue	assessedAtSettlement
-KXHIGHNY-26AUG15-B82.5	ksh:ResolvedYes	82	ex:CLINYC-2026-08-16	ex:NWS	82	wtl:True
-KXHIGHNY-26AUG15-B84.5	ksh:ResolvedNo	82	ex:CLINYC-2026-08-16	ex:NWS	82	wtl:False
-KXHIGHNY-26AUG15-T81	ksh:ResolvedNo	82	ex:CLINYC-2026-08-16	ex:NWS	82	wtl:False
-KXHIGHNY-26AUG15-T86	ksh:ResolvedNo	82	ex:CLINYC-2026-08-16	ex:NWS	82	wtl:False
+KXHIGHNY-26AUG15-B82.5	ksh:ResolvedYes	82	ex:TWCRecord-2026-08-16	ex:TWC	82	wtl:True
+KXHIGHNY-26AUG15-B84.5	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	wtl:False
+KXHIGHNY-26AUG15-T81	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	wtl:False
+KXHIGHNY-26AUG15-T86	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	wtl:False

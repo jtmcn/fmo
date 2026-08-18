@@ -343,6 +343,62 @@ read* rather than the proposition's current truth value. CQ4 and CQ7 consequentl
 propositions with opposite values, correctly: one is what was believed at settlement, the other
 what the corrected record implies.
 
+## The settlement source moved, and what that cost
+
+On 2026-08-14 Kalshi moved its daily temperature series off the National Weather Service and
+onto **The Weather Company**, which publishes at `weather.com/kalshi` and states that it uses
+NWS as its primary underlying source. The market rules still name the station of record as
+`CLINYC` and the day boundary is unchanged, so the numbers will usually agree. The authority
+does not.
+
+Under the protocol rule (`wx:WeatherObservationTarget` carries a `wx:MeasurementProtocol`),
+that is a different target and therefore a different proposition. The rule produced the right
+answer here without being adjusted for the case, which is the strongest evidence for it so far:
+a KXHIGHNY series spanning 14 August is two time series, and a calibration study that averaged
+across the boundary would be comparing forecasts against two different definitions of the
+observable while reporting one skill score.
+
+Three ways to absorb it were considered.
+
+**Re-point the target to TWC.** Taken. The example's protocol, settlement source, and record
+chain all become TWC; the NWS remains as the issuer of GEFS and as TWC's stated upstream. The
+correction case survives intact — TWC republishes when its NWS input is corrected, so
+`ex:TWCRecord-2026-08-17-COR` supersedes `ex:TWCRecord-2026-08-16` and CQ7 keeps its structure.
+One target, one proposition, the forecast/market join unchanged.
+
+**Two targets and a bridging relation.** The market settles on a TWC target; the observational
+record keeps an NWS target; a new relation asserts that both are intended to capture the same
+physical quantity under different protocols, and CQ7 traverses it. This is the honest model —
+it is what "two targets may legitimately disagree" actually looks like once it stops being
+hypothetical. It was not taken because it reopens the ontology's central claim: CQ7 binds the
+correcting datum through `?datum wx:reportsValueFor ?target`, where `?target` is the
+proposition's own subject, and with two targets that query returns nothing unless the bridge is
+traversed. More importantly, if the forecast and the market no longer share a proposition
+individual, "subtracting the two probabilities is meaningful" needs restating as a claim about
+bridged targets rather than identical ones. That deserves its own decision rather than arriving
+inside a data fix.
+
+**Model the migration itself, dated.** Record that the series settled on NWS before 14 August
+and TWC after. Rejected for now because `ksh:settlementSource` has no temporal qualification and
+adding one drags in the same temporalized-relations question already open for `ksh:hasStatus`.
+Worth doing when either is done, since it is one decision, not two.
+
+The cost of the choice taken: nothing in the axioms forces a forecast to be verified against the
+same authority the market settles on. The examples align them by hand. A future ingest that
+scores GEFS against NWS records while pricing against TWC-settled markets would be making
+exactly the error this ontology exists to prevent, and would pass every check in it.
+
+That is not a hypothetical either — the migration produced it immediately. Re-pointing the
+worked example left `examples/verification-synthetic.ttl`, which imports it, still asserting
+`wx:underProtocol ex:NWSDailyClimateProtocol` for all 40 days. Two things were wrong at once:
+the calibration dataset was scoring forecasts against a different authority than the markets
+settled on, and the protocol individual it named no longer existed. `make test` stayed green
+through both. The first is the alignment problem above; the second is a gap in the validator,
+which checks that examples use only declared *properties* but not that the individuals they
+reference are defined anywhere. A dangling IRI is legal RDF and reads as an untyped resource,
+so a renamed individual degrades a target silently instead of failing. Both were fixed by
+pointing the generator at the TWC protocol; the validator gap is still open.
+
 ## Rejected alternatives
 
 **Skip BFO, use schema.org plus a few custom terms.** Faster to a first ingest and the standard

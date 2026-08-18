@@ -14,7 +14,7 @@ were checked against the live API on 2026-08-17. Term coverage is deliberately s
 A weather forecast and a weather market are two agents' beliefs about the same future fact.
 Comparing them is the whole point — that gap is the tradeable signal — but comparing them
 naively goes wrong, because "the high in NYC on Friday" means slightly different things to
-the NWS and to an exchange's settlement rules.
+a forecaster and to an exchange's settlement rules.
 
 This ontology makes the comparison well-formed by giving both sides a shared pivot:
 
@@ -31,7 +31,7 @@ This ontology makes the comparison well-formed by giving both sides a shared piv
                                         wx:WeatherObservationTarget
                                      (max air temp @ Central Park site,
                                       over climatological day 2026-08-15,
-                                      under the NWS CLI protocol)
+                                      under The Weather Company protocol)
 ```
 
 Both probabilities point at **the same `wtl:Proposition` individual**, so subtracting them
@@ -107,6 +107,13 @@ The consequence worth knowing: the NWS climatological day runs local **standard*
 to midnight all year, so in summer it runs 01:00 to 00:59 local clock time. The example writes
 the boundary instants out explicitly rather than leaving them implied by a date.
 
+The decision earned its keep on 2026-08-14, when Kalshi moved its daily temperature series from
+the NWS to **The Weather Company** — same site, same variable, same day boundary, different
+publishing authority. Under the protocol rule that is a different observation target and so a
+different proposition, which is the correct answer: a KXHIGHNY series spanning that date is two
+time series, not one, and averaging across it would be a category error. The worked example is
+dated 15 August 2026 and settles on The Weather Company accordingly.
+
 ## Units
 
 `wtl:hasUnit` points at a [QUDT](https://github.com/qudt/qudt-public-repo) unit individual —
@@ -180,9 +187,22 @@ Flagged rather than silently decided:
   that grid, so an off-tick price is expressible.
 - **Status over time.** `ksh:hasStatus` is functional and treated as current status. Modelling
   status history needs either snapshot individuals or BFO's temporalized-relations profile.
-- **Corrections after settlement.** An NWS correction can contradict a settled market.
-  `wx:ReportCorrection` and `wx:supersedes` record the divergence, but nothing yet says which
-  value is authoritative for which question. It depends on the question, which is the point.
+- **Corrections after settlement.** A correction to the settlement source can contradict a
+  settled market. `wx:ReportCorrection` and `wx:supersedes` record the divergence, but nothing
+  yet says which value is authoritative for which question. It depends on the question, which
+  is the point.
+- **Undefined individuals are not caught.** `scripts/validate.py` checks that examples use only
+  declared properties, but not that the individuals they reference are defined. Renaming an
+  individual leaves dangling IRIs that read as untyped resources, and every check stays green —
+  which is what happened to the synthetic dataset during the Weather Company migration. Needs a
+  check, and a negative test with it.
+- **One target where there may be two.** The example gives the market and the forecast a single
+  observation target, carrying The Weather Company's protocol, so both probabilities share one
+  proposition and the join holds. But a forecast verified against the NWS record and a market
+  settling on TWC are strictly answering different questions, and the ontology has no way to say
+  that two targets are intended to capture the same physical quantity under different protocols.
+  Until it does, aligning on the settling authority is a modelling choice, not something the
+  axioms enforce. See `docs/design-notes.md`.
 - **Price to probability.** `ksh:PriceToProbabilityDerivation` is a process with a quote as
   input so the transformation stays auditable, but no derivation is specified. Naive
   `price/100` ignores spread, fees, and carry.

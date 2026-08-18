@@ -47,7 +47,7 @@ ex:Prop-LE81 a wtl:Proposition ;
     wtl:hasComparator wtl:LessThanOrEqual ;
     wtl:capValue "81"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is 81 degrees Fahrenheit or below." .
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 81 degrees Fahrenheit or below." .
 
 ex:Prop-84-85 a wtl:Proposition ;
     rdfs:label "high is between 84 and 85 degrees F" ;
@@ -56,7 +56,7 @@ ex:Prop-84-85 a wtl:Proposition ;
     wtl:floorValue "84"^^xsd:decimal ;
     wtl:capValue "85"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is between 84 and 85 degrees Fahrenheit inclusive." .
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is between 84 and 85 degrees Fahrenheit inclusive." .
 
 ex:Prop-GE86 a wtl:Proposition ;
     rdfs:label "high is 86F or above" ;
@@ -64,7 +64,7 @@ ex:Prop-GE86 a wtl:Proposition ;
     wtl:hasComparator wtl:GreaterThanOrEqual ;
     wtl:floorValue "86"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, per the NWS daily climatological report, is 86 degrees Fahrenheit or above." .
+    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 86 degrees Fahrenheit or above." .
 
 ################################################################
 # The three additional markets
@@ -224,7 +224,7 @@ ex:MarketProb-T86-1800Z a wtl:MarketImpliedProbability ;
 ex:Settlement-T81 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-T81" ;
     wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasInput ex:TWCRecord-2026-08-16 ;
     wtl:hasOutput ex:Resolution-T81 .
 
 ex:Resolution-T81 a ksh:Resolution ;
@@ -236,7 +236,7 @@ ex:Resolution-T81 a ksh:Resolution ;
 ex:Settlement-B84 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B84.5" ;
     wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasInput ex:TWCRecord-2026-08-16 ;
     wtl:hasOutput ex:Resolution-B84 .
 
 ex:Resolution-B84 a ksh:Resolution ;
@@ -248,7 +248,7 @@ ex:Resolution-B84 a ksh:Resolution ;
 ex:Settlement-T86 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-T86" ;
     wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasInput ex:TWCRecord-2026-08-16 ;
     wtl:hasOutput ex:Resolution-T86 .
 
 ex:Resolution-T86 a ksh:Resolution ;
@@ -261,19 +261,19 @@ ex:Assessment-LE81-at-settlement a wtl:TruthAssessment ;
     rdfs:label "assessment of Prop-LE81 at settlement" ;
     wtl:assessesProposition ex:Prop-LE81 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
     wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
 ex:Assessment-84-85-at-settlement a wtl:TruthAssessment ;
     rdfs:label "assessment of Prop-84-85 at settlement" ;
     wtl:assessesProposition ex:Prop-84-85 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
     wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
 ex:Assessment-GE86-at-settlement a wtl:TruthAssessment ;
     rdfs:label "assessment of Prop-GE86 at settlement" ;
     wtl:assessesProposition ex:Prop-GE86 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
     wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .

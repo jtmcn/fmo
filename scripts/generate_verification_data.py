@@ -166,12 +166,12 @@ vex:Target-{tag} a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-{tag} ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-{tag} a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for {day.strftime('%Y-%m-%d')}" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for {day.strftime('%Y-%m-%d')}" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-{tag} ;
     bfo:BFO_0000178 vex:Datum-{tag} .
 vex:Datum-{tag} a wx:WeatherObservationDatum ;

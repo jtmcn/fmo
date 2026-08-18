@@ -42,6 +42,14 @@ ex:KNYC a wx:WeatherStation ;
 ex:NWS a wtl:Organization ;
     rdfs:label "National Weather Service" .
 
+# Kalshi moved daily temperature settlement from the NWS to The Weather Company
+# on 2026-08-14, the day before this example. TWC states that it uses NWS as its
+# primary underlying source, so the numbers usually agree -- but the authority
+# that settles the market is TWC, and under the protocol rule that is what fixes
+# the observation target. NWS remains here as the issuer of GEFS.
+ex:TWC a wtl:Organization ;
+    rdfs:label "The Weather Company" .
+
 ################################################################
 # 2. Time
 #
@@ -63,17 +71,17 @@ ex:Instant-End   a bfo:BFO_0000203 ; wtl:instantDateTime "2026-08-16T00:59:59-04
 # 3. What is being measured
 ################################################################
 
-ex:NWSDailyClimateProtocol a wx:MeasurementProtocol ;
-    rdfs:label "NWS daily climatological summary protocol" ;
-    wtl:statedAs "Maximum temperature observed at the station of record over the climatological day, in whole degrees Fahrenheit, as published in the CLI product." ;
-    wtl:issuedBy ex:NWS .
+ex:TWCDailyTempProtocol a wx:MeasurementProtocol ;
+    rdfs:label "The Weather Company daily temperature protocol for CLINYC" ;
+    wtl:statedAs "Maximum temperature for the New York City station of record, identified as CLINYC, over the climatological day, in whole degrees Fahrenheit, as published by The Weather Company at weather.com/kalshi." ;
+    wtl:issuedBy ex:TWC .
 
 ex:Target-HighTemp a wx:WeatherObservationTarget ;
     rdfs:label "max air temperature, Central Park, climatological day 2026-08-15" ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 ################################################################
@@ -87,20 +95,20 @@ ex:Prop-82-83 a wtl:Proposition ;
     wtl:floorValue "82"^^xsd:decimal ;
     wtl:capValue "83"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at the Central Park station of record over the climatological day of 15 August 2026, as published in the NWS daily climatological report, is between 82 and 83 degrees Fahrenheit inclusive." .
+    wtl:statedAs "The maximum air temperature at the Central Park station of record over the climatological day of 15 August 2026, as published by The Weather Company, is between 82 and 83 degrees Fahrenheit inclusive." .
 
 ################################################################
 # 5. The market side
 ################################################################
 
-ex:CLISettlementSource a ksh:SettlementSource ;
-    rdfs:label "NWS Climatological Report (Daily), CLINYC" ;
-    wtl:issuedBy ex:NWS .
+ex:TWCSettlementSource a ksh:SettlementSource ;
+    rdfs:label "The Weather Company daily temperature record for CLINYC" ;
+    wtl:issuedBy ex:TWC .
 
 ex:KXHIGHNY a ksh:Series ;
     rdfs:label "Kalshi: highest temperature in NYC" ;
     ksh:seriesTicker "KXHIGHNY" ;
-    ksh:settlementSource ex:CLISettlementSource ;
+    ksh:settlementSource ex:TWCSettlementSource ;
     wtl:issuedBy ksh:Kalshi .
 
 ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
@@ -193,9 +201,9 @@ ex:Datum-Max a wx:WeatherObservationDatum ;
     wtl:realizedValue "82"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F .
 
-ex:CLINYC-2026-08-16 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLINYC issued 2026-08-16" ;
-    wtl:issuedBy ex:NWS ;
+ex:TWCRecord-2026-08-16 a wx:DailyClimatologicalReport ;
+    rdfs:label "The Weather Company CLINYC record, issued 2026-08-16" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-16T10:15:00Z"^^xsd:dateTime ;
     bfo:BFO_0000178 ex:Datum-Max .              # has continuant part
@@ -203,7 +211,7 @@ ex:CLINYC-2026-08-16 a wx:DailyClimatologicalReport ;
 ex:Settlement-B82 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B82.5" ;
     wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:CLINYC-2026-08-16 ;
+    wtl:hasInput ex:TWCRecord-2026-08-16 ;
     wtl:hasOutput ex:Resolution-B82 .
 
 ex:Resolution-B82 a ksh:Resolution ;
@@ -222,5 +230,5 @@ ex:Assessment-82-83-at-settlement a wtl:TruthAssessment ;
     rdfs:label "assessment of Prop-82-83 at settlement" ;
     wtl:assessesProposition ex:Prop-82-83 ;
     wtl:assessedTruthValue wtl:True ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-16 ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
     wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
