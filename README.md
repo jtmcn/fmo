@@ -5,7 +5,8 @@ them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-
 (ISO/IEC 21838-2).
 
 Status: **0.6.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All seven competency questions are mechanically tested. Term coverage is deliberately shallow in places; see
+All seven competency questions are mechanically tested. Kalshi field names and enumerations
+were checked against the live API on 2026-08-17. Term coverage is deliberately shallow in places; see
 [Open questions](#open-questions).
 
 ## What it is for
@@ -168,10 +169,15 @@ Flagged rather than silently decided:
   conversion is worse than a refusal — but ingesting a source that reports Celsius will need
   a conversion step. QUDT carries the factors (`qudt:conversionMultiplier`,
   `qudt:conversionOffset`) in the vendored subset, so the data is there; nothing uses it yet.
-- **Kalshi enums are unverified.** `docs.kalshi.com` was unreachable from the environment this
-  was drafted in, so `ksh:MarketStatus` individuals and some field names come from search results
-  and prior knowledge rather than the live schema. Terms at risk carry an `unverified` scope
-  note. Check them against the API before relying on them.
+- **Scalar markets are unmodelled.** Kalshi's `market_type` is `binary` or `scalar`, and
+  `result` can be `scalar`. `ksh:Market` asserts `owl:cardinality 1` on `expressesProposition`,
+  which quietly assumes binary: a scalar market settles to a number, not to the truth of one
+  proposition. `ksh:ResolvedScalar` exists so the outcome enumeration matches the API's, but
+  nothing else accommodates the case.
+- **Prices are typed decimal but not gridded.** `ksh:lastPriceCents` and the bid/ask properties
+  are decimal because most Kalshi markets now quote in tenths of a cent or finer. Which prices
+  are *valid* is per-market, given by the API's `price_ranges` bands; nothing here represents
+  that grid, so an off-tick price is expressible.
 - **Status over time.** `ksh:hasStatus` is functional and treated as current status. Modelling
   status history needs either snapshot individuals or BFO's temporalized-relations profile.
 - **Corrections after settlement.** An NWS correction can contradict a settled market.

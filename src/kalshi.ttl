@@ -20,11 +20,10 @@ source. Weather markets are the motivating case, so this module also carries the
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     owl:versionInfo "0.6.0" ;
-    skos:scopeNote """Field names and enumerations mirror the Kalshi trading API as of 2026-08.
-The authoritative API reference was not reachable from the environment this module was
-drafted in, so enumerated individuals below should be checked against the live schema
-before being relied on. Items flagged with an 'unverified' scope note are the ones at
-risk.""" .
+    skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
+API and the published reference on 2026-08-17. That check corrected the market status
+enumeration, added the scalar resolution outcome, and reopened the typing of prices and
+contract quantities; see the scope notes on those terms.""" .
 
 ################################################################
 # The venue
@@ -210,28 +209,50 @@ ksh:ResolvedYes  a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "reso
     skos:definition "The market's proposition was assigned the value true; yes contracts pay out." .
 ksh:ResolvedNo   a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved no" ;
     skos:definition "The market's proposition was assigned the value false; no contracts pay out." .
+ksh:ResolvedScalar a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved scalar" ;
+    skos:definition "The market was determined to a numeric value rather than a truth value, and contracts pay out in proportion to it." ;
+    skos:scopeNote "Applies to markets whose market_type is scalar rather than binary. No such market is modelled here; the individual exists so that the outcome enumeration matches the API's." .
 ksh:Voided       a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "voided" ;
-    skos:definition "The market was cancelled without determining a truth value; consideration is returned to both sides." .
+    skos:definition "The market was cancelled without determining a truth value; consideration is returned to both sides." ;
+    skos:scopeNote """No API `result` value corresponds to this. The documented enumeration is yes, no, scalar,
+and empty; 8000 sampled settled markets returned only yes and no. Voiding is a real exchange
+action but is evidently not recorded in the result field, so this individual is retained on
+institutional grounds and should not be read as a mapping target.""" .
 
 [] a owl:AllDifferent ;
-   owl:distinctMembers ( ksh:ResolvedYes ksh:ResolvedNo ksh:Voided ) .
+   owl:distinctMembers ( ksh:ResolvedYes ksh:ResolvedNo ksh:ResolvedScalar ksh:Voided ) .
 
 ksh:MarketStatus a owl:Class ;
     rdfs:subClassOf wtl:Designation ;
     rdfs:label "market status" ;
     skos:definition "A designation of a market's position in its lifecycle." ;
-    skos:scopeNote "unverified: check the status enumeration against the live Kalshi API schema before relying on these individuals." .
+    skos:scopeNote """These individuals mirror the `status` field returned on a market. They are NOT the vocabulary
+accepted by the `GET /markets?status=` filter, which is a coarser set (unopened, open, paused,
+closed, settled) mapping many-to-one onto these. Versions through 0.6.0 enumerated the filter
+values by mistake; `settled` in particular is a filter value only, and the terminal status is
+`finalized`.""" .
 
-ksh:Unopened a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "unopened" .
-ksh:Open     a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "open" ;
+ksh:Initialized a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "initialized" ;
+    skos:definition "The market exists but has not opened for trading; it becomes active when its open time passes." .
+ksh:Active      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "active" ;
     skos:definition "Orders may be placed and matched." .
-ksh:Closed   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "closed" ;
-    skos:definition "Trading has ceased; settlement has not yet occurred." .
-ksh:Settled  a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "settled" ;
-    skos:definition "A resolution has been issued." .
+ksh:Inactive    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "inactive" ;
+    skos:definition "Trading is paused by the exchange without the market having closed; resting orders are cancelled if it is reactivated." .
+ksh:Closed      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "closed" ;
+    skos:definition "The close time has passed and no further orders are accepted, but no outcome has been determined." .
+ksh:Determined  a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "determined" ;
+    skos:definition "An outcome has been assigned and the settlement timer is running, during which the outcome may still be disputed." ;
+    skos:scopeNote "The state a ksh:MarketSettlement leaves a market in: a resolution exists, but no funds have moved and the outcome is still contestable. ksh:Payout carries it to ksh:Finalized. Collapsing the two loses that window." .
+ksh:Disputed    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "disputed" ;
+    skos:definition "The determined outcome has been challenged and may be determined again." .
+ksh:Amended     a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "amended" ;
+    skos:definition "The market was determined again following a dispute, restarting the settlement timer." .
+ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized" ;
+    skos:definition "Settlement is complete and positions have been paid out; the market is in its terminal state." .
 
 [] a owl:AllDifferent ;
-   owl:distinctMembers ( ksh:Unopened ksh:Open ksh:Closed ksh:Settled ) .
+   owl:distinctMembers ( ksh:Initialized ksh:Active ksh:Inactive ksh:Closed
+                         ksh:Determined ksh:Disputed ksh:Amended ksh:Finalized ) .
 
 ################################################################
 # Pricing and implied probability
@@ -241,9 +262,9 @@ ksh:PriceToProbabilityDerivation a owl:Class ;
     rdfs:subClassOf wtl:InformationProcess ;
     rdfs:label "price to probability derivation" ;
     skos:definition "An information process taking a quote as input and yielding a market implied probability, according to a stated transformation." ;
-    skos:scopeNote """Kalshi prices yes contracts in whole cents from 1 to 99, with a one dollar payout, so
-the naive transformation is price divided by one hundred. It is naive: it ignores the bid-ask
-spread, trading and settlement fees, the time value of collateral posted until settlement, and
+    skos:scopeNote """Kalshi prices yes contracts between zero and one dollar on a per-market tick grid, so
+the naive transformation is the price in cents divided by one hundred. It is naive: it ignores
+the bid-ask spread, trading and settlement fees, the time value of collateral posted until settlement, and
 any risk premium. Recording the derivation as a process, with the quote as its input, keeps
 those choices auditable instead of burying them in a column.""" .
 
@@ -311,7 +332,7 @@ ksh:hasStatus a owl:ObjectProperty ;
     rdfs:domain ksh:Market ; rdfs:range ksh:MarketStatus ;
     a owl:FunctionalProperty ;
     skos:definition "Relates a market to the designation recording where it stands in its lifecycle: open to trading, closed to it, or settled." ;
-    skos:scopeNote "Status changes over time; an assertion of it is true only as of a reference time. In 0.1.0 this is treated as the current status. Model status history as a sequence of ksh:Quote-like snapshots if history matters." .
+    skos:scopeNote "Status changes over time; an assertion of it is true only as of a reference time, and is treated here as the current status. Model status history as a sequence of ksh:Quote-like snapshots if history matters. The range is the market status field's vocabulary, not the coarser one the markets endpoint accepts as a filter." .
 
 ksh:resolvesTo a owl:ObjectProperty ;
     rdfs:label "resolves to" ;
@@ -358,20 +379,26 @@ ksh:mutuallyExclusive a owl:DatatypeProperty ;
     skos:definition "True when at most one market in the event grouping can resolve yes." ;
     skos:scopeNote "Temperature bracket groupings are mutually exclusive and, taken together, exhaustive; their implied probabilities should sum to approximately one, and the excess over one is a useful measure of the spread and fee drag." .
 
-ksh:yesBidCents a owl:DatatypeProperty ; rdfs:label "yes bid cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
+ksh:yesBidCents a owl:DatatypeProperty ; rdfs:label "yes bid cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
     skos:definition "The highest price, in cents, at which a resting order to buy yes contracts existed as of the quote's reference time." .
 
-ksh:yesAskCents a owl:DatatypeProperty ; rdfs:label "yes ask cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
+ksh:yesAskCents a owl:DatatypeProperty ; rdfs:label "yes ask cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
     skos:definition "The lowest price, in cents, at which a resting order to sell yes contracts existed as of the quote's reference time." .
-ksh:lastPriceCents a owl:DatatypeProperty ; rdfs:label "last price cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
-    skos:definition "The price in whole cents at which the market's most recent trade executed, as of the quote's reference time." ;
-    skos:scopeNote "Whole cents, 1 to 99, against a one dollar payout per contract. Kept in cents rather than converted to a probability so that the source datum and the derived belief stay distinct." .
+ksh:lastPriceCents a owl:DatatypeProperty ; rdfs:label "last price cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The price in cents at which the market's most recent trade executed, as of the quote's reference time." ;
+    skos:scopeNote """Cents against a one dollar payout per contract, kept in cents rather than converted to a
+probability so that the source datum and the derived belief stay distinct. Decimal rather than
+integer because prices are not whole cents in general: a market's tick grid is given by its
+price_ranges, and most Kalshi markets now quote in tenths of a cent or finer. Weather markets
+still use a whole-cent grid, so integer values here are correct but incidentally so.""" .
 
-ksh:volume a owl:DatatypeProperty ; rdfs:label "volume" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
-    skos:definition "The count of contracts traded in the market up to the quote's reference time." .
+ksh:volume a owl:DatatypeProperty ; rdfs:label "volume" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The quantity of contracts traded in the market up to the quote's reference time." ;
+    skos:scopeNote "Decimal, not integer: Kalshi contracts are fractional to a granularity of 0.01, reported in the volume_fp and open_interest_fp fields. This is not an edge case — 197 of 200 sampled settled KXHIGHNY markets carried a fractional volume or open interest." .
 
-ksh:openInterest a owl:DatatypeProperty ; rdfs:label "open interest" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
-    skos:definition "The count of contracts outstanding and not yet settled as of the quote's reference time." .
+ksh:openInterest a owl:DatatypeProperty ; rdfs:label "open interest" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The quantity of contracts outstanding and not yet settled as of the quote's reference time." ;
+    skos:scopeNote "Decimal for the same reason as ksh:volume." .
 
 ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
     skos:definition "The instant from which orders are accepted in the market." .
