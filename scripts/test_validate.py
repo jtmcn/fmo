@@ -271,6 +271,24 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         """    wtl:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
         "score rests on a superseded record",
     ),
+    (
+        "a market expresses a proposition about a target its grouping does not cover",
+        EXAMPLE,
+        """    ksh:expressesProposition ex:Prop-82-83 ;
+    ksh:hasStatus ksh:Finalized ;""",
+        """    ksh:expressesProposition ex:Prop-82-83-NWS ;
+    ksh:hasStatus ksh:Finalized ;""",
+        "market covers a different target than its grouping",
+    ),
+    (
+        "two brackets of one mutually exclusive ladder overlap",
+        BRACKETS,
+        """    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "84"^^xsd:decimal ;""",
+        """    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "83"^^xsd:decimal ;""",
+        "overlapping brackets",
+    ),
 ]
 
 

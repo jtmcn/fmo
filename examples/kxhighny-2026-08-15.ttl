@@ -253,6 +253,17 @@ ex:Datum-Max-NWS a wx:WeatherObservationDatum ;
 # here to be disagreed with, and to give the validator a misalignment to detect
 # if a future forecast is ever pointed at it while the market settles on the other.
 
+# The same bracket read against the authority the exchange did NOT settle on.
+# Nothing points at it; it exists so the grouping-agreement check has a target to
+# catch a market drifting onto, the way Target-HighTemp-NWS does for forecasts.
+ex:Prop-82-83-NWS a wtl:Proposition ;
+    rdfs:label "high is between 82 and 83 degrees F, NWS determination" ;
+    wtl:hasSubject ex:Target-HighTemp-NWS ;
+    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "82"^^xsd:decimal ;
+    wtl:capValue "83"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
+
 ex:Settlement-B82 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B82.5" ;
     wtl:hasAgent ksh:Kalshi ;

@@ -124,6 +124,12 @@ BRIER_SCORE = URIRef(WTL + "BrierScore")
 PROBABILITY_VALUE = URIRef(WTL + "probabilityValue")
 ASSESSED_TRUTH_VALUE = URIRef(WTL + "assessedTruthValue")
 TRUE_VALUE = URIRef(WTL + "True")
+IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping")
+COVERS_TARGET = URIRef(KSH + "coversTarget")
+MUTUALLY_EXCLUSIVE = URIRef(KSH + "mutuallyExclusive")
+HAS_COMPARATOR = URIRef(WTL + "hasComparator")
+FLOOR_VALUE = URIRef(WTL + "floorValue")
+CAP_VALUE = URIRef(WTL + "capValue")
 # Properties whose presence means a unit is mandatory rather than optional.
 VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
                URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
@@ -418,6 +424,94 @@ def check_scores(g: Graph) -> None:
     notes.append(f"{checked} Brier score(s) checked against their inputs")
 
 
+def check_grouping_coherence(g: Graph) -> None:
+    """An event grouping's markets partition the values of ONE target.
+
+    Two things follow, and neither was checked. A market whose proposition names a
+    different target than its grouping covers is the same drift the forecast-target
+    check exists for, one tier up. And in a grouping asserted mutually exclusive,
+    two brackets that overlap contradict that assertion -- CQ5 sums their implied
+    probabilities and reports an overshoot without ever noticing.
+
+    Exhaustiveness is NOT checked. Whether the brackets leave a gap depends on the
+    reporting increment of the protocol -- whole degrees Fahrenheit here, stated in
+    prose and nowhere in the model -- so the check would be guessing. See README.
+    """
+    inf = float("inf")
+    comparators = {
+        URIRef(WTL + "Between"):            lambda f, c: (f, True, c, True),
+        URIRef(WTL + "LessThanOrEqual"):    lambda f, c: (-inf, False, c, True),
+        URIRef(WTL + "LessThan"):           lambda f, c: (-inf, False, c, False),
+        URIRef(WTL + "GreaterThanOrEqual"): lambda f, c: (f, True, inf, False),
+        URIRef(WTL + "GreaterThan"):        lambda f, c: (f, False, inf, False),
+        URIRef(WTL + "EqualTo"):            lambda f, c: (f, True, f, True),
+    }
+
+    def interval(prop):
+        """None means not evaluable -- wtl:Custom, or a threshold not stated."""
+        comps = list(g.objects(prop, HAS_COMPARATOR))
+        if len(comps) != 1 or comps[0] not in comparators:
+            return None
+        floors = list(g.objects(prop, FLOOR_VALUE))
+        caps = list(g.objects(prop, CAP_VALUE))
+        if len(floors) > 1 or len(caps) > 1:
+            fail(f"{prop}: more than one threshold value, so its interval is ambiguous")
+            return None
+        try:
+            return comparators[comps[0]](
+                float(floors[0]) if floors else None,
+                float(caps[0]) if caps else None,
+            )
+        except TypeError:
+            fail(f"{prop}: its comparator needs a threshold value that is not stated")
+            return None
+
+    def overlaps(a, b):
+        lo1, lo1_in, hi1, hi1_in = a
+        lo2, lo2_in, hi2, hi2_in = b
+        left = lo1 < hi2 or (lo1 == hi2 and lo1_in and hi2_in)
+        right = lo2 < hi1 or (lo2 == hi1 and lo2_in and hi1_in)
+        return left and right
+
+    checked = 0
+    groupings: dict[URIRef, list] = {}
+    for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
+        for prop in g.objects(market, EXPRESSES):
+            for subject in g.objects(prop, HAS_SUBJECT):
+                checked += 1
+                covered = list(g.objects(grouping, COVERS_TARGET))
+                if covered and subject not in covered:
+                    fail(
+                        f"market covers a different target than its grouping: "
+                        f"{market} expresses {prop} about {subject}, but "
+                        f"{grouping} covers {sorted(str(c) for c in covered)}"
+                    )
+            if (grouping, MUTUALLY_EXCLUSIVE, Literal(True)) in g:
+                iv = interval(prop)
+                if iv is not None:
+                    groupings.setdefault(grouping, []).append((prop, iv))
+
+    for grouping, entries in sorted(groupings.items(), key=lambda kv: str(kv[0])):
+        for i, (prop_a, iv_a) in enumerate(entries):
+            for prop_b, iv_b in entries[i + 1:]:
+                if prop_a == prop_b:
+                    continue
+                if overlaps(iv_a, iv_b):
+                    fail(
+                        f"overlapping brackets: {grouping} is asserted mutually "
+                        f"exclusive, but {prop_a} and {prop_b} can both be true. "
+                        f"CQ5 would sum their implied probabilities regardless."
+                    )
+
+    if EXAMPLES and not checked:
+        fail(
+            "no market reaches a proposition subject, so the grouping check "
+            "matched nothing; the inEventGrouping or expressesProposition chain "
+            "is broken"
+        )
+    notes.append(f"{checked} market/grouping pair(s) checked for target agreement")
+
+
 def main() -> int:
     g = Graph()
 
@@ -593,6 +687,7 @@ def main() -> int:
     check_lead_times(ex)
     check_current_assessments(ex)
     check_scores(ex)
+    check_grouping_coherence(ex)
 
     # Domain sanity: the join the ontology exists for.
     #

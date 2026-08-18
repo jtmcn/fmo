@@ -220,6 +220,12 @@ Flagged rather than silently decided:
   them work. They are retained because the settlement story is incomplete without naming what
   settles, but treat them as unproven. `validate.py` reports the instantiated-class count on
   every run so the gap stays visible.
+- **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
+  grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
+  KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is
+  stated in the protocol's prose and nowhere in the model. Checking for gaps needs a
+  reporting increment on `wx:MeasurementProtocol`. Until then a ladder with a hole in it
+  passes, and CQ5 reports the undershoot as a possible arbitrage.
 
 ## License
 
