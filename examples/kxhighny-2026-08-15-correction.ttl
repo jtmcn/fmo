@@ -1,12 +1,13 @@
 # A correction issued after settlement, contradicting two settled markets.
 #
-# This is the case CQ7 exists for, and it is not hypothetical: NWS reissues CLI
-# products when a sensor fault or a transcription error is found, sometimes days
-# later. Since 2026-08-14 the settlement source is The Weather Company rather
-# than the NWS directly, so the correction reaches the market by propagation --
-# TWC uses NWS as its primary underlying source, and republishes when that source
-# is corrected. The settling authority is still TWC, which is why both the record
-# read at settlement and the correction superseding it are TWC records here.
+# This is the case CQ7 exists for, and it is not hypothetical: daily climate
+# records are reissued when a sensor fault or a transcription error is found,
+# sometimes days later. Since 2026-08-14 the settlement source is The Weather
+# Company rather than the NWS directly, so the correction that reaches the market
+# is TWC's own reissue -- which is why both the record read at settlement and the
+# correction superseding it are TWC records here. The NWS record in the base
+# example is deliberately NOT corrected alongside it: it is a separate
+# determination under a separate protocol, and disagreeing is its job.
 # Exchanges generally do not re-settle. So the observational record and the
 # exchange's payout permanently disagree, and both are correct about what they
 # record.
@@ -14,7 +15,7 @@
 # Timeline:
 #   2026-08-16 10:15Z  The TWC record reports the 15 Aug high as 82.
 #   2026-08-16 14:30Z  Kalshi settles the ladder on 82. B82.5 pays yes.
-#   2026-08-17 09:05Z  NWS corrects CLINYC; TWC republishes. The high was 84.
+#   2026-08-17 09:05Z  TWC reissues its record. The high was 84.
 #
 # Against the corrected record:
 #   Prop-LE81   (<= 81)   84 fails  -> resolved no   -> consistent
@@ -57,7 +58,7 @@ ex:TWCRecord-2026-08-17-COR a wx:ReportCorrection ;
     wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
     wx:supersedes ex:TWCRecord-2026-08-16 ;
-    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a sensor fault reported upstream by the NWS." ;
+    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a transcription error in this record." ;
     bfo:BFO_0000178 ex:Datum-Max-Corrected .    # has continuant part
 
 ex:Datum-Max-Corrected a wx:WeatherObservationDatum ;
