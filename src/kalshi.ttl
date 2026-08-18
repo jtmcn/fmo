@@ -11,7 +11,7 @@
 
 <https://w3id.org/wantology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/kalshi/0.6.0> ;
+    owl:versionIRI <https://w3id.org/wantology/kalshi/0.7.0> ;
     owl:imports <https://w3id.org/wantology/core> , <https://w3id.org/wantology/weather> ;
     dcterms:title "Wantology Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -19,7 +19,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.6.0" ;
+    owl:versionInfo "0.7.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and

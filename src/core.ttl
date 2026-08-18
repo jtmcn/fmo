@@ -12,7 +12,7 @@
 
 <https://w3id.org/wantology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/core/0.6.0> ;
+    owl:versionIRI <https://w3id.org/wantology/core/0.7.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/wantology/imports/qudt-subset> ;
     dcterms:title "Wantology Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.6.0" .
+    owl:versionInfo "0.7.0" .
 
 ################################################################
 # Information content entities
