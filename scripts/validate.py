@@ -11,7 +11,10 @@ go wrong when hand-authoring a BFO application ontology:
   3. No class is both a continuant and an occurrent. This is the disjointness
      that BFO cares most about and the one an application ontology breaks by
      mistake, typically by filing an information artifact under process.
-  4. Every property we use in the examples is declared somewhere.
+  4. Every property we use in the examples is declared somewhere, and every
+     individual they reference is defined somewhere. A dangling IRI is legal RDF
+     that reads as an untyped resource, so a renamed individual degrades every
+     term pointing at it without breaking anything loudly.
   5. Every class and property carries a label and a skos:definition. A scopeNote
      says "why here, not there", which is not a statement of what the term means,
      so it does not substitute.
@@ -388,6 +391,38 @@ def main() -> int:
             if str(p).startswith("http://purl.org/dc/"):
                 continue
             fail(f"{path.name} uses undeclared property: {p}")
+
+    # 4b. individuals referenced in the examples are defined in them
+    #
+    # Checked against the union of the example files, not per file, because they
+    # import each other: the synthetic dataset legitimately references the site and
+    # protocol defined in the worked example. Only example-namespace IRIs are in
+    # scope; schema terms are covered by the grounding and documentation checks.
+    #
+    # This exists because re-pointing the settlement source renamed a protocol
+    # individual and verification-synthetic.ttl went on referencing the old IRI for
+    # all 40 days. Nothing failed. The targets silently lost their protocol, which
+    # for an ontology whose central rule is "the observation target carries the
+    # protocol" is the worst available place to lose one.
+    example_ns = "https://w3id.org/wantology/examples/"
+    defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
+    dangling = sorted(
+        {
+            str(o)
+            for _, _, o in ex
+            if isinstance(o, URIRef)
+            and str(o).startswith(example_ns)
+            and o not in defined
+        }
+    )
+    for iri in dangling:
+        fail(f"undefined individual referenced in examples: {iri}")
+    referenced = {
+        o
+        for _, _, o in ex
+        if isinstance(o, URIRef) and str(o).startswith(example_ns)
+    }
+    notes.append(f"{len(referenced)} referenced example IRI(s) checked for definedness")
 
     # 5. documentation coverage
     for term in our_classes + sorted(

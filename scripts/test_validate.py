@@ -52,6 +52,16 @@ CASES = [
         "unit mismatch (datum vs target)",
     ),
     (
+        # The bug this check exists for: re-pointing the settlement source renamed
+        # ex:NWSDailyClimateProtocol, and verification-synthetic.ttl went on
+        # referencing it for all 40 days. Every other check stayed green.
+        "a referenced individual no longer exists",
+        EXAMPLE,
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
+        """    wx:underProtocol ex:RenamedAwayProtocol ;""",
+        "undefined individual referenced in examples",
+    ),
+    (
         "class unrooted from BFO",
         "src/kalshi.ttl",
         """ksh:Position a owl:Class ;
