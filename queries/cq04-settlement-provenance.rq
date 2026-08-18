@@ -29,6 +29,9 @@ WHERE {
     ?market ksh:marketTicker ?ticker ;
             ksh:expressesProposition ?proposition .
 
+    # The observation target, needed below to pick the right datum out of the document.
+    ?proposition wtl:hasSubject ?target .
+
     # The truth value assessed FROM THIS DOCUMENT. Bound to ?document rather than
     # read off the proposition, because a later correction produces a second
     # assessment of the same proposition with the opposite value -- see CQ7.
@@ -40,10 +43,14 @@ WHERE {
 
     OPTIONAL { ?document wtl:issuedBy ?issuer }
 
-    # The datum inside the document that carries the number.
+    # The datum inside the document that carries the number FOR THIS MARKET'S TARGET.
+    # A CLI product carries max temperature, min temperature and precipitation, so
+    # without wx:reportsValueFor the walk returns every datum in the document and
+    # reports the minimum temperature as the value a max-temperature market settled on.
     OPTIONAL {
         ?document bfo:BFO_0000178 ?datum .
-        ?datum wtl:realizedValue ?reportedValue .
+        ?datum wx:reportsValueFor ?target ;
+               wtl:realizedValue ?reportedValue .
     }
 }
 ORDER BY ?ticker

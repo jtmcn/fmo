@@ -11,7 +11,7 @@
 
 <https://w3id.org/wantology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/kalshi/0.5.0> ;
+    owl:versionIRI <https://w3id.org/wantology/kalshi/0.6.0> ;
     owl:imports <https://w3id.org/wantology/core> , <https://w3id.org/wantology/weather> ;
     dcterms:title "Wantology Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -19,7 +19,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.5.0" ;
+    owl:versionInfo "0.6.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API as of 2026-08.
 The authoritative API reference was not reachable from the environment this module was
 drafted in, so enumerated individuals below should be checked against the live schema
@@ -310,6 +310,7 @@ ksh:hasStatus a owl:ObjectProperty ;
     rdfs:label "has status" ;
     rdfs:domain ksh:Market ; rdfs:range ksh:MarketStatus ;
     a owl:FunctionalProperty ;
+    skos:definition "Relates a market to the designation recording where it stands in its lifecycle: open to trading, closed to it, or settled." ;
     skos:scopeNote "Status changes over time; an assertion of it is true only as of a reference time. In 0.1.0 this is treated as the current status. Model status history as a sequence of ksh:Quote-like snapshots if history matters." .
 
 ksh:resolvesTo a owl:ObjectProperty ;
@@ -336,16 +337,19 @@ ksh:derivedFromQuote a owl:ObjectProperty ;
 ksh:seriesTicker a owl:DatatypeProperty ;
     rdfs:subPropertyOf wtl:identifier ; rdfs:label "series ticker" ;
     rdfs:domain ksh:Series ; rdfs:range xsd:string ;
+    skos:definition "The exchange's identifier for a series, naming the recurring question rather than any one occasion of it." ;
     skos:example "\"KXHIGHNY\"" .
 
 ksh:eventTicker a owl:DatatypeProperty ;
     rdfs:subPropertyOf wtl:identifier ; rdfs:label "event ticker" ;
     rdfs:domain ksh:EventGrouping ; rdfs:range xsd:string ;
+    skos:definition "The exchange's identifier for one occasion of a series, naming the set of markets that share a settlement source and date." ;
     skos:example "\"KXHIGHNY-26AUG15\"" .
 
 ksh:marketTicker a owl:DatatypeProperty ;
     rdfs:subPropertyOf wtl:identifier ; rdfs:label "market ticker" ;
     rdfs:domain ksh:Market ; rdfs:range xsd:string ;
+    skos:definition "The exchange's identifier for a single market, naming one bracket or condition within an event grouping." ;
     skos:example "\"KXHIGHNY-26AUG15-B82.5\"" .
 
 ksh:mutuallyExclusive a owl:DatatypeProperty ;
@@ -360,6 +364,7 @@ ksh:yesBidCents a owl:DatatypeProperty ; rdfs:label "yes bid cents" ; rdfs:domai
 ksh:yesAskCents a owl:DatatypeProperty ; rdfs:label "yes ask cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
     skos:definition "The lowest price, in cents, at which a resting order to sell yes contracts existed as of the quote's reference time." .
 ksh:lastPriceCents a owl:DatatypeProperty ; rdfs:label "last price cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
+    skos:definition "The price in whole cents at which the market's most recent trade executed, as of the quote's reference time." ;
     skos:scopeNote "Whole cents, 1 to 99, against a one dollar payout per contract. Kept in cents rather than converted to a probability so that the source datum and the derived belief stay distinct." .
 
 ksh:volume a owl:DatatypeProperty ; rdfs:label "volume" ; rdfs:domain ksh:Quote ; rdfs:range xsd:integer ;
@@ -373,6 +378,7 @@ ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:M
 ksh:closeTime a owl:DatatypeProperty ; rdfs:label "close time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
     skos:definition "The instant after which no further orders are matched in the market." .
 ksh:expirationTime a owl:DatatypeProperty ; rdfs:label "expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+    skos:definition "The instant after which the market can no longer resolve, being the point by which its settlement source is expected to have published." ;
     skos:scopeNote "Distinct from close time. A daily temperature market closes at the end of the climatological day but expires only once the settlement source has published, typically the following morning." .
 
 ksh:settlementValue a owl:DatatypeProperty ;

@@ -12,7 +12,9 @@ go wrong when hand-authoring a BFO application ontology:
      that BFO cares most about and the one an application ontology breaks by
      mistake, typically by filing an information artifact under process.
   4. Every property we use in the examples is declared somewhere.
-  5. Every class and property carries a label and a definition.
+  5. Every class and property carries a label and a skos:definition. A scopeNote
+     says "why here, not there", which is not a statement of what the term means,
+     so it does not substitute.
   6. Derived values match what they are derived from: wx:leadTimeHours against the
      forecast's issuance time and its target interval's first instant.
   7. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
@@ -20,8 +22,14 @@ go wrong when hand-authoring a BFO application ontology:
      match. This catches both a Fahrenheit threshold read against a Celsius target
      (same dimension, still wrong) and inches read against a temperature.
 
-Negative coverage for check 6 lives in scripts/test_validate.py -- a checker nobody
-has watched fail is not known to work.
+Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
+or two targets on a forecast, mean the answer would come from whichever triple rdflib
+happened to yield first. Absence is likewise a failure, not a skip -- a value with no
+unit is as likely an authoring slip as a value with the wrong one, and skipping it
+made the checker report OK on a defect it exists to catch.
+
+Negative coverage for every check lives in scripts/test_validate.py -- a checker
+nobody has watched fail is not known to work.
 
 Exit code is non-zero if any check fails. Run: python3 scripts/validate.py
 """
@@ -94,6 +102,9 @@ REPORTS_FOR = URIRef(WX + "reportsValueFor")
 TARGET_VAR = URIRef(WX + "targetVariable")
 CONVENTIONAL_UNIT = URIRef(WX + "conventionalUnit")
 DIM_VECTOR = URIRef(QUDT + "hasDimensionVector")
+# Properties whose presence means a unit is mandatory rather than optional.
+VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
+               URIRef(WTL + "realizedValue"))
 
 
 def check_dimensions(g: Graph) -> None:
@@ -125,14 +136,46 @@ def check_dimensions(g: Graph) -> None:
         return dims[0]
 
     def unit_of(entity):
+        """None means "not checkable", and says why first.
+
+        wtl:hasUnit is functional in OWL, but this runs without a reasoner, so two
+        units here is a wrong answer rather than an inconsistency. A missing unit is
+        at least as likely an authoring slip as a wrong one, so a value with no unit
+        fails instead of quietly dropping out of the comparison.
+        """
         units = list(g.objects(entity, HAS_UNIT))
-        return units[0] if units else None
+        if len(units) > 1:
+            fail(
+                f"ambiguous unit: {entity} has {len(units)} wtl:hasUnit values "
+                f"({sorted(str(u) for u in units)}). wtl:hasUnit is functional, so "
+                f"this is an inconsistency the reasoner would catch; without one, "
+                f"the unit check would compare against whichever came first."
+            )
+            return None
+        if not units:
+            if any(v for p in VALUE_PROPS for v in g.objects(entity, p)):
+                fail(
+                    f"missing unit: {entity} carries a numeric value but no "
+                    f"wtl:hasUnit, so it cannot be compared against anything"
+                )
+            return None
+        return units[0]
 
     compared = 0
 
     def check_identical(left, left_unit, right, right_unit, phrasing):
         """Units on either side of a comparison must be the same unit, not merely
         the same dimension."""
+        if left_unit is None or right_unit is None:
+            # One side declared a unit and the other did not. Whatever unit_of
+            # already reported, the comparison itself is now unverifiable.
+            if left_unit is not None or right_unit is not None:
+                missing = right if right_unit is None else left
+                fail(
+                    f"missing unit ({phrasing}): {missing} has no usable wtl:hasUnit, "
+                    f"so this comparison cannot be checked"
+                )
+            return
         if left_unit == right_unit:
             return
         ld, rd = dim(left_unit), dim(right_unit)
@@ -151,16 +194,12 @@ def check_dimensions(g: Graph) -> None:
     # A proposition's threshold is compared against its target's realized value.
     for prop, target in g.subject_objects(HAS_SUBJECT):
         pu, tu = unit_of(prop), unit_of(target)
-        if pu is None or tu is None:
-            continue
         check_identical(prop, pu, target, tu, "proposition threshold vs target")
         compared += 1
 
     # A datum's reading is the value the target's proposition gets evaluated against.
     for datum, target in g.subject_objects(REPORTS_FOR):
         du, tu = unit_of(datum), unit_of(target)
-        if du is None or tu is None:
-            continue
         check_identical(datum, du, target, tu, "datum vs target")
         compared += 1
 
@@ -221,9 +260,30 @@ def check_lead_times(g: Graph) -> None:
             fail(f"{forecast}: cannot resolve the first instant of its target's interval")
             continue
 
-        issued_dt = datetime.fromisoformat(str(issued[0]))
-        start_dt = datetime.fromisoformat(str(starts[0]))
-        actual = (start_dt - issued_dt).total_seconds() / 3600.0
+        # wx:forecastFor is not functional and the interval walk fans out, so more
+        # than one candidate means the stated lead time is derived from whichever
+        # rdflib happened to yield first -- an arbitrary answer, not a checked one.
+        if len(targets) > 1 or len({str(i) for i in issued}) > 1 or len({str(x) for x in starts}) > 1:
+            fail(
+                f"{forecast}: lead time is ambiguous -- {len(issued)} issuance time(s), "
+                f"{len(targets)} target(s), {len(starts)} interval start(s). "
+                f"Cannot say which pair wx:leadTimeHours was derived from."
+            )
+            continue
+
+        # A naive datetime subtracted from an aware one raises rather than returning
+        # a wrong number, and an uncaught raise costs the operator every later check.
+        try:
+            issued_dt = datetime.fromisoformat(str(issued[0]))
+            start_dt = datetime.fromisoformat(str(starts[0]))
+            actual = (start_dt - issued_dt).total_seconds() / 3600.0
+        except (ValueError, TypeError) as exc:
+            fail(
+                f"{forecast}: cannot measure lead time from issuance {issued[0]!r} to "
+                f"interval start {starts[0]!r}: {exc}. Both need a UTC offset -- see "
+                f"the wtl:instantDateTime scope note."
+            )
+            continue
         if abs(float(stated) - actual) > 0.01:
             fail(
                 f"{forecast}: wx:leadTimeHours says {stated} but issuance "
@@ -261,8 +321,14 @@ def main() -> int:
             fail(f"parse error in {path.name}: {exc}")
     notes.append(f"parsed {len(EXAMPLES)} example files, {len(ex)} triples with schema")
 
+    # Collected from rdfs:subClassOf as well as `a owl:Class`: a hand-authored class
+    # that only ever appears as the subject or parent of a subClassOf is a plausible
+    # slip, and taking the declared ones alone made it invisible rather than unrooted.
     our_classes = sorted(
-        {s for s in g.subjects(RDF.type, OWL.Class) if is_ours(s)}, key=str
+        {s for s in g.subjects(RDF.type, OWL.Class) if is_ours(s)}
+        | {s for s in g.subjects(RDFS.subClassOf, None) if is_ours(s)}
+        | {o for o in g.objects(None, RDFS.subClassOf) if is_ours(o)},
+        key=str,
     )
     notes.append(f"{len(our_classes)} minted classes")
 
@@ -284,9 +350,16 @@ def main() -> int:
     # QUDT makes no upper-level commitment, so without the bridge axioms in core.ttl
     # its classes float under owl:Thing. The per-namespace check above would not
     # notice, because these are not in our namespace.
-    for iri in (QUDT + "Unit", QUDT + "QuantityKind"):
-        if ENTITY not in ancestors(g, URIRef(iri)):
+    # Derived from the subset rather than hard-coded, because the two IRIs named here
+    # originally were the two that happened to be floating that day; the generator
+    # later added a third (qudt:QuantityKindDimensionVector) and the check missed it.
+    qudt_classes = sorted(
+        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(QUDT)), key=str
+    )
+    for iri in qudt_classes:
+        if ENTITY not in ancestors(g, iri):
             fail(f"bridged external class not grounded in BFO: {iri}")
+    notes.append(f"{len(qudt_classes)} bridged QUDT class(es) checked for BFO grounding")
 
     # 3. continuant / occurrent disjointness
     for cls in our_classes:
@@ -303,7 +376,10 @@ def main() -> int:
     builtin_ok = {RDF.type, RDFS.label, RDFS.subClassOf, OWL.imports, OWL.versionIRI}
     for path in EXAMPLES:
         eg = Graph()
-        eg.parse(path, format="turtle")
+        try:
+            eg.parse(path, format="turtle")
+        except Exception:  # noqa: BLE001
+            continue  # already reported by the parse loop above; do not lose report()
         for _, p, _ in eg:
             if p in builtin_ok or p in declared:
                 continue
@@ -325,12 +401,11 @@ def main() -> int:
     ):
         if not any(g.objects(term, RDFS.label)):
             fail(f"no rdfs:label: {term}")
-        has_def = any(g.objects(term, SKOS.definition))
-        has_note = any(g.objects(term, SKOS.scopeNote)) or any(
-            g.objects(term, SKOS.example)
-        )
-        if not has_def and not has_note:
-            notes.append(f"  undocumented (no definition or note): {term}")
+        # Was advisory, and a scopeNote counted as a definition. Both the module
+        # docstring and CLAUDE.md promise this fails, so make it fail: a scope note
+        # says "why here, not there", which is not a statement of what the term means.
+        if not any(g.objects(term, SKOS.definition)):
+            fail(f"no skos:definition: {term}")
 
     if tally:
         notes.append("BFO branch distribution:")

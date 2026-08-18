@@ -27,33 +27,56 @@
 # given instant, so ?marketCount is the honest denominator -- compare it against
 # the grouping's true bracket count before trusting a total. A ladder missing a
 # bracket will undershoot and look like an arbitrage.
+#
+# COLLAPSED TO ONE ROW PER MARKET FIRST. Nothing in the model limits a market to a
+# single implied probability at an instant -- one derived from the last trade and
+# one from the mid are both legitimate -- and the same holds for quotes. Summing the
+# join directly counted such a market twice, inflating the total into a false
+# arbitrage signal while ?marketCount stayed right, so the guard above never fired.
+# The inner-most select takes one value per (grouping, instant, market).
+#
+#   sourceRows  -- how many joined rows those markets collapsed from. Equals
+#                  ?marketCount on clean data; anything higher means duplicate
+#                  probabilities or quotes exist and one of each was picked.
 
-SELECT ?eventTicker ?asOf ?marketCount ?sumImplied ?overshoot
+SELECT ?eventTicker ?asOf ?marketCount ?sourceRows ?sumImplied ?overshoot
        ?sumBidCents ?sumAskCents ?arbitrageCheck
 WHERE {
     {
         SELECT ?grouping ?asOf
-               (COUNT(DISTINCT ?market) AS ?marketCount)
+               (COUNT(?market) AS ?marketCount)
+               (SUM(?rows) AS ?sourceRows)
                (SUM(?p)    AS ?sumImplied)
                (SUM(?bid)  AS ?sumBidCents)
                (SUM(?ask)  AS ?sumAskCents)
         WHERE {
-            ?grouping a/rdfs:subClassOf* ksh:EventGrouping ;
-                      ksh:mutuallyExclusive true .
+            # One row per market before anything is summed. MAX rather than SAMPLE
+            # so a duplicate gives the same answer on every run and the .expected
+            # diff stays meaningful; ?rows carries the fact that it happened.
+            SELECT ?grouping ?asOf ?market
+                   (MAX(?pv)   AS ?p)
+                   (MAX(?bidv) AS ?bid)
+                   (MAX(?askv) AS ?ask)
+                   (COUNT(*)   AS ?rows)
+            WHERE {
+                ?grouping a/rdfs:subClassOf* ksh:EventGrouping ;
+                          ksh:mutuallyExclusive true .
 
-            ?market ksh:inEventGrouping ?grouping ;
-                    ksh:expressesProposition ?proposition .
+                ?market ksh:inEventGrouping ?grouping ;
+                        ksh:expressesProposition ?proposition .
 
-            ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
-                wtl:assignsProbabilityTo ?proposition ;
-                wtl:probabilityValue ?p ;
-                wtl:referenceTime ?asOf .
+                ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
+                    wtl:assignsProbabilityTo ?proposition ;
+                    wtl:probabilityValue ?pv ;
+                    wtl:referenceTime ?asOf .
 
-            # Same ?asOf on both sides: one snapshot, not a mixture.
-            ?quote ksh:quoteForMarket ?market ;
-                   wtl:referenceTime ?asOf ;
-                   ksh:yesBidCents ?bid ;
-                   ksh:yesAskCents ?ask .
+                # Same ?asOf on both sides: one snapshot, not a mixture.
+                ?quote ksh:quoteForMarket ?market ;
+                       wtl:referenceTime ?asOf ;
+                       ksh:yesBidCents ?bidv ;
+                       ksh:yesAskCents ?askv .
+            }
+            GROUP BY ?grouping ?asOf ?market
         }
         GROUP BY ?grouping ?asOf
     }

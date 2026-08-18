@@ -84,6 +84,83 @@ CASES = [
     rdfs:subClassOf wtl:InformationContentEntity , bfo:BFO_0000015 ;""",
         "both continuant and occurrent",
     ),
+    (
+        # Finding: a missing unit used to be `continue`d, so deleting one made the
+        # comparison vanish rather than fail -- an omission is as likely a slip as
+        # a wrong unit, and only the wrong-unit case had coverage.
+        "threshold with a numeric value but no unit at all",
+        EXAMPLE,
+        """    wtl:capValue "83"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F ;""",
+        """    wtl:capValue "83"^^xsd:decimal ;""",
+        "carries a numeric value but no wtl:hasUnit",
+    ),
+    (
+        # wtl:hasUnit is functional, so HermiT catches this -- but `make reason` is
+        # the Java-optional path, and unit_of used to take units[0] from an
+        # unordered list, which is precisely the Celsius/Fahrenheit defect above.
+        "two units on one term, so the unit check picks one arbitrarily",
+        EXAMPLE,
+        """    wtl:capValue "83"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F ;""",
+        """    wtl:capValue "83"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F , unit:DEG_C ;""",
+        "ambiguous unit",
+    ),
+    (
+        # Used to raise an uncaught TypeError (naive minus aware), which killed
+        # every later check and report() with it, so the operator got a traceback
+        # instead of the file and term at fault.
+        "issuance time written without a UTC offset",
+        EXAMPLE,
+        """    wx:issuanceTime "2026-08-15T09:40:00Z"^^xsd:dateTime ;""",
+        """    wx:issuanceTime "2026-08-15T09:40:00"^^xsd:dateTime ;""",
+        "cannot measure lead time from issuance",
+    ),
+    (
+        # forecastFor is not functional, so a second target left the lead time
+        # checked against whichever one rdflib yielded first.
+        "forecast covering a second target, making its lead time ambiguous",
+        EXAMPLE,
+        """    bfo:BFO_0000178 ex:ForecastProb-82-83 .     # has continuant part""",
+        """    wx:forecastFor ex:Target-LowTemp ;
+    bfo:BFO_0000178 ex:ForecastProb-82-83 .     # has continuant part
+
+ex:Target-LowTemp a wx:ObservationTarget ;
+    rdfs:label "min temperature at KNYC" ;
+    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    wtl:hasUnit unit:DEG_F .""",
+        "lead time is ambiguous",
+    ),
+    (
+        # Check 5 only ever appended to notes, so eight live terms had no
+        # definition while CLAUDE.md promised the validator failed without one.
+        "a term left without a skos:definition",
+        "src/weather.ttl",
+        """    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." .""",
+        """    skos:scopeNote "Reported as the bearing the wind blows FROM." .""",
+        "no skos:definition: https://w3id.org/wantology/weather#WindDirection",
+    ),
+    (
+        # Check 2b hard-coded two QUDT IRIs, so the third class the generator adds
+        # floated under owl:Thing -- the exact defect 2b exists to catch.
+        "a bridged QUDT class left unrooted",
+        "src/core.ttl",
+        """qudt:QuantityKindDimensionVector rdfs:subClassOf wtl:Designation .""",
+        """""",
+        "bridged external class not grounded in BFO",
+    ),
+    (
+        # our_classes was built from `a owl:Class` alone, so a class introduced by
+        # subClassOf only was invisible to every check rather than merely unrooted.
+        "a class introduced by rdfs:subClassOf without being declared",
+        "src/kalshi.ttl",
+        """ksh:Position a owl:Class ;""",
+        """ksh:UndeclaredPosition rdfs:subClassOf ksh:Position .
+
+ksh:Position a owl:Class ;""",
+        "no rdfs:label: https://w3id.org/wantology/kalshi#UndeclaredPosition",
+    ),
 ]
 
 
@@ -183,7 +260,7 @@ def run_case(name: str, rel: str, find: str, replace: str, expect: str,
         target.write_text(text.replace(find, replace))
 
         proc = subprocess.run(
-            [sys.executable, script],
+            [sys.executable, *script.split()],
             cwd=work, capture_output=True, text=True,
         )
         output = proc.stdout + proc.stderr
@@ -223,6 +300,16 @@ def main() -> int:
         run_case(*case, script="scripts/run_competency.py")
         for case in COMPETENCY_CASES
     ]
+
+    # --update used to return 0 unconditionally. A query that errors or returns
+    # nothing skips its write, so the stale .expected survives and `make cq-update`
+    # reported success with no diff for exactly the query that was broken.
+    print("\n  -- cq-update --")
+    results.append(run_case(
+        *COMPETENCY_CASES[0][:4],
+        "returned 0 rows",
+        script="scripts/run_competency.py --update",
+    ))
 
     passed, total = sum(results) + 2, len(results) + 2
     print(f"\n{passed}/{total} checks passed")

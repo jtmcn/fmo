@@ -13,7 +13,7 @@
 
 <https://w3id.org/wantology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/weather/0.5.0> ;
+    owl:versionIRI <https://w3id.org/wantology/weather/0.6.0> ;
     owl:imports <https://w3id.org/wantology/core> ;
     dcterms:title "Wantology Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -21,7 +21,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.5.0" .
+    owl:versionInfo "0.6.0" .
 
 ################################################################
 # Material entities
@@ -115,6 +115,7 @@ wx:AtmosphericPressure a owl:Class ;
 
 wx:WindSpeed a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "wind speed" ;
+    skos:definition "The atmospheric quality corresponding to the rate at which a portion of air moves past a fixed point, independent of the direction of that motion." ;
     skos:scopeNote "Wind is the motion of a portion of air, which is a process. Wind speed is retained as a quality because it is what instruments report and what markets settle on; the underlying process is wx:AirMotion." .
 
 wx:WindDirection a owl:Class ;
@@ -428,6 +429,7 @@ wx:stationIdentifier a owl:DatatypeProperty ;
     rdfs:subPropertyOf wtl:identifier ;
     rdfs:label "station identifier" ;
     rdfs:range xsd:string ;
+    skos:definition "The call sign or catalogue code by which the issuing network designates an observation station, unique within that network." ;
     skos:example "\"KNYC\"; \"KMDW\"; \"KAUS\"." .
 
 wx:cycleTime a owl:DatatypeProperty ;
