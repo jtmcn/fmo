@@ -41,6 +41,7 @@ Usage:  python3 scripts/generate_verification_data.py   (or: make verification-d
 
 from __future__ import annotations
 
+import argparse
 import math
 import random
 from datetime import datetime, timedelta, timezone
@@ -106,6 +107,15 @@ def iso(dt: datetime) -> str:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output", type=Path, default=OUT,
+        help="where to write the dataset; defaults to examples/verification-synthetic.ttl. "
+             "A separate path is how `make verification-data-check` diffs the checked-in "
+             "file against a fresh generation without touching the working tree.",
+    )
+    args = parser.parse_args()
+
     rng = random.Random(SEED)
     out: list[str] = []
     w = out.append
@@ -226,9 +236,9 @@ vex:A-{tag}-{suffix} a wtl:TruthAssessment ;
     wtl:referenceTime "{iso(issued)}"^^xsd:dateTime .
 """)
 
-    OUT.write_text("\n".join(out))
+    args.output.write_text("\n".join(out))
     n_assign = N_DAYS * len(BRACKETS) * len(MODELS) * len(LEADS)
-    print(f"wrote {OUT.relative_to(ROOT)}")
+    print(f"wrote {args.output}")
     print(f"  {N_DAYS} days, {len(MODELS)} models, {len(LEADS)} lead times, "
           f"{n_assign} probability assignments")
     return 0

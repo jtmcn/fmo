@@ -20,7 +20,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative cq cq-update reason competency merge qudt verification-data clean
+.PHONY: all setup test validate validate-negative cq cq-update reason competency merge qudt verification-data verification-data-check clean
 
 all: validate
 
@@ -51,6 +51,17 @@ qudt:
 ## seed), so a diff means the generator changed, not the data.
 verification-data:
 	$(PY) scripts/generate_verification_data.py
+
+## Fail if the checked-in synthetic dataset no longer matches its generator.
+## The file is 7000 generated lines; nothing else would notice a hand-edit.
+verification-data-check:
+	@mkdir -p $(BUILD)
+	@$(PY) scripts/generate_verification_data.py --output $(BUILD)/verification-synthetic.ttl >/dev/null
+	@cmp -s examples/verification-synthetic.ttl $(BUILD)/verification-synthetic.ttl || { \
+		echo "FAIL: examples/verification-synthetic.ttl does not match its generator."; \
+		echo "      Run 'make verification-data' and review the diff."; \
+		exit 1; }
+	@echo "OK: synthetic dataset matches its generator"
 
 ## Competency questions 1, 2, 4, 5, 6 and 7: run queries/*.rq against checked-in results.
 ## An empty result set fails -- a query matching nothing is how a broken check looks fine.
@@ -119,7 +130,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative cq reason competency
+test: validate validate-negative verification-data-check cq reason competency
 
 clean:
 	rm -rf $(BUILD)
