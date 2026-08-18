@@ -116,6 +116,14 @@ EXPRESSES = URIRef(KSH + "expressesProposition")
 ASSESSES = URIRef(WTL + "assessesProposition")
 BASED_ON_RECORD = URIRef(WTL + "basedOnRecord")
 SUPERSEDES = URIRef(WX + "supersedes")
+SCORES_ASSIGNMENT = URIRef(WTL + "scoresAssignment")
+USES_SCORING_RULE = URIRef(WTL + "usesScoringRule")
+SCORED_AGAINST = URIRef(WTL + "scoredAgainst")
+SCORE_VALUE = URIRef(WTL + "scoreValue")
+BRIER_SCORE = URIRef(WTL + "BrierScore")
+PROBABILITY_VALUE = URIRef(WTL + "probabilityValue")
+ASSESSED_TRUTH_VALUE = URIRef(WTL + "assessedTruthValue")
+TRUE_VALUE = URIRef(WTL + "True")
 # Properties whose presence means a unit is mandatory rather than optional.
 VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
                URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
@@ -363,6 +371,53 @@ def check_current_assessments(g: Graph) -> None:
     notes.append(f"{len(by_proposition)} proposition(s) checked for a single current assessment")
 
 
+def check_scores(g: Graph) -> None:
+    """A stored Brier score is derived, so check it against its inputs.
+
+    Same reasoning as wx:leadTimeHours: a derived value stored for query
+    convenience goes stale the moment either input moves, and nothing about the
+    graph complains. The outcome must come from an assessment resting on a live
+    record -- scoring against a superseded one measures what the exchange did
+    rather than what the record says, which is the one thing wtl:scoredAgainst
+    exists to make visible.
+    """
+    superseded = set(g.objects(None, SUPERSEDES))
+    checked = 0
+    for score, stated in g.subject_objects(SCORE_VALUE):
+        if (score, USES_SCORING_RULE, BRIER_SCORE) not in g:
+            continue  # only the Brier arithmetic is reproducible here
+        assignments = list(g.objects(score, SCORES_ASSIGNMENT))
+        assessments = list(g.objects(score, SCORED_AGAINST))
+        if len(assignments) != 1 or len(assessments) != 1:
+            fail(
+                f"{score}: cannot check a Brier score with {len(assignments)} "
+                f"assignment(s) and {len(assessments)} assessment(s); exactly one "
+                f"of each is needed to reproduce the arithmetic"
+            )
+            continue
+        for record in g.objects(assessments[0], BASED_ON_RECORD):
+            if record in superseded:
+                fail(
+                    f"score rests on a superseded record: {score} is scored "
+                    f"against {assessments[0]}, which read {record}. That measures "
+                    f"the outcome the record has since retracted."
+                )
+        probs = list(g.objects(assignments[0], PROBABILITY_VALUE))
+        truths = list(g.objects(assessments[0], ASSESSED_TRUTH_VALUE))
+        if len(probs) != 1 or len(truths) != 1:
+            fail(f"{score}: its assignment or assessment does not carry exactly one value")
+            continue
+        outcome = 1.0 if truths[0] == TRUE_VALUE else 0.0
+        expected = (float(probs[0]) - outcome) ** 2
+        if abs(float(stated) - expected) > 1e-9:
+            fail(
+                f"Brier score mismatch: {score} says {stated} but probability "
+                f"{probs[0]} against outcome {outcome:.0f} is {expected:.4f}"
+            )
+        checked += 1
+    notes.append(f"{checked} Brier score(s) checked against their inputs")
+
+
 def main() -> int:
     g = Graph()
 
@@ -509,6 +564,17 @@ def main() -> int:
         if not any(g.objects(term, SKOS.definition)):
             fail(f"no skos:definition: {term}")
 
+    # Advisory, never a failure. A term with no instance is a term nobody has
+    # watched work; the trading layer is deliberately in that state and README
+    # says so, but the count should be visible on every run rather than needing
+    # an audit to find.
+    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)}
+    covered = sum(1 for c in our_classes if c in instantiated)
+    notes.append(
+        f"{covered}/{len(our_classes)} minted classes "
+        f"have an instance in the examples"
+    )
+
     if tally:
         notes.append("BFO branch distribution:")
         for name, count in sorted(tally.items(), key=lambda kv: -kv[1]):
@@ -526,6 +592,7 @@ def main() -> int:
     check_dimensions(ex)
     check_lead_times(ex)
     check_current_assessments(ex)
+    check_scores(ex)
 
     # Domain sanity: the join the ontology exists for.
     #

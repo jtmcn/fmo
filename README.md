@@ -156,8 +156,13 @@ mistake into a HermiT inconsistency instead of a wrong answer; the guard is veri
 `rdfs:subClassOf`, that bridged external classes are grounded too, that nothing is both
 continuant and occurrent, that examples use only declared properties and reference only
 individuals that exist, that a forecast scores the same target the market settles on, unit
-coherence, and documentation coverage. `make reason` adds HermiT consistency and re-derives
-`ksh:WeatherMarket` from a weakened assertion to prove the defined class actually fires.
+coherence, and documentation coverage. Stored derived values are checked against what they are
+derived from: `wx:leadTimeHours` against issuance and interval start, and a `wtl:SkillScore`
+under `wtl:BrierScore` against the probability it scores and the outcome it was scored against. A
+score resting on a superseded record fails — scoring against a retracted value is the specific
+mistake `wtl:scoredAgainst` exists to make visible. `make reason` adds HermiT consistency and
+re-derives `ksh:WeatherMarket` from a weakened assertion to prove the defined class actually
+fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
 `.expected` files. **An empty result set fails** — a query matching nothing is how a broken
@@ -209,6 +214,12 @@ Flagged rather than silently decided:
   input so the transformation stays auditable, but no derivation is specified. Naive
   `price/100` ignores spread, fees, and carry.
 - **Tropical cyclones as processes.** Defensible and contested; see `docs/design-notes.md`.
+- **The trading layer is vocabulary, not exercised.** `ksh:BinaryContract`, `ksh:Order`,
+  `ksh:Trade`, `ksh:Position`, `ksh:Payout` and `ksh:OrderBookSnapshot` have no instance in
+  any example and no competency question asks about order flow, so nothing has ever watched
+  them work. They are retained because the settlement story is incomplete without naming what
+  settles, but treat them as unproven. `validate.py` reports the instantiated-class count on
+  every run so the gap stays visible.
 
 ## License
 
