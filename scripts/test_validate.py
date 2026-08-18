@@ -225,6 +225,17 @@ ksh:Position a owl:Class ;""",
         """    ksh:settlementValue "82"^^xsd:decimal .""",
         "missing unit",
     ),
+    (
+        # Zero-coverage guard for the settlement-value check. Mutated in the checker
+        # rather than the data because the four resolutions live in two files, so no
+        # single-anchor edit can empty the traversal -- and a renamed property IRI is
+        # the refactor that would silently reduce the check to "0 pairs checked, OK".
+        "the settlement-value check traverses nothing",
+        "scripts/validate.py",
+        """RESOLUTION_OF = URIRef(KSH + "resolutionOf")""",
+        """RESOLUTION_OF = URIRef(KSH + "resolutionOf_renamed")""",
+        "the resolutionOf or expressesProposition chain is broken",
+    ),
 ]
 
 
