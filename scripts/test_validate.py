@@ -223,7 +223,7 @@ ksh:Position a owl:Class ;""",
         """    ksh:settlementValue "82"^^xsd:decimal ;
     wtl:hasUnit unit:DEG_F .""",
         """    ksh:settlementValue "82"^^xsd:decimal .""",
-        "missing unit",
+        "missing unit: https://w3id.org/wantology/examples/kxhighny-2026-08-15#Resolution-B82",
     ),
     (
         # Zero-coverage guard for the settlement-value check. Mutated in the checker
@@ -254,6 +254,17 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         "more than one current assessment",
     ),
     (
+        # Zero-coverage guard for check_current_assessments. Mutated in the
+        # checker rather than the data, per the settlement-value template: the
+        # verification set alone carries 160 assessments, so no single-anchor
+        # data edit can empty the traversal.
+        "the assessment check traverses nothing",
+        "scripts/validate.py",
+        """ASSESSES = URIRef(WTL + "assessesProposition")""",
+        """ASSESSES = URIRef(WTL + "assessesProposition_renamed")""",
+        "the assessesProposition chain is broken",
+    ),
+    (
         # A stored derived value with nothing checking it is the lead-time
         # problem again: it goes stale the moment either input moves.
         "Brier score no longer matches the probability and outcome it scores",
@@ -270,6 +281,28 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         """    wtl:scoredAgainst ex:Reassessment-82-83 ;""",
         """    wtl:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
         "score rests on a superseded record",
+    ),
+    (
+        # The arithmetic used to treat every non-True value as false, so an
+        # indeterminate outcome silently certified probability^2 as correct. A
+        # Brier score against an undetermined outcome is undefined, not zero.
+        "score points at an assessment with an indeterminate truth value",
+        CORRECTION,
+        """    wtl:assessesProposition ex:Prop-82-83 ;
+    wtl:assessedTruthValue wtl:False ;""",
+        """    wtl:assessesProposition ex:Prop-82-83 ;
+    wtl:assessedTruthValue wtl:Indeterminate ;""",
+        "not wtl:True or wtl:False",
+    ),
+    (
+        # Zero-coverage guard for check_scores. Mutated in the checker rather than
+        # the data, per the settlement-value template: renaming the constant that
+        # gates "is this a Brier score" empties the traversal for every score.
+        "the score check traverses nothing",
+        "scripts/validate.py",
+        """BRIER_SCORE = URIRef(WTL + "BrierScore")""",
+        """BRIER_SCORE = URIRef(WTL + "BrierScore_renamed")""",
+        "the usesScoringRule or scoresAssignment chain is broken",
     ),
     (
         "a market expresses a proposition about a target its grouping does not cover",
@@ -302,6 +335,17 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
     wtl:hasComparator wtl:Between ;
     wtl:floorValue "82"^^xsd:decimal ;""",
         "its comparator needs a threshold value that is not stated",
+    ),
+    (
+        # Zero-coverage guard for check_grouping_coherence. Mutated in the
+        # checker rather than the data, per the settlement-value template: the
+        # ladder relationship is repeated across multiple example files, so no
+        # single-anchor data edit can empty the traversal.
+        "the grouping check traverses nothing",
+        "scripts/validate.py",
+        """IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping")""",
+        """IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping_renamed")""",
+        "the inEventGrouping or expressesProposition chain is broken",
     ),
 ]
 

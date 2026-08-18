@@ -24,10 +24,22 @@ go wrong when hand-authoring a BFO application ontology:
      probabilities assign to. Otherwise the forecast is scored against one
      determination of a quantity while the market settles on another, which is the
      error this ontology exists to prevent and the one it could not previously see.
+  6c. A stored wtl:BrierScore matches the probability and outcome it is derived
+     from, refuses to score an assessment whose truth value is neither wtl:True nor
+     wtl:False (a Brier score against an indeterminate outcome is undefined, not
+     zero), and fails if the assessment it scores rests on a superseded record.
   7. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
      where a unit is merely chosen for a variable, its QUDT dimension vector must
      match. This catches both a Fahrenheit threshold read against a Celsius target
-     (same dimension, still wrong) and inches read against a temperature.
+     (same dimension, still wrong) and inches read against a temperature. The same
+     identical-unit rule reaches ksh:settlementValue through resolutionOf and
+     expressesProposition, since it is a sub-property of wtl:realizedValue that
+     rdflib does not follow.
+  8. At most one truth assessment per proposition may rest on a record nothing
+     supersedes. Two live assessments make CQ6 double-count the proposition rather
+     than contradict it, and every other check stays green while it happens.
+  9. A market's grouping covers the same target its proposition names, and no two
+     brackets in a grouping asserted mutually exclusive overlap.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -124,6 +136,7 @@ BRIER_SCORE = URIRef(WTL + "BrierScore")
 PROBABILITY_VALUE = URIRef(WTL + "probabilityValue")
 ASSESSED_TRUTH_VALUE = URIRef(WTL + "assessedTruthValue")
 TRUE_VALUE = URIRef(WTL + "True")
+FALSE_VALUE = URIRef(WTL + "False")
 IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping")
 COVERS_TARGET = URIRef(KSH + "coversTarget")
 MUTUALLY_EXCLUSIVE = URIRef(KSH + "mutuallyExclusive")
@@ -413,6 +426,13 @@ def check_scores(g: Graph) -> None:
         if len(probs) != 1 or len(truths) != 1:
             fail(f"{score}: its assignment or assessment does not carry exactly one value")
             continue
+        if truths[0] not in (TRUE_VALUE, FALSE_VALUE):
+            fail(
+                f"{score}: scored against {assessments[0]}, whose assessed truth "
+                f"value is {truths[0]}, not wtl:True or wtl:False. A Brier score "
+                f"against an indeterminate outcome is undefined, not zero."
+            )
+            continue
         outcome = 1.0 if truths[0] == TRUE_VALUE else 0.0
         expected = (float(probs[0]) - outcome) ** 2
         if abs(float(stated) - expected) > 1e-9:
@@ -421,6 +441,11 @@ def check_scores(g: Graph) -> None:
                 f"{probs[0]} against outcome {outcome:.0f} is {expected:.4f}"
             )
         checked += 1
+    if EXAMPLES and not checked:
+        fail(
+            "no Brier score was checked against its inputs, so the score check "
+            "matched nothing; the usesScoringRule or scoresAssignment chain is broken"
+        )
     notes.append(f"{checked} Brier score(s) checked against their inputs")
 
 
@@ -438,36 +463,30 @@ def check_grouping_coherence(g: Graph) -> None:
     prose and nowhere in the model -- so the check would be guessing. See README.
     """
     inf = float("inf")
-    comparators = {
-        URIRef(WTL + "Between"):            lambda f, c: (f, True, c, True),
-        URIRef(WTL + "LessThanOrEqual"):    lambda f, c: (-inf, False, c, True),
-        URIRef(WTL + "LessThan"):           lambda f, c: (-inf, False, c, False),
-        URIRef(WTL + "GreaterThanOrEqual"): lambda f, c: (f, True, inf, False),
-        URIRef(WTL + "GreaterThan"):        lambda f, c: (f, False, inf, False),
-        URIRef(WTL + "EqualTo"):            lambda f, c: (f, True, f, True),
-    }
-    # Which threshold(s) each comparator's lambda actually reads -- (needs_floor, needs_cap).
-    required = {
-        URIRef(WTL + "Between"):            (True, True),
-        URIRef(WTL + "LessThanOrEqual"):    (False, True),
-        URIRef(WTL + "LessThan"):           (False, True),
-        URIRef(WTL + "GreaterThanOrEqual"): (True, False),
-        URIRef(WTL + "GreaterThan"):        (True, False),
-        URIRef(WTL + "EqualTo"):            (True, False),
+    # Keyed by comparator IRI: (needs_floor, needs_cap, bounds-from-floor/cap). A
+    # comparator that gates on one dict and indexes another can add a key to only
+    # one and turn a validation failure into a KeyError -- keeping both under one
+    # key makes that impossible.
+    COMPARATORS = {
+        URIRef(WTL + "Between"):            (True, True, lambda f, c: (f, True, c, True)),
+        URIRef(WTL + "LessThanOrEqual"):    (False, True, lambda f, c: (-inf, False, c, True)),
+        URIRef(WTL + "LessThan"):           (False, True, lambda f, c: (-inf, False, c, False)),
+        URIRef(WTL + "GreaterThanOrEqual"): (True, False, lambda f, c: (f, True, inf, False)),
+        URIRef(WTL + "GreaterThan"):        (True, False, lambda f, c: (f, False, inf, False)),
+        URIRef(WTL + "EqualTo"):            (True, False, lambda f, c: (f, True, f, True)),
     }
 
     def interval(prop):
         """None means not evaluable -- wtl:Custom, or a threshold not stated."""
         comps = list(g.objects(prop, HAS_COMPARATOR))
-        if len(comps) != 1 or comps[0] not in comparators:
+        if len(comps) != 1 or comps[0] not in COMPARATORS:
             return None
-        comp = comps[0]
+        needs_floor, needs_cap, bounds = COMPARATORS[comps[0]]
         floors = list(g.objects(prop, FLOOR_VALUE))
         caps = list(g.objects(prop, CAP_VALUE))
         if len(floors) > 1 or len(caps) > 1:
             fail(f"{prop}: more than one threshold value, so its interval is ambiguous")
             return None
-        needs_floor, needs_cap = required[comp]
         if (needs_floor and not floors) or (needs_cap and not caps):
             fail(f"{prop}: its comparator needs a threshold value that is not stated")
             return None
@@ -477,8 +496,13 @@ def check_grouping_coherence(g: Graph) -> None:
         except ValueError:
             fail(f"{prop}: its threshold value is not numeric")
             return None
-        return comparators[comp](floor_v, cap_v)
+        return bounds(floor_v, cap_v)
 
+    # Compares raw floor/cap numbers with no unit check of its own -- sound only
+    # because check_dimensions already forces a proposition's unit to equal its
+    # target's, and the market-covers-target rule above puts every bracket in a
+    # grouping on one target. Weaken either and this starts comparing numbers in
+    # different units.
     def overlaps(a, b):
         lo1, lo1_in, hi1, hi1_in = a
         lo2, lo2_in, hi2, hi2_in = b
@@ -675,7 +699,12 @@ def main() -> int:
     # watched work; the trading layer is deliberately in that state and README
     # says so, but the count should be visible on every run rather than needing
     # an audit to find.
-    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)}
+    # Subtract types asserted by the schema graph alone: a class instantiated only
+    # by a schema-level individual (wtl:BrierScore, ksh:MarketStatus, ...) is not
+    # exercised by an example, and counting it overclaimed the figure README cites
+    # as the mechanism that keeps the trading-layer gap visible.
+    schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
+    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
     covered = sum(1 for c in our_classes if c in instantiated)
     notes.append(
         f"{covered}/{len(our_classes)} minted classes "
@@ -709,8 +738,7 @@ def main() -> int:
     # trivially -- every market has an implied probability, so the count rose with
     # the data while proving strictly less. The join is only demonstrated when the
     # SAME proposition carries a forecast probability AND a market-implied one.
-    KSH = "https://w3id.org/wantology/kalshi#"
-    expressed = set(ex.objects(None, URIRef(KSH + "expressesProposition")))
+    expressed = set(ex.objects(None, EXPRESSES))
     with_forecast = {
         p for s in ex.subjects(RDF.type, URIRef(WTL + "ForecastProbability"))
         for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))

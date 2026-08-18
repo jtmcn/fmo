@@ -160,9 +160,13 @@ coherence, and documentation coverage. Stored derived values are checked against
 derived from: `wx:leadTimeHours` against issuance and interval start, and a `wtl:SkillScore`
 under `wtl:BrierScore` against the probability it scores and the outcome it was scored against. A
 score resting on a superseded record fails — scoring against a retracted value is the specific
-mistake `wtl:scoredAgainst` exists to make visible. `make reason` adds HermiT consistency and
-re-derives `ksh:WeatherMarket` from a weakened assertion to prove the defined class actually
-fires.
+mistake `wtl:scoredAgainst` exists to make visible. At most one truth assessment per proposition
+may rest on a record nothing supersedes — two live assessments make calibration double-count the
+proposition rather than contradict it, and every other check would stay green while it happened.
+A market must express a proposition about the same target its grouping covers, so a market cannot
+silently drift onto a different target than the one its grouping ladder was built for. `make
+reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
+prove the defined class actually fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
 `.expected` files. **An empty result set fails** — a query matching nothing is how a broken
