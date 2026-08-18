@@ -144,7 +144,8 @@ Making it `rdfs:subPropertyOf wtl:hasUnit` — which looked tidy — would have 
 identifying knots with metres per second and °F with °C. OWL does not assume named individuals
 are distinct, so nothing would have complained. The `owl:AllDifferent` block over the vendored
 units in `core.ttl` exists to turn that class of mistake into a HermiT inconsistency. Verified by
-reintroducing the bug and confirming the reasoner reports it.
+reintroducing the bug and confirming the reasoner reports it. Automated in
+`scripts/test_reason.py`.
 
 ## Bugs the checks caught
 
@@ -330,7 +331,8 @@ are distinct, so a functional property forced to take two values *identifies* th
 would silently become the same individual as `wtl:False`, and everything downstream would still
 compute. `owl:AllDifferent` blocks over the truth values, comparators, resolution outcomes, and
 market statuses now turn that into a reasoner inconsistency, verified by asserting a
-contradiction and confirming HermiT reports it. Same guard, same reasoning as the units case.
+contradiction and confirming HermiT reports it. Same guard, same reasoning as the units case,
+and the same case in `scripts/test_reason.py` exercises it.
 
 The fix is `wtl:TruthAssessment`: a reified assignment carrying the proposition, the value, the
 record consulted, and the time. Truth is a relation between a proposition and a state of the
