@@ -137,7 +137,13 @@ def main() -> int:
 
     if update:
         print("\nexpected files regenerated -- review the diff before committing")
-        return 0
+        # Non-zero when a query errored or returned nothing: those skip the write
+        # above, so their old .expected survives and `make cq-update` would
+        # otherwise report success and produce no diff for the one broken query.
+        if failures:
+            print(f"{failures} quer(y/ies) not regenerated -- see the failures above",
+                  file=sys.stderr)
+        return 1 if failures else 0
 
     total = len(query_files)
     print(f"\n{total - failures}/{total} competency questions answered as expected")

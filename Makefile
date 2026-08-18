@@ -84,6 +84,10 @@ else
 	@mkdir -p $(BUILD)
 	@sed 's/ex:Market-B82 a ksh:WeatherMarket ;/ex:Market-B82 a ksh:Market ;/' \
 		examples/kxhighny-2026-08-15.ttl > $(BUILD)/ex-weak.ttl
+	@cmp -s examples/kxhighny-2026-08-15.ttl $(BUILD)/ex-weak.ttl && { \
+		echo "FAIL: the sed anchor no longer matches, so nothing was weakened;"; \
+		echo "      the reasoner would be handed the asserted type and 'pass'."; \
+		exit 1; } || true
 	$(ROBOT) merge --input $(TOP) --input $(BUILD)/ex-weak.ttl --catalog $(CATALOG) \
 		reason --reasoner HermiT --axiom-generators "ClassAssertion" \
 		--output $(BUILD)/weak-reasoned.ttl
