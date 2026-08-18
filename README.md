@@ -148,8 +148,8 @@ mistake into a HermiT inconsistency instead of a wrong answer; the guard is veri
 
 `scripts/validate.py` checks parsing, that every minted term reaches `bfo:entity` by
 `rdfs:subClassOf`, that bridged external classes are grounded too, that nothing is both
-continuant and occurrent, that examples use only declared properties, unit coherence, and
-documentation coverage. `make reason` adds HermiT consistency and re-derives
+continuant and occurrent, that examples use only declared properties and reference only
+individuals that exist, unit coherence, and documentation coverage. `make reason` adds HermiT consistency and re-derives
 `ksh:WeatherMarket` from a weakened assertion to prove the defined class actually fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
@@ -166,6 +166,13 @@ passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exp
 The checks have caught real bugs at every stage: four classes floating under `owl:Thing`; an
 `InformationBearingEntity` axiom using `concretizes` where BFO requires `is carrier of`, making
 the class unsatisfiable; and the functional-sub-property trap above. Run them.
+
+The definedness check is the newest and was added after a miss rather than before one. Renaming
+a protocol individual during the Weather Company migration left the synthetic dataset pointing
+at an IRI that no longer existed, for all 40 days, and everything stayed green — a dangling IRI
+is legal RDF that reads as an untyped resource. The targets silently lost their protocol, which
+in an ontology whose central rule is that the target carries the protocol is the worst available
+place to lose one.
 
 ## Open questions
 
@@ -191,11 +198,6 @@ Flagged rather than silently decided:
   settled market. `wx:ReportCorrection` and `wx:supersedes` record the divergence, but nothing
   yet says which value is authoritative for which question. It depends on the question, which
   is the point.
-- **Undefined individuals are not caught.** `scripts/validate.py` checks that examples use only
-  declared properties, but not that the individuals they reference are defined. Renaming an
-  individual leaves dangling IRIs that read as untyped resources, and every check stays green —
-  which is what happened to the synthetic dataset during the Weather Company migration. Needs a
-  check, and a negative test with it.
 - **One target where there may be two.** The example gives the market and the forecast a single
   observation target, carrying The Weather Company's protocol, so both probabilities share one
   proposition and the join holds. But a forecast verified against the NWS record and a market
