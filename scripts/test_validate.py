@@ -289,6 +289,20 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
     wtl:floorValue "83"^^xsd:decimal ;""",
         "overlapping brackets",
     ),
+    (
+        # interval()'s docstring promises None -- not a traceback -- for a
+        # threshold not stated; wtl:Between needs both floor and cap.
+        "a Between proposition missing its capValue",
+        EXAMPLE,
+        """    wtl:hasSubject ex:Target-HighTemp ;
+    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "82"^^xsd:decimal ;
+    wtl:capValue "83"^^xsd:decimal ;""",
+        """    wtl:hasSubject ex:Target-HighTemp ;
+    wtl:hasComparator wtl:Between ;
+    wtl:floorValue "82"^^xsd:decimal ;""",
+        "its comparator needs a threshold value that is not stated",
+    ),
 ]
 
 

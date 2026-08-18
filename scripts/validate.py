@@ -446,25 +446,38 @@ def check_grouping_coherence(g: Graph) -> None:
         URIRef(WTL + "GreaterThan"):        lambda f, c: (f, False, inf, False),
         URIRef(WTL + "EqualTo"):            lambda f, c: (f, True, f, True),
     }
+    # Which threshold(s) each comparator's lambda actually reads -- (needs_floor, needs_cap).
+    required = {
+        URIRef(WTL + "Between"):            (True, True),
+        URIRef(WTL + "LessThanOrEqual"):    (False, True),
+        URIRef(WTL + "LessThan"):           (False, True),
+        URIRef(WTL + "GreaterThanOrEqual"): (True, False),
+        URIRef(WTL + "GreaterThan"):        (True, False),
+        URIRef(WTL + "EqualTo"):            (True, False),
+    }
 
     def interval(prop):
         """None means not evaluable -- wtl:Custom, or a threshold not stated."""
         comps = list(g.objects(prop, HAS_COMPARATOR))
         if len(comps) != 1 or comps[0] not in comparators:
             return None
+        comp = comps[0]
         floors = list(g.objects(prop, FLOOR_VALUE))
         caps = list(g.objects(prop, CAP_VALUE))
         if len(floors) > 1 or len(caps) > 1:
             fail(f"{prop}: more than one threshold value, so its interval is ambiguous")
             return None
-        try:
-            return comparators[comps[0]](
-                float(floors[0]) if floors else None,
-                float(caps[0]) if caps else None,
-            )
-        except TypeError:
+        needs_floor, needs_cap = required[comp]
+        if (needs_floor and not floors) or (needs_cap and not caps):
             fail(f"{prop}: its comparator needs a threshold value that is not stated")
             return None
+        try:
+            floor_v = float(floors[0]) if floors else None
+            cap_v = float(caps[0]) if caps else None
+        except ValueError:
+            fail(f"{prop}: its threshold value is not numeric")
+            return None
+        return comparators[comp](floor_v, cap_v)
 
     def overlaps(a, b):
         lo1, lo1_in, hi1, hi1_in = a
