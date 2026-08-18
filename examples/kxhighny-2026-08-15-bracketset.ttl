@@ -75,7 +75,7 @@ ex:Market-T81 a ksh:WeatherMarket ;
     ksh:marketTicker "KXHIGHNY-26AUG15-T81" ;
     ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
     ksh:expressesProposition ex:Prop-LE81 ;
-    ksh:hasStatus ksh:Settled ;
+    ksh:hasStatus ksh:Finalized ;
     ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
     ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
@@ -84,7 +84,7 @@ ex:Market-B84 a ksh:WeatherMarket ;
     ksh:marketTicker "KXHIGHNY-26AUG15-B84.5" ;
     ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
     ksh:expressesProposition ex:Prop-84-85 ;
-    ksh:hasStatus ksh:Settled ;
+    ksh:hasStatus ksh:Finalized ;
     ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
     ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
@@ -93,7 +93,7 @@ ex:Market-T86 a ksh:WeatherMarket ;
     ksh:marketTicker "KXHIGHNY-26AUG15-T86" ;
     ksh:inEventGrouping ex:KXHIGHNY-26AUG15 ;
     ksh:expressesProposition ex:Prop-GE86 ;
-    ksh:hasStatus ksh:Settled ;
+    ksh:hasStatus ksh:Finalized ;
     ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
     ksh:expirationTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
