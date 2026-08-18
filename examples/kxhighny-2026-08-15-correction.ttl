@@ -111,3 +111,29 @@ ex:Reassessment-Process a wtl:EvaluationProcess ;
     wtl:hasInput ex:TWCRecord-2026-08-17-COR ;
     wtl:hasOutput ex:Reassessment-82-83 , ex:Reassessment-84-85 ,
                   ex:Reassessment-LE81 , ex:Reassessment-GE86 .
+
+################################################################
+# Scoring the forecast, against the record that is now authoritative.
+#
+# The GEFS 06Z run gave the 82-83 bracket 0.52. The corrected record makes the
+# proposition false, so the Brier score is (0.52 - 0)^2 = 0.2704. Scored against
+# ex:Reassessment-82-83 and not the settlement-era assessment: the market paid
+# out yes, and scoring the forecast against what the exchange did rather than
+# what the record now says would measure the wrong thing.
+#
+# wtl:scoredAgainst is what makes that choice inspectable after the fact. Without
+# it the score is a number whose provenance is a matter of trust.
+################################################################
+
+ex:Verification-82-83 a wx:ForecastVerification ;
+    rdfs:label "verification of the GEFS 06Z P(82-83F) against the corrected record" ;
+    wtl:hasInput ex:ForecastProb-82-83 , ex:Reassessment-82-83 ;
+    wtl:hasOutput ex:Score-82-83 .
+
+ex:Score-82-83 a wtl:SkillScore ;
+    rdfs:label "Brier score for the GEFS 06Z P(82-83F)" ;
+    wtl:scoresAssignment ex:ForecastProb-82-83 ;
+    wtl:usesScoringRule wtl:BrierScore ;
+    wtl:scoredAgainst ex:Reassessment-82-83 ;
+    wtl:scoreValue "0.2704"^^xsd:decimal ;
+    wtl:statedAs "(0.52 - 0)^2 = 0.2704. The proposition is false on the corrected record, though the market paid out yes." .

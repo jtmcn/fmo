@@ -253,6 +253,24 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
     wtl:assessesProposition vex:P-20260701-LE81 ;""",
         "more than one current assessment",
     ),
+    (
+        # A stored derived value with nothing checking it is the lead-time
+        # problem again: it goes stale the moment either input moves.
+        "Brier score no longer matches the probability and outcome it scores",
+        CORRECTION,
+        """    wtl:scoreValue "0.2704"^^xsd:decimal ;""",
+        """    wtl:scoreValue "0.1024"^^xsd:decimal ;""",
+        "Brier score mismatch",
+    ),
+    (
+        # Scoring against the settlement-era assessment measures what the exchange
+        # did, not what the record says. The whole point of wtl:scoredAgainst.
+        "score points at an assessment of a superseded record",
+        CORRECTION,
+        """    wtl:scoredAgainst ex:Reassessment-82-83 ;""",
+        """    wtl:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
+        "score rests on a superseded record",
+    ),
 ]
 
 
