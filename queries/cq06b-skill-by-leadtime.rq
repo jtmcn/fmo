@@ -30,32 +30,41 @@
 #
 # Negative lead times appear as their own rows, unpooled. See cq06a.
 
-SELECT ?model ?leadHours ?n ?meanForecast ?baseRate ?meanBrier ?climatologyBrier ?meanAbsError
+SELECT ?model ?leadHours ?n ?sourceRows ?meanForecast ?baseRate ?meanBrier ?climatologyBrier ?meanAbsError
 WHERE {
     {
         SELECT ?model ?leadHours
-               (COUNT(*) AS ?n)
-               (ROUND(AVG(?p)     * 1000) / 1000 AS ?meanForecast)
-               (ROUND(AVG(?o)     * 1000) / 1000 AS ?baseRate)
-               (ROUND(AVG(?sq)    * 1000) / 1000 AS ?meanBrier)
+               (COUNT(*)   AS ?n)
+               (SUM(?rows) AS ?sourceRows)
+               (ROUND(AVG(?p)      * 1000) / 1000 AS ?meanForecast)
+               (ROUND(AVG(?o)      * 1000) / 1000 AS ?baseRate)
+               (ROUND(AVG(?sq)     * 1000) / 1000 AS ?meanBrier)
                (ROUND(AVG(?absErr) * 1000) / 1000 AS ?meanAbsError)
         WHERE {
-            ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
-                      wx:producedByModel ?model ;
-                      wx:leadTimeHours   ?leadHours ;
-                      bfo:BFO_0000178    ?fp .
+            {
+                SELECT ?model ?leadHours ?fp
+                       (MAX(?pv) AS ?p) (MAX(?ov) AS ?o) (COUNT(*) AS ?rows)
+                WHERE {
+                    ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
+                              wx:producedByModel ?model ;
+                              wx:leadTimeHours   ?leadHours ;
+                              bfo:BFO_0000178    ?fp .
 
-            ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
-                wtl:assignsProbabilityTo ?proposition ;
-                wtl:probabilityValue ?p .
+                    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
+                        wtl:assignsProbabilityTo ?proposition ;
+                        wtl:probabilityValue ?pv .
 
-            # Only the assessment resting on a record nothing supersedes.
-            ?assessment wtl:assessesProposition ?proposition ;
-                        wtl:basedOnRecord ?record ;
-                        wtl:assessedTruthValue ?tv .
-            FILTER NOT EXISTS { ?newer wx:supersedes ?record }
+                    # Only the assessment resting on a record nothing supersedes.
+                    ?assessment wtl:assessesProposition ?proposition ;
+                                wtl:basedOnRecord ?record ;
+                                wtl:assessedTruthValue ?tv .
+                    FILTER NOT EXISTS { ?newer wx:supersedes ?record }
 
-            BIND(IF(?tv = wtl:True, 1, 0) AS ?o)
+                    BIND(IF(?tv = wtl:True, 1, 0) AS ?ov)
+                }
+                GROUP BY ?model ?leadHours ?fp
+            }
+
             BIND((?p - ?o) * (?p - ?o) AS ?sq)
             BIND(IF(?p > ?o, ?p - ?o, ?o - ?p) AS ?absErr)
         }

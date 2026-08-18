@@ -236,6 +236,23 @@ ksh:Position a owl:Class ;""",
         """RESOLUTION_OF = URIRef(KSH + "resolutionOf_renamed")""",
         "the resolutionOf or expressesProposition chain is broken",
     ),
+    (
+        # Demonstrated on 0.7.0: one duplicate assessment moved CQ6b's n from 160
+        # to 161 and shifted every calibration statistic, while validate.py said OK.
+        "a proposition carries two assessments of the current record",
+        VERIFICATION,
+        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;""",
+        """vex:A-20260701-LE81-DUPLICATE a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;
+    wtl:assessedTruthValue wtl:False ;
+    wtl:basedOnRecord vex:Report-20260701 ;
+    wtl:referenceTime "2026-07-02T10:59:59-04:00"^^xsd:dateTime .
+
+vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;""",
+        "more than one current assessment",
+    ),
 ]
 
 
