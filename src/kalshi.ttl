@@ -335,7 +335,7 @@ ksh:hasStatus a owl:ObjectProperty ;
     rdfs:label "has status" ;
     rdfs:domain ksh:Market ; rdfs:range ksh:MarketStatus ;
     a owl:FunctionalProperty ;
-    skos:definition "Relates a market to the designation recording where it stands in its lifecycle: open to trading, closed to it, or settled." ;
+    skos:definition "Relates a market to the designation recording where it stands in its lifecycle, from initialized through active, closed, determined, and finalized." ;
     skos:scopeNote "Status changes over time; an assertion of it is true only as of a reference time, and is treated here as the current status. Model status history as a sequence of ksh:Quote-like snapshots if history matters. The range is the market status field's vocabulary, not the coarser one the markets endpoint accepts as a filter." .
 
 ksh:resolvesTo a owl:ObjectProperty ;
@@ -420,7 +420,7 @@ ksh:latestExpirationTime a owl:DatatypeProperty ; rdfs:label "latest expiration 
 after which the market can no longer resolve, which is this property, but described as the
 point by which the settlement source is expected to have published, which is
 ksh:expectedExpirationTime. The two are far apart in practice — for KXHIGHNY-26AUG15-B82.5,
-fifteen hours after the close against six days after it. The API's `expiration_time`
+six hours after the close against six days after it. The API's `expiration_time`
 is a deprecated legacy field carrying this value; read it from `latest_expiration_time`.""" .
 
 ksh:settlementValue a owl:DatatypeProperty ;

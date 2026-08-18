@@ -400,33 +400,35 @@ def main() -> int:
     #
     # Checked against the union of the example files, not per file, because they
     # import each other: the synthetic dataset legitimately references the site and
-    # protocol defined in the worked example. Only example-namespace IRIs are in
-    # scope; schema terms are covered by the grounding and documentation checks.
+    # protocol defined in the worked example. Schema IRIs are in scope too: the
+    # grounding and documentation checks only see classes and properties, so a
+    # deleted individual (ksh:Settled) left dangling in an example passed silently,
+    # and rdfs:range made the reasoner infer its type rather than object.
     #
     # This exists because re-pointing the settlement source renamed a protocol
     # individual and verification-synthetic.ttl went on referencing the old IRI for
     # all 40 days. Nothing failed. The targets silently lost their protocol, which
     # for an ontology whose central rule is "the observation target carries the
     # protocol" is the worst available place to lose one.
-    example_ns = "https://w3id.org/wantology/examples/"
+    in_scope = ("https://w3id.org/wantology/examples/",) + OUR_NS
     defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
     dangling = sorted(
         {
             str(o)
             for _, _, o in ex
             if isinstance(o, URIRef)
-            and str(o).startswith(example_ns)
+            and str(o).startswith(in_scope)
             and o not in defined
         }
     )
     for iri in dangling:
-        fail(f"undefined individual referenced in examples: {iri}")
+        fail(f"undefined term referenced in examples: {iri}")
     referenced = {
         o
         for _, _, o in ex
-        if isinstance(o, URIRef) and str(o).startswith(example_ns)
+        if isinstance(o, URIRef) and str(o).startswith(in_scope)
     }
-    notes.append(f"{len(referenced)} referenced example IRI(s) checked for definedness")
+    notes.append(f"{len(referenced)} referenced IRI(s) checked for definedness")
 
     # 5. documentation coverage
     for term in our_classes + sorted(
@@ -522,6 +524,12 @@ def main() -> int:
                         f"scores: {forecast} is for {ftarget}, but {prop} has subject "
                         f"{subject}{detail}"
                     )
+    if EXAMPLES and not scored:
+        fail(
+            "no forecast probability reaches a proposition subject, so the "
+            "forecast-target check matched nothing; the has-part or "
+            "assignsProbabilityTo chain is broken"
+        )
     notes.append(f"{scored} forecast probability/proposition pair(s) checked for target agreement")
 
     if EXAMPLES and not joined:

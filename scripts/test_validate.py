@@ -59,7 +59,17 @@ CASES = [
         EXAMPLE,
         """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
         """    wx:underProtocol ex:RenamedAwayProtocol ;""",
-        "undefined individual referenced in examples",
+        "undefined term referenced in examples",
+    ),
+    (
+        # The same defect one namespace over: this PR deleted ksh:Settled, and the
+        # check only looked at example-namespace IRIs, so a stale reference passed.
+        # rdfs:range means HermiT infers the type rather than objecting.
+        "a referenced schema individual no longer exists",
+        EXAMPLE,
+        """    ksh:hasStatus ksh:Finalized ;""",
+        """    ksh:hasStatus ksh:Settled ;""",
+        "undefined term referenced in examples",
     ),
     (
         # The misalignment the bridge relation exists to make detectable: score the
@@ -71,6 +81,17 @@ CASES = [
         """    wx:forecastFor ex:Target-HighTemp ;""",
         """    wx:forecastFor ex:Target-HighTemp-NWS ;""",
         "forecast target is not the subject of the proposition",
+    ),
+    (
+        # Zero-coverage guard for check 6b. Mutated in the checker rather than the
+        # data because the synthetic set repeats the has-part link 160 times, so no
+        # single-anchor edit can empty the traversal -- and a renamed BFO IRI is the
+        # refactor that would silently reduce the check to "0 pairs checked, OK".
+        "the forecast-target check traverses nothing",
+        "scripts/validate.py",
+        """    has_part = URIRef(BFO + "BFO_0000178")""",
+        """    has_part = URIRef(BFO + "BFO_0000178_renamed")""",
+        "the has-part or assignsProbabilityTo chain is broken",
     ),
     (
         "class unrooted from BFO",

@@ -125,7 +125,7 @@ ex:Market-B82 a ksh:WeatherMarket ;
     ksh:expressesProposition ex:Prop-82-83 ;
     ksh:hasStatus ksh:Finalized ;
     ksh:closeTime "2026-08-16T04:59:59Z"^^xsd:dateTime ;
-    ksh:expectedExpirationTime "2026-08-16T19:40:18Z"^^xsd:dateTime ;
+    ksh:expectedExpirationTime "2026-08-16T11:00:00Z"^^xsd:dateTime ;
     ksh:latestExpirationTime   "2026-08-22T14:40:18Z"^^xsd:dateTime .
 
 ex:Quote-1200Z a ksh:Quote ;

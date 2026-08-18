@@ -366,17 +366,22 @@ correction case survives intact — TWC republishes when its NWS input is correc
 `ex:TWCRecord-2026-08-17-COR` supersedes `ex:TWCRecord-2026-08-16` and CQ7 keeps its structure.
 One target, one proposition, the forecast/market join unchanged.
 
-**Two targets and a bridging relation.** The market settles on a TWC target; the observational
-record keeps an NWS target; a new relation asserts that both are intended to capture the same
-physical quantity under different protocols, and CQ7 traverses it. This is the honest model —
-it is what "two targets may legitimately disagree" actually looks like once it stops being
-hypothetical. It was not taken because it reopens the ontology's central claim: CQ7 binds the
-correcting datum through `?datum wx:reportsValueFor ?target`, where `?target` is the
-proposition's own subject, and with two targets that query returns nothing unless the bridge is
-traversed. More importantly, if the forecast and the market no longer share a proposition
+**Two targets and a bridging relation.** Taken in part. The market settles on a TWC target, the
+observational record keeps an NWS target, and a relation asserts that both are intended to
+capture the same physical quantity under different protocols. That much shipped:
+`wx:alternativeDeterminationOf`, and `ex:Target-HighTemp-NWS` in the worked example. This is the
+honest model — it is what "two targets may legitimately disagree" actually looks like once it
+stops being hypothetical.
+
+What was **not** taken is having CQ7 and the settlement record chain traverse the bridge, because
+that reopens the ontology's central claim. CQ7 binds the correcting datum through `?datum
+wx:reportsValueFor ?target`, where `?target` is the proposition's own subject; a bridge-traversing
+version would hand a TWC-settled proposition an NWS datum, which is the substitution the relation
+exists to forbid. More importantly, if the forecast and the market no longer share a proposition
 individual, "subtracting the two probabilities is meaningful" needs restating as a claim about
 bridged targets rather than identical ones. That deserves its own decision rather than arriving
-inside a data fix.
+inside a data fix. So the bridge records the disagreement and the validator reads it to name the
+two authorities; no query resolves a value through it.
 
 **Model the migration itself, dated.** Record that the series settled on NWS before 14 August
 and TWC after. Rejected for now because `ksh:settlementSource` has no temporal qualification and
