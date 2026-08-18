@@ -404,9 +404,20 @@ ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:M
     skos:definition "The instant from which orders are accepted in the market." .
 ksh:closeTime a owl:DatatypeProperty ; rdfs:label "close time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
     skos:definition "The instant after which no further orders are matched in the market." .
-ksh:expirationTime a owl:DatatypeProperty ; rdfs:label "expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
-    skos:definition "The instant after which the market can no longer resolve, being the point by which its settlement source is expected to have published." ;
-    skos:scopeNote "Distinct from close time. A daily temperature market closes at the end of the climatological day but expires only once the settlement source has published, typically the following morning." .
+ksh:expectedExpirationTime a owl:DatatypeProperty ; rdfs:label "expected expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+    skos:definition "The instant by which the market's outcome is expected to become known, being the point by which its settlement source is expected to have published." ;
+    skos:scopeNote """Distinct from close time: a daily temperature market closes at the end of the
+climatological day but its outcome is not known until the settlement source publishes,
+some hours later. A forecast, not a commitment — the exchange may determine
+the market later, and ksh:latestExpirationTime is the bound.""" .
+ksh:latestExpirationTime a owl:DatatypeProperty ; rdfs:label "latest expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+    skos:definition "The instant after which the market can no longer resolve." ;
+    skos:scopeNote """Through 0.6.0 a single ksh:expirationTime fused these two: it was defined as the instant
+after which the market can no longer resolve, which is this property, but described as the
+point by which the settlement source is expected to have published, which is
+ksh:expectedExpirationTime. The two are far apart in practice — for KXHIGHNY-26AUG15-B82.5,
+fifteen hours after the close against six days after it. The API's `expiration_time`
+is a deprecated legacy field carrying this value; read it from `latest_expiration_time`.""" .
 
 ksh:settlementValue a owl:DatatypeProperty ;
     rdfs:subPropertyOf wtl:realizedValue ;
