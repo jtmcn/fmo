@@ -20,7 +20,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative cq cq-update reason competency merge qudt verification-data verification-data-check clean
+.PHONY: all setup test validate validate-negative cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check clean
 
 all: validate
 
@@ -85,6 +85,11 @@ else
 	@echo "consistent"
 endif
 
+## Prove the reasoner-only guards fire: the axioms validate.py cannot check.
+## Skips with a notice when ROBOT or Java is absent, like `make reason`.
+reason-negative:
+	$(PY) scripts/test_reason.py
+
 ## Competency question 3: weaken an assertion and confirm the reasoner re-derives it.
 ## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
 ## reasoner, unlike `make cq`, because the answer is inferred rather than asserted.
@@ -130,7 +135,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative verification-data-check cq reason competency
+test: validate validate-negative verification-data-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)
