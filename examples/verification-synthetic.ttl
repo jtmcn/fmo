@@ -46,12 +46,12 @@ vex:Target-20260701 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260701 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260701 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-01" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-01" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260701 ;
     bfo:BFO_0000178 vex:Datum-20260701 .
 vex:Datum-20260701 a wx:WeatherObservationDatum ;
@@ -226,12 +226,12 @@ vex:Target-20260702 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260702 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260702 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-02" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-02" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260702 ;
     bfo:BFO_0000178 vex:Datum-20260702 .
 vex:Datum-20260702 a wx:WeatherObservationDatum ;
@@ -406,12 +406,12 @@ vex:Target-20260703 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260703 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260703 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-03" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-03" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260703 ;
     bfo:BFO_0000178 vex:Datum-20260703 .
 vex:Datum-20260703 a wx:WeatherObservationDatum ;
@@ -586,12 +586,12 @@ vex:Target-20260704 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260704 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260704 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-04" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-04" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260704 ;
     bfo:BFO_0000178 vex:Datum-20260704 .
 vex:Datum-20260704 a wx:WeatherObservationDatum ;
@@ -766,12 +766,12 @@ vex:Target-20260705 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260705 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260705 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-05" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-05" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260705 ;
     bfo:BFO_0000178 vex:Datum-20260705 .
 vex:Datum-20260705 a wx:WeatherObservationDatum ;
@@ -946,12 +946,12 @@ vex:Target-20260706 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260706 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260706 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-06" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-06" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260706 ;
     bfo:BFO_0000178 vex:Datum-20260706 .
 vex:Datum-20260706 a wx:WeatherObservationDatum ;
@@ -1126,12 +1126,12 @@ vex:Target-20260707 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260707 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260707 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-07" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-07" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260707 ;
     bfo:BFO_0000178 vex:Datum-20260707 .
 vex:Datum-20260707 a wx:WeatherObservationDatum ;
@@ -1306,12 +1306,12 @@ vex:Target-20260708 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260708 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260708 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-08" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-08" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260708 ;
     bfo:BFO_0000178 vex:Datum-20260708 .
 vex:Datum-20260708 a wx:WeatherObservationDatum ;
@@ -1486,12 +1486,12 @@ vex:Target-20260709 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260709 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260709 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-09" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-09" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260709 ;
     bfo:BFO_0000178 vex:Datum-20260709 .
 vex:Datum-20260709 a wx:WeatherObservationDatum ;
@@ -1666,12 +1666,12 @@ vex:Target-20260710 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260710 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260710 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-10" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-10" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260710 ;
     bfo:BFO_0000178 vex:Datum-20260710 .
 vex:Datum-20260710 a wx:WeatherObservationDatum ;
@@ -1846,12 +1846,12 @@ vex:Target-20260711 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260711 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260711 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-11" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-11" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260711 ;
     bfo:BFO_0000178 vex:Datum-20260711 .
 vex:Datum-20260711 a wx:WeatherObservationDatum ;
@@ -2026,12 +2026,12 @@ vex:Target-20260712 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260712 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260712 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-12" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-12" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260712 ;
     bfo:BFO_0000178 vex:Datum-20260712 .
 vex:Datum-20260712 a wx:WeatherObservationDatum ;
@@ -2206,12 +2206,12 @@ vex:Target-20260713 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260713 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260713 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-13" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-13" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260713 ;
     bfo:BFO_0000178 vex:Datum-20260713 .
 vex:Datum-20260713 a wx:WeatherObservationDatum ;
@@ -2386,12 +2386,12 @@ vex:Target-20260714 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260714 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260714 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-14" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-14" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260714 ;
     bfo:BFO_0000178 vex:Datum-20260714 .
 vex:Datum-20260714 a wx:WeatherObservationDatum ;
@@ -2566,12 +2566,12 @@ vex:Target-20260715 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260715 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260715 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-15" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-15" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260715 ;
     bfo:BFO_0000178 vex:Datum-20260715 .
 vex:Datum-20260715 a wx:WeatherObservationDatum ;
@@ -2746,12 +2746,12 @@ vex:Target-20260716 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260716 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260716 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-16" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-16" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260716 ;
     bfo:BFO_0000178 vex:Datum-20260716 .
 vex:Datum-20260716 a wx:WeatherObservationDatum ;
@@ -2926,12 +2926,12 @@ vex:Target-20260717 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260717 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260717 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-17" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-17" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260717 ;
     bfo:BFO_0000178 vex:Datum-20260717 .
 vex:Datum-20260717 a wx:WeatherObservationDatum ;
@@ -3106,12 +3106,12 @@ vex:Target-20260718 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260718 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260718 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-18" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-18" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260718 ;
     bfo:BFO_0000178 vex:Datum-20260718 .
 vex:Datum-20260718 a wx:WeatherObservationDatum ;
@@ -3286,12 +3286,12 @@ vex:Target-20260719 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260719 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260719 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-19" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-19" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260719 ;
     bfo:BFO_0000178 vex:Datum-20260719 .
 vex:Datum-20260719 a wx:WeatherObservationDatum ;
@@ -3466,12 +3466,12 @@ vex:Target-20260720 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260720 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260720 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-20" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-20" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260720 ;
     bfo:BFO_0000178 vex:Datum-20260720 .
 vex:Datum-20260720 a wx:WeatherObservationDatum ;
@@ -3646,12 +3646,12 @@ vex:Target-20260721 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260721 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260721 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-21" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-21" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260721 ;
     bfo:BFO_0000178 vex:Datum-20260721 .
 vex:Datum-20260721 a wx:WeatherObservationDatum ;
@@ -3826,12 +3826,12 @@ vex:Target-20260722 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260722 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260722 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-22" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-22" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260722 ;
     bfo:BFO_0000178 vex:Datum-20260722 .
 vex:Datum-20260722 a wx:WeatherObservationDatum ;
@@ -4006,12 +4006,12 @@ vex:Target-20260723 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260723 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260723 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-23" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-23" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260723 ;
     bfo:BFO_0000178 vex:Datum-20260723 .
 vex:Datum-20260723 a wx:WeatherObservationDatum ;
@@ -4186,12 +4186,12 @@ vex:Target-20260724 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260724 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260724 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-24" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-24" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260724 ;
     bfo:BFO_0000178 vex:Datum-20260724 .
 vex:Datum-20260724 a wx:WeatherObservationDatum ;
@@ -4366,12 +4366,12 @@ vex:Target-20260725 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260725 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260725 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-25" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-25" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260725 ;
     bfo:BFO_0000178 vex:Datum-20260725 .
 vex:Datum-20260725 a wx:WeatherObservationDatum ;
@@ -4546,12 +4546,12 @@ vex:Target-20260726 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260726 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260726 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-26" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-26" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260726 ;
     bfo:BFO_0000178 vex:Datum-20260726 .
 vex:Datum-20260726 a wx:WeatherObservationDatum ;
@@ -4726,12 +4726,12 @@ vex:Target-20260727 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260727 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260727 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-27" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-27" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260727 ;
     bfo:BFO_0000178 vex:Datum-20260727 .
 vex:Datum-20260727 a wx:WeatherObservationDatum ;
@@ -4906,12 +4906,12 @@ vex:Target-20260728 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260728 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260728 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-28" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-28" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260728 ;
     bfo:BFO_0000178 vex:Datum-20260728 .
 vex:Datum-20260728 a wx:WeatherObservationDatum ;
@@ -5086,12 +5086,12 @@ vex:Target-20260729 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260729 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260729 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-29" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-29" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260729 ;
     bfo:BFO_0000178 vex:Datum-20260729 .
 vex:Datum-20260729 a wx:WeatherObservationDatum ;
@@ -5266,12 +5266,12 @@ vex:Target-20260730 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260730 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260730 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-30" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-30" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260730 ;
     bfo:BFO_0000178 vex:Datum-20260730 .
 vex:Datum-20260730 a wx:WeatherObservationDatum ;
@@ -5446,12 +5446,12 @@ vex:Target-20260731 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260731 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260731 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-07-31" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-07-31" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260731 ;
     bfo:BFO_0000178 vex:Datum-20260731 .
 vex:Datum-20260731 a wx:WeatherObservationDatum ;
@@ -5626,12 +5626,12 @@ vex:Target-20260801 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260801 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260801 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-01" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-01" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260801 ;
     bfo:BFO_0000178 vex:Datum-20260801 .
 vex:Datum-20260801 a wx:WeatherObservationDatum ;
@@ -5806,12 +5806,12 @@ vex:Target-20260802 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260802 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260802 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-02" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-02" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260802 ;
     bfo:BFO_0000178 vex:Datum-20260802 .
 vex:Datum-20260802 a wx:WeatherObservationDatum ;
@@ -5986,12 +5986,12 @@ vex:Target-20260803 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260803 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260803 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-03" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-03" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260803 ;
     bfo:BFO_0000178 vex:Datum-20260803 .
 vex:Datum-20260803 a wx:WeatherObservationDatum ;
@@ -6166,12 +6166,12 @@ vex:Target-20260804 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260804 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260804 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-04" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-04" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260804 ;
     bfo:BFO_0000178 vex:Datum-20260804 .
 vex:Datum-20260804 a wx:WeatherObservationDatum ;
@@ -6346,12 +6346,12 @@ vex:Target-20260805 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260805 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260805 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-05" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-05" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260805 ;
     bfo:BFO_0000178 vex:Datum-20260805 .
 vex:Datum-20260805 a wx:WeatherObservationDatum ;
@@ -6526,12 +6526,12 @@ vex:Target-20260806 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260806 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260806 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-06" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-06" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260806 ;
     bfo:BFO_0000178 vex:Datum-20260806 .
 vex:Datum-20260806 a wx:WeatherObservationDatum ;
@@ -6706,12 +6706,12 @@ vex:Target-20260807 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260807 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260807 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-07" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-07" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260807 ;
     bfo:BFO_0000178 vex:Datum-20260807 .
 vex:Datum-20260807 a wx:WeatherObservationDatum ;
@@ -6886,12 +6886,12 @@ vex:Target-20260808 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260808 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260808 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-08" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-08" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260808 ;
     bfo:BFO_0000178 vex:Datum-20260808 .
 vex:Datum-20260808 a wx:WeatherObservationDatum ;
@@ -7066,12 +7066,12 @@ vex:Target-20260809 a wx:WeatherObservationTarget ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
     wtl:overTemporalInterval vex:ClimDay-20260809 ;
-    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .
 
 vex:Report-20260809 a wx:DailyClimatologicalReport ;
-    rdfs:label "CLI for 2026-08-09" ;
-    wtl:issuedBy ex:NWS ;
+    rdfs:label "CLINYC record for 2026-08-09" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval vex:ClimDay-20260809 ;
     bfo:BFO_0000178 vex:Datum-20260809 .
 vex:Datum-20260809 a wx:WeatherObservationDatum ;

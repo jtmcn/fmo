@@ -2,14 +2,19 @@
 #
 # This is the case CQ7 exists for, and it is not hypothetical: NWS reissues CLI
 # products when a sensor fault or a transcription error is found, sometimes days
-# later. Exchanges generally do not re-settle. So the observational record and the
+# later. Since 2026-08-14 the settlement source is The Weather Company rather
+# than the NWS directly, so the correction reaches the market by propagation --
+# TWC uses NWS as its primary underlying source, and republishes when that source
+# is corrected. The settling authority is still TWC, which is why both the record
+# read at settlement and the correction superseding it are TWC records here.
+# Exchanges generally do not re-settle. So the observational record and the
 # exchange's payout permanently disagree, and both are correct about what they
 # record.
 #
 # Timeline:
-#   2026-08-16 10:15Z  CLINYC reports the 15 Aug high as 82.
+#   2026-08-16 10:15Z  The TWC record reports the 15 Aug high as 82.
 #   2026-08-16 14:30Z  Kalshi settles the ladder on 82. B82.5 pays yes.
-#   2026-08-17 09:05Z  NWS reissues CLINYC. The high was 84, not 82.
+#   2026-08-17 09:05Z  NWS corrects CLINYC; TWC republishes. The high was 84.
 #
 # Against the corrected record:
 #   Prop-LE81   (<= 81)   84 fails  -> resolved no   -> consistent
@@ -40,19 +45,19 @@
 <https://w3id.org/wantology/examples/kxhighny-2026-08-15-correction>
     a owl:Ontology ;
     owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset> ;
-    rdfs:label "Worked example: a post-settlement correction to CLINYC" .
+    rdfs:label "Worked example: a post-settlement correction to the CLINYC record" .
 
 ################################################################
 # The corrected report
 ################################################################
 
-ex:CLINYC-2026-08-17-COR a wx:ReportCorrection ;
-    rdfs:label "CLINYC corrected, issued 2026-08-17" ;
-    wtl:issuedBy ex:NWS ;
+ex:TWCRecord-2026-08-17-COR a wx:ReportCorrection ;
+    rdfs:label "The Weather Company CLINYC record corrected, issued 2026-08-17" ;
+    wtl:issuedBy ex:TWC ;
     wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
-    wx:supersedes ex:CLINYC-2026-08-16 ;
-    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a sensor fault." ;
+    wx:supersedes ex:TWCRecord-2026-08-16 ;
+    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a sensor fault reported upstream by the NWS." ;
     bfo:BFO_0000178 ex:Datum-Max-Corrected .    # has continuant part
 
 ex:Datum-Max-Corrected a wx:WeatherObservationDatum ;
@@ -72,7 +77,7 @@ ex:Reassessment-82-83 a wtl:TruthAssessment ;
     rdfs:label "reassessment of Prop-82-83 after correction" ;
     wtl:assessesProposition ex:Prop-82-83 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
     wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
     wtl:statedAs "84 is not within [82, 83]. The market nonetheless paid out yes." .
 
@@ -80,7 +85,7 @@ ex:Reassessment-84-85 a wtl:TruthAssessment ;
     rdfs:label "reassessment of Prop-84-85 after correction" ;
     wtl:assessesProposition ex:Prop-84-85 ;
     wtl:assessedTruthValue wtl:True ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
     wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
     wtl:statedAs "84 is within [84, 85]. The market nonetheless paid out no." .
 
@@ -88,20 +93,20 @@ ex:Reassessment-LE81 a wtl:TruthAssessment ;
     rdfs:label "reassessment of Prop-LE81 after correction" ;
     wtl:assessesProposition ex:Prop-LE81 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
     wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
 
 ex:Reassessment-GE86 a wtl:TruthAssessment ;
     rdfs:label "reassessment of Prop-GE86 after correction" ;
     wtl:assessesProposition ex:Prop-GE86 ;
     wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:CLINYC-2026-08-17-COR ;
+    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
     wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
 
 # The evaluation process that produced the reassessments. Not a market
 # settlement: nobody was paid, and the exchange was not involved.
 ex:Reassessment-Process a wtl:EvaluationProcess ;
-    rdfs:label "reassessment of the KXHIGHNY-26AUG15 ladder against the corrected CLI" ;
-    wtl:hasInput ex:CLINYC-2026-08-17-COR ;
+    rdfs:label "reassessment of the KXHIGHNY-26AUG15 ladder against the corrected record" ;
+    wtl:hasInput ex:TWCRecord-2026-08-17-COR ;
     wtl:hasOutput ex:Reassessment-82-83 , ex:Reassessment-84-85 ,
                   ex:Reassessment-LE81 , ex:Reassessment-GE86 .

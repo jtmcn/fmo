@@ -107,8 +107,12 @@ ksh:SettlementSource a owl:Class ;
     rdfs:subClassOf wtl:InformationContentEntity ;
     rdfs:label "settlement source" ;
     skos:definition "An information content entity designating the publication that an exchange consults, to the exclusion of others, to determine the truth value of a market's proposition." ;
-    skos:example "The NWS Climatological Report (Daily) for the relevant station." ;
-    skos:scopeNote "Designating the source is what makes a market's proposition determinate. Two markets with identical wording but different settlement sources express different propositions." .
+    skos:example "The Weather Company daily temperature record for the relevant station of record, which Kalshi adopted for its daily temperature series on 2026-08-14 in place of the NWS Climatological Report (Daily)." ;
+    skos:scopeNote """Designating the source is what makes a market's proposition determinate. Two markets with
+identical wording but different settlement sources express different propositions. Not a
+hypothetical: Kalshi's daily temperature series moved from the NWS to The Weather Company on
+2026-08-14, so markets worded identically either side of that date do not share a proposition,
+and a series of them is not one time series.""" .
 
 ################################################################
 # Contracts and positions

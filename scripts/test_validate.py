@@ -36,9 +36,9 @@ CASES = [
     (
         "length unit on a temperature target",
         EXAMPLE,
-        """    wx:underProtocol ex:NWSDailyClimateProtocol ;
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:DEG_F .""",
-        """    wx:underProtocol ex:NWSDailyClimateProtocol ;
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;
     wtl:hasUnit unit:IN .""",
         "dimension mismatch (proposition threshold vs target)",
     ),
@@ -208,7 +208,7 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         # correction to check against, so CQ7 has nothing to report.
         "correction no longer supersedes the report it replaces",
         CORRECTION,
-        """    wx:supersedes ex:CLINYC-2026-08-16 ;""",
+        """    wx:supersedes ex:TWCRecord-2026-08-16 ;""",
         """""",
         "returned 0 rows",
     ),
@@ -237,7 +237,7 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         # is still covered by the broken-join case above.
         "settlement no longer records the document it read",
         EXAMPLE,
-        """    wtl:hasInput ex:CLINYC-2026-08-16 ;""",
+        """    wtl:hasInput ex:TWCRecord-2026-08-16 ;""",
         """""",
         "differs from",
     ),
