@@ -208,6 +208,51 @@ ex:TWCRecord-2026-08-16 a wx:DailyClimatologicalReport ;
     wx:issuanceTime "2026-08-16T10:15:00Z"^^xsd:dateTime ;
     bfo:BFO_0000178 ex:Datum-Max .              # has continuant part
 
+################################################################
+# 7b. The authority the exchange did NOT settle on
+#
+# The NWS still publishes CLINYC, and a forecast scored against it is answering
+# a different question from the one the market settles. Same variable, same
+# site, same climatological day, different protocol -- so a different target,
+# and here it also reports a different number. 83, not 82, which would have
+# resolved a different bracket had the exchange read it.
+#
+# wx:alternativeDeterminationOf records that the two are meant to capture the
+# same physical quantity. It licenses nothing: no query may substitute one for
+# the other, and the divergence below is exactly why.
+################################################################
+
+ex:NWSDailyClimateProtocol a wx:MeasurementProtocol ;
+    rdfs:label "NWS daily climatological summary protocol" ;
+    wtl:statedAs "Maximum temperature observed at the station of record over the climatological day, in whole degrees Fahrenheit, as published in the CLI product." ;
+    wtl:issuedBy ex:NWS .
+
+ex:Target-HighTemp-NWS a wx:WeatherObservationTarget ;
+    rdfs:label "max air temperature, Central Park, climatological day 2026-08-15, NWS protocol" ;
+    wx:targetVariable wx:MaximumAirTemperature ;
+    wx:atSite ex:CentralParkSite ;
+    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    wx:underProtocol ex:NWSDailyClimateProtocol ;
+    wtl:hasUnit unit:DEG_F ;
+    wx:alternativeDeterminationOf ex:Target-HighTemp .
+
+ex:CLINYC-2026-08-16 a wx:DailyClimatologicalReport ;
+    rdfs:label "NWS CLINYC issued 2026-08-16" ;
+    wtl:issuedBy ex:NWS ;
+    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    wx:issuanceTime "2026-08-16T10:15:00Z"^^xsd:dateTime ;
+    bfo:BFO_0000178 ex:Datum-Max-NWS .          # has continuant part
+
+ex:Datum-Max-NWS a wx:WeatherObservationDatum ;
+    rdfs:label "max temperature 83 F, NWS" ;
+    wx:reportsValueFor ex:Target-HighTemp-NWS ;
+    wtl:realizedValue "83"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .
+
+# Nothing settles on ex:Target-HighTemp-NWS and nothing forecasts for it. It is
+# here to be disagreed with, and to give the validator a misalignment to detect
+# if a future forecast is ever pointed at it while the market settles on the other.
+
 ex:Settlement-B82 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B82.5" ;
     wtl:hasAgent ksh:Kalshi ;

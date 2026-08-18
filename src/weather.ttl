@@ -389,6 +389,25 @@ wx:underProtocol a owl:ObjectProperty ;
     rdfs:range wx:MeasurementProtocol ;
     skos:definition "Relates an observation target to the measurement protocol by which its value is to be determined." .
 
+wx:alternativeDeterminationOf a owl:ObjectProperty ;
+    rdfs:label "alternative determination of" ;
+    rdfs:domain wx:WeatherObservationTarget ;
+    rdfs:range wx:WeatherObservationTarget ;
+    a owl:SymmetricProperty , owl:IrreflexiveProperty ;
+    skos:definition "Relates an observation target to another specifying the same variable, site, and temporal interval but a different measurement protocol, and therefore intended to capture the same physical quantity while being permitted to disagree about its value." ;
+    skos:scopeNote """Licenses nothing. It does not permit a value reported under one protocol to count as
+reporting for the other, and it is not an equivalence relation. It exists so that the
+relationship between two authorities' determinations is sayable and checkable at all, which it
+was not: the examples aligned forecast verification with market settlement by hand, and nothing
+would have complained had they drifted apart. Asserting this relation is what lets the validator
+say so.""" ;
+    skos:scopeNote """Symmetric and irreflexive, deliberately not transitive. Not transitive because the
+assertion is a modeller's judgement about a specific pair of protocols, not a fact a reasoner
+may extend -- chaining would manufacture pairs nobody asserted, across protocols nobody
+compared. Irreflexive because a target is not an alternative determination of itself, which
+makes that assertion a HermiT inconsistency rather than a quietly wrong answer: the same move
+core.ttl makes with owl:AllDifferent for the conventionalUnit trap.""" .
+
 wx:stationOfRecord a owl:ObjectProperty ;
     rdfs:label "station of record" ;
     rdfs:domain wx:ObservingSite ;

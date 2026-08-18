@@ -107,6 +107,12 @@ The consequence worth knowing: the NWS climatological day runs local **standard*
 to midnight all year, so in summer it runs 01:00 to 00:59 local clock time. The example writes
 the boundary instants out explicitly rather than leaving them implied by a date.
 
+`wx:alternativeDeterminationOf` relates two targets that are meant to capture the same physical
+quantity under different protocols. It licenses nothing — no query may substitute one for the
+other — and exists so the relationship is sayable and, more to the point, checkable: the
+validator fails when a forecast scores one determination while the market settles on another.
+The worked example carries both, and they disagree, 83 against 82.
+
 The decision earned its keep on 2026-08-14, when Kalshi moved its daily temperature series from
 the NWS to **The Weather Company** — same site, same variable, same day boundary, different
 publishing authority. Under the protocol rule that is a different observation target and so a
@@ -149,7 +155,8 @@ mistake into a HermiT inconsistency instead of a wrong answer; the guard is veri
 `scripts/validate.py` checks parsing, that every minted term reaches `bfo:entity` by
 `rdfs:subClassOf`, that bridged external classes are grounded too, that nothing is both
 continuant and occurrent, that examples use only declared properties and reference only
-individuals that exist, unit coherence, and documentation coverage. `make reason` adds HermiT consistency and re-derives
+individuals that exist, that a forecast scores the same target the market settles on, unit
+coherence, and documentation coverage. `make reason` adds HermiT consistency and re-derives
 `ksh:WeatherMarket` from a weakened assertion to prove the defined class actually fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
@@ -198,13 +205,6 @@ Flagged rather than silently decided:
   settled market. `wx:ReportCorrection` and `wx:supersedes` record the divergence, but nothing
   yet says which value is authoritative for which question. It depends on the question, which
   is the point.
-- **One target where there may be two.** The example gives the market and the forecast a single
-  observation target, carrying The Weather Company's protocol, so both probabilities share one
-  proposition and the join holds. But a forecast verified against the NWS record and a market
-  settling on TWC are strictly answering different questions, and the ontology has no way to say
-  that two targets are intended to capture the same physical quantity under different protocols.
-  Until it does, aligning on the settling authority is a modelling choice, not something the
-  axioms enforce. See `docs/design-notes.md`.
 - **Price to probability.** `ksh:PriceToProbabilityDerivation` is a process with a quote as
   input so the transformation stays auditable, but no derivation is specified. Naive
   `price/100` ignores spread, fees, and carry.

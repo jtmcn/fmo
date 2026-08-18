@@ -397,7 +397,28 @@ through both. The first is the alignment problem above; the second is a gap in t
 which checks that examples use only declared *properties* but not that the individuals they
 reference are defined anywhere. A dangling IRI is legal RDF and reads as an untyped resource,
 so a renamed individual degrades a target silently instead of failing. Both were fixed by
-pointing the generator at the TWC protocol; the validator gap is still open.
+pointing the generator at the TWC protocol; both gaps are now closed.
+
+`wx:alternativeDeterminationOf` closes the modelling half. It relates two observation targets
+specifying the same variable, site, and interval under different protocols — intended to capture
+the same physical quantity, permitted to disagree about its value. It is symmetric and
+irreflexive and deliberately not transitive: the assertion is a judgement about a specific pair
+of protocols, not something a reasoner may extend across protocols nobody compared. Irreflexivity
+is the guard, in the style `core.ttl` already uses for the `conventionalUnit` trap — a target
+asserted to be an alternative determination of itself is a HermiT inconsistency rather than a
+quietly wrong answer.
+
+What it deliberately does **not** do is license substitution. A datum reported under one protocol
+still does not count as reporting for the other, and the worked example now shows why: the NWS
+determination for 15 August reads 83 where The Weather Company reads 82, which is a different
+bracket. Had the relation permitted substitution, one proposition would have had two values.
+
+The check is the half that actually closes the gap, and it does not need the relation to fire: a
+forecast's `wx:forecastFor` target must be the subject of every proposition its probabilities
+score, or the forecast is being graded against a different question than the one the market
+settles. 641 pairs are checked. The relation upgrades the diagnosis from "mismatch" to naming
+the two authorities — being declared alternative determinations is not a defence, it is the
+point.
 
 ## Rejected alternatives
 

@@ -62,6 +62,17 @@ CASES = [
         "undefined individual referenced in examples",
     ),
     (
+        # The misalignment the bridge relation exists to make detectable: score the
+        # forecast against the NWS determination while the market settles on TWC.
+        # Both targets are real and declared alternative determinations, so nothing
+        # is dangling and nothing is unrooted -- only the authorities differ.
+        "forecast scored against a different authority than the market settles on",
+        EXAMPLE,
+        """    wx:forecastFor ex:Target-HighTemp ;""",
+        """    wx:forecastFor ex:Target-HighTemp-NWS ;""",
+        "forecast target is not the subject of the proposition",
+    ),
+    (
         "class unrooted from BFO",
         "src/kalshi.ttl",
         """ksh:Position a owl:Class ;

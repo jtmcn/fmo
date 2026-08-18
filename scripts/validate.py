@@ -20,6 +20,10 @@ go wrong when hand-authoring a BFO application ontology:
      so it does not substitute.
   6. Derived values match what they are derived from: wx:leadTimeHours against the
      forecast's issuance time and its target interval's first instant.
+  6b. A forecast's wx:forecastFor target is the subject of every proposition its
+     probabilities assign to. Otherwise the forecast is scored against one
+     determination of a quantity while the market settles on another, which is the
+     error this ontology exists to prevent and the one it could not previously see.
   7. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
      where a unit is merely chosen for a variable, its QUDT dimension vector must
      match. This catches both a Fahrenheit threshold read against a Celsius target
@@ -477,6 +481,49 @@ def main() -> int:
         for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))
     }
     joined = expressed & with_forecast & with_market
+    # 6b. a forecast's target is the subject of the propositions it scores
+    #
+    # wx:forecastFor fixes what a forecast claims to be about; the proposition's
+    # subject fixes what the market settles on. Nothing tied the two together, so
+    # they could drift apart in silence -- and the examples aligned them only by
+    # hand. wx:alternativeDeterminationOf turns the specific cross-authority case
+    # from "mismatch" into a diagnosis. The relation licenses no substitution, so
+    # being declared alternative determinations is not a defence; it is the point.
+    alt_det = URIRef(WX + "alternativeDeterminationOf")
+    has_part = URIRef(BFO + "BFO_0000178")
+    assigns = URIRef(WTL + "assignsProbabilityTo")
+    forecast_prob = URIRef(WTL + "ForecastProbability")
+    scored = 0
+    for forecast, ftarget in ex.subject_objects(FORECAST_FOR):
+        for part in ex.objects(forecast, has_part):
+            if (part, RDF.type, forecast_prob) not in ex:
+                continue
+            for prop in ex.objects(part, assigns):
+                for subject in ex.objects(prop, HAS_SUBJECT):
+                    scored += 1
+                    if subject == ftarget:
+                        continue
+                    # Symmetry is asserted, not materialised -- rdflib does no
+                    # reasoning here, so both directions are checked explicitly.
+                    declared = (ftarget, alt_det, subject) in ex or (
+                        subject,
+                        alt_det,
+                        ftarget,
+                    ) in ex
+                    detail = (
+                        "; they are declared alternative determinations, so this "
+                        "forecast is scored against a different authority than the "
+                        "market settles on"
+                        if declared
+                        else ""
+                    )
+                    fail(
+                        f"forecast target is not the subject of the proposition it "
+                        f"scores: {forecast} is for {ftarget}, but {prop} has subject "
+                        f"{subject}{detail}"
+                    )
+    notes.append(f"{scored} forecast probability/proposition pair(s) checked for target agreement")
+
     if EXAMPLES and not joined:
         fail(
             "no proposition is expressed by a market AND carries both a forecast "
