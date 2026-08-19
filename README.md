@@ -164,7 +164,11 @@ mistake `wtl:scoredAgainst` exists to make visible. At most one truth assessment
 may rest on a record nothing supersedes — two live assessments make calibration double-count the
 proposition rather than contradict it, and every other check would stay green while it happened.
 A market must express a proposition about the same target its grouping covers, so a market cannot
-silently drift onto a different target than the one its grouping ladder was built for. `make
+silently drift onto a different target than the one its grouping ladder was built for. Every
+observation target must name exactly one measurement protocol, and the protocol its settlement
+source publishes under must be the one its proposition's target names — the open-world assumption
+reads a missing protocol as unnamed rather than absent, so the reasoner cannot catch either, and a
+source disagreeing with its target is the 2026-08-14 migration as a modelling error. `make
 reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
 prove the defined class actually fires.
 

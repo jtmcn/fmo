@@ -75,6 +75,39 @@ CASES = [
         "settles on a different protocol than its proposition names",
     ),
     (
+        # Precedence, not union: a grouping overriding its series is a correct model
+        # (it is the 2026-08-14 migration), so the check must resolve to the grouping
+        # source and compare it -- not reject the market for reaching two sources.
+        "a grouping overriding its series with a disagreeing settlement source",
+        EXAMPLE,
+        """ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
+    rdfs:label "Kalshi: NYC high on 2026-08-15" ;
+    ksh:eventTicker "KXHIGHNY-26AUG15" ;
+    ksh:inSeries ex:KXHIGHNY ;""",
+        """ex:NWSSettlementSource a ksh:SettlementSource ;
+    rdfs:label "NWS daily climate report for CLINYC" ;
+    ksh:sourceProtocol ex:NWSDailyClimateProtocol ;
+    wtl:issuedBy ex:NWS .
+
+ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
+    rdfs:label "Kalshi: NYC high on 2026-08-15" ;
+    ksh:eventTicker "KXHIGHNY-26AUG15" ;
+    ksh:inSeries ex:KXHIGHNY ;
+    ksh:settlementSource ex:NWSSettlementSource ;""",
+        "settles on a different protocol than its proposition names",
+    ),
+    (
+        # Zero-coverage guard for the target half of check_protocols. Mutated in the
+        # checker per the settlement-value template: every example target carries the
+        # type, so no single-anchor data edit can empty the traversal -- and a retyped
+        # target would otherwise reduce the check to "0 targets checked, OK".
+        "the target-protocol check traverses nothing",
+        "scripts/validate.py",
+        """WEATHER_TARGET = URIRef(WX + "WeatherObservationTarget")""",
+        """WEATHER_TARGET = URIRef(WX + "WeatherObservationTarget_renamed")""",
+        "the wx:WeatherObservationTarget typing is broken",
+    ),
+    (
         # The bug this check exists for: re-pointing the settlement source renamed
         # ex:NWSDailyClimateProtocol, and verification-synthetic.ttl went on
         # referencing it for all 40 days. Every other check stayed green.
