@@ -3,3 +3,4 @@ build/
 __pycache__/
 robot.jar
 .venv/
+.DS_Store

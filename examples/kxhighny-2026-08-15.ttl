@@ -103,6 +103,7 @@ ex:Prop-82-83 a wtl:Proposition ;
 
 ex:TWCSettlementSource a ksh:SettlementSource ;
     rdfs:label "The Weather Company daily temperature record for CLINYC" ;
+    ksh:sourceProtocol ex:TWCDailyTempProtocol ;
     wtl:issuedBy ex:TWC .
 
 ex:KXHIGHNY a ksh:Series ;
