@@ -504,30 +504,50 @@ def check_protocols(g: Graph) -> None:
                 f"of the target, not an annotation on it, so without exactly one the "
                 f"target does not fix a quantity."
             )
+    if EXAMPLES and not targets:
+        fail(
+            "no observation target was found, so the target-protocol check matched "
+            "nothing; the wx:WeatherObservationTarget typing is broken"
+        )
     notes.append(f"{len(targets)} observation target(s) checked for a protocol")
 
     checked = 0
+    reported: set[URIRef] = set()
     for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
         # ksh:settlementSource attaches to a listing; a market inherits it from its
-        # grouping or series unless it carries its own.
-        holders = [market, grouping, *g.objects(grouping, IN_SERIES)]
-        sources = {s for h in holders for s in g.objects(h, SETTLEMENT_SOURCE)}
+        # grouping or series unless it carries its own. Precedence, not union -- a
+        # grouping overriding its series is how the 2026-08-14 migration is modelled,
+        # and unioning the levels rejects that correct model as ambiguous.
+        levels = ([market], [grouping], list(g.objects(grouping, IN_SERIES)))
+        sources: set[URIRef] = set()
+        for depth, holders in enumerate(levels):
+            sources = {s for h in holders for s in g.objects(h, SETTLEMENT_SOURCE)}
+            if sources:
+                break
         if len(sources) != 1:
-            fail(
-                f"market does not reach exactly one settlement source: {market} "
-                f"reaches {len(sources)} through its grouping and series "
-                f"({sorted(str(s) for s in sources)}), so what it settles on cannot "
-                f"be compared with what its proposition is about"
-            )
+            # Only a market-level defect is the market's own; one resolved higher
+            # belongs to the grouping, and every market under it would repeat it.
+            key = market if depth == 0 else grouping
+            if key not in reported:
+                reported.add(key)
+                fail(
+                    f"market does not resolve to exactly one settlement source: "
+                    f"{market} resolves to {len(sources)} at the most specific level "
+                    f"carrying one ({sorted(str(s) for s in sources)}), so what it "
+                    f"settles on cannot be compared with what its proposition is about"
+                )
             continue
         source = next(iter(sources))
         source_protocols = set(g.objects(source, SOURCE_PROTOCOL))
         if len(source_protocols) != 1:
-            fail(
-                f"settlement source does not name exactly one protocol: {source} has "
-                f"{len(source_protocols)} ksh:sourceProtocol value(s), so {market} "
-                f"cannot be checked against the determination it settles on"
-            )
+            if source not in reported:
+                reported.add(source)
+                fail(
+                    f"settlement source does not name exactly one protocol: {source} "
+                    f"has {len(source_protocols)} ksh:sourceProtocol value(s), so no "
+                    f"market settling through it can be checked against the "
+                    f"determination it settles on"
+                )
             continue
         settles_under = next(iter(source_protocols))
         for prop in g.objects(market, EXPRESSES):
