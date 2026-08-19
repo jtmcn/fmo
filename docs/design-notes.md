@@ -330,9 +330,10 @@ Asserting both values would have been worse than wrong. OWL does not assume name
 are distinct, so a functional property forced to take two values *identifies* them: `wtl:True`
 would silently become the same individual as `wtl:False`, and everything downstream would still
 compute. `owl:AllDifferent` blocks over the truth values, comparators, resolution outcomes, and
-market statuses now turn that into a reasoner inconsistency, verified by asserting a
-contradiction and confirming HermiT reports it. Same guard, same reasoning as the units case,
-and the same case in `scripts/test_reason.py` exercises it.
+market statuses now turn that into a reasoner inconsistency. Same guard, same reasoning as the
+units case. `scripts/test_reason.py` asserts two truth values on one assessment and confirms
+HermiT reports it; the comparator, outcome and status blocks rest on the same axiom and have no
+case of their own.
 
 The fix is `wtl:TruthAssessment`: a reified assignment carrying the proposition, the value, the
 record consulted, and the time. Truth is a relation between a proposition and a state of the

@@ -73,6 +73,9 @@ WHERE {
                                 wtl:assessedTruthValue ?tv .
                     FILTER NOT EXISTS { ?newer wx:supersedes ?record }
 
+                    # wtl:Indeterminate is a legal truth value and is not an
+                    # observed "no"; scoring it as 0 would silently count it.
+                    FILTER(?tv IN (wtl:True, wtl:False))
                     BIND(IF(?tv = wtl:True, 1, 0) AS ?ov)
                 }
                 GROUP BY ?model ?leadHours ?fp
