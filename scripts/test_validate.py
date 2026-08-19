@@ -52,6 +52,29 @@ CASES = [
         "unit mismatch (datum vs target)",
     ),
     (
+        "a target with no measurement protocol at all",
+        EXAMPLE,
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;
+    wtl:hasUnit unit:DEG_F .
+
+################################################################
+# 4. The proposition""",
+        """    wtl:hasUnit unit:DEG_F .
+
+################################################################
+# 4. The proposition""",
+        "does not name exactly one protocol",
+    ),
+    (
+        # F1 as a modelling error: the exchange settles on one determination while
+        # the proposition names another. Nothing related the two before ksh:sourceProtocol.
+        "settlement source publishing under a protocol the target does not name",
+        EXAMPLE,
+        "    ksh:sourceProtocol ex:TWCDailyTempProtocol ;",
+        "    ksh:sourceProtocol ex:NWSDailyClimateProtocol ;",
+        "settles on a different protocol than its proposition names",
+    ),
+    (
         # The bug this check exists for: re-pointing the settlement source renamed
         # ex:NWSDailyClimateProtocol, and verification-synthetic.ttl went on
         # referencing it for all 40 days. Every other check stayed green.

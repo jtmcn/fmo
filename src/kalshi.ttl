@@ -11,7 +11,7 @@
 
 <https://w3id.org/wantology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/kalshi/0.7.0> ;
+    owl:versionIRI <https://w3id.org/wantology/kalshi/0.7.1> ;
     owl:imports <https://w3id.org/wantology/core> , <https://w3id.org/wantology/weather> ;
     dcterms:title "Wantology Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -19,7 +19,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.7.0" ;
+    owl:versionInfo "0.7.1" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -307,6 +307,17 @@ ksh:settlementSource a owl:ObjectProperty ;
     rdfs:label "settlement source" ;
     rdfs:range ksh:SettlementSource ;
     skos:definition "Relates a listing to the settlement source that will be consulted to determine the truth value of its proposition." .
+
+ksh:sourceProtocol a owl:ObjectProperty ;
+    rdfs:label "source protocol" ;
+    rdfs:domain ksh:SettlementSource ; rdfs:range wx:MeasurementProtocol ;
+    skos:definition "Relates a settlement source to the measurement protocol under which it determines the values it publishes." ;
+    skos:scopeNote """Without this, ksh:settlementSource and wx:underProtocol are two unconnected statements of
+one fact: which publication the exchange consults, and how the value it publishes is
+determined. Nothing stopped them disagreeing, so a market could settle on The Weather
+Company while its proposition named an NWS-determined target -- the 2026-08-14 migration
+as a modelling error rather than a data one. Asserting this is what lets scripts/validate.py
+compare the two.""" .
 
 ksh:hasRules a owl:ObjectProperty ;
     rdfs:subPropertyOf wtl:governedBy ;

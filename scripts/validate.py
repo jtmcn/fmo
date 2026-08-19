@@ -41,6 +41,11 @@ go wrong when hand-authoring a BFO application ontology:
   9. A market's grouping covers exactly one target, that target is the one the
      market's proposition names, every bracket is satisfiable, and no two brackets
      in a grouping asserted mutually exclusive overlap.
+ 10. Every observation target names exactly one measurement protocol, and the protocol
+     a market's settlement source publishes under is the one its proposition's target
+     names. A missing protocol is invisible to the reasoner -- open-world reads it as
+     unnamed rather than absent -- and a settlement source disagreeing with a target's
+     protocol is the 2026-08-14 migration expressed as a modelling error.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -141,6 +146,11 @@ FALSE_VALUE = URIRef(WTL + "False")
 IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping")
 COVERS_TARGET = URIRef(KSH + "coversTarget")
 MUTUALLY_EXCLUSIVE = URIRef(KSH + "mutuallyExclusive")
+WEATHER_TARGET = URIRef(WX + "WeatherObservationTarget")
+UNDER_PROTOCOL = URIRef(WX + "underProtocol")
+SETTLEMENT_SOURCE = URIRef(KSH + "settlementSource")
+SOURCE_PROTOCOL = URIRef(KSH + "sourceProtocol")
+IN_SERIES = URIRef(KSH + "inSeries")
 HAS_COMPARATOR = URIRef(WTL + "hasComparator")
 FLOOR_VALUE = URIRef(WTL + "floorValue")
 CAP_VALUE = URIRef(WTL + "capValue")
@@ -464,6 +474,81 @@ def check_scores(g: Graph) -> None:
     notes.append(f"{checked} Brier score(s) checked against their inputs")
 
 
+def check_protocols(g: Graph) -> None:
+    """A target names its protocol, and the exchange settles on that same protocol.
+
+    The class definition of wx:WeatherObservationTarget names four components and the
+    axioms constrained three, so a target carrying no wx:underProtocol at all parsed
+    clean. The reasoner does not catch it either: under the open-world assumption a
+    missing protocol reads as "there is one, unnamed", so absence has to be checked
+    here rather than left to HermiT. The definedness check added after the migration
+    catches a protocol IRI that no longer resolves; it cannot catch one never asserted.
+
+    The second rule is the source/protocol split. ksh:settlementSource names the
+    publication the exchange consults, wx:underProtocol names how the value is
+    determined, and nothing tied them together -- so a market could settle on The
+    Weather Company while its proposition named an NWS-determined target. That is the
+    2026-08-14 migration with the schema in place of the data, and it is the failure
+    this ontology's central claim exists to make visible.
+    """
+    targets = {
+        s for s, t in g.subject_objects(RDF.type)
+        if t == WEATHER_TARGET or WEATHER_TARGET in ancestors(g, t)
+    }
+    for target in sorted(targets, key=str):
+        protocols = list(g.objects(target, UNDER_PROTOCOL))
+        if len(protocols) != 1:
+            fail(
+                f"target does not name exactly one protocol: {target} has "
+                f"{len(protocols)} wx:underProtocol value(s). Protocol is a component "
+                f"of the target, not an annotation on it, so without exactly one the "
+                f"target does not fix a quantity."
+            )
+    notes.append(f"{len(targets)} observation target(s) checked for a protocol")
+
+    checked = 0
+    for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
+        # ksh:settlementSource attaches to a listing; a market inherits it from its
+        # grouping or series unless it carries its own.
+        holders = [market, grouping, *g.objects(grouping, IN_SERIES)]
+        sources = {s for h in holders for s in g.objects(h, SETTLEMENT_SOURCE)}
+        if len(sources) != 1:
+            fail(
+                f"market does not reach exactly one settlement source: {market} "
+                f"reaches {len(sources)} through its grouping and series "
+                f"({sorted(str(s) for s in sources)}), so what it settles on cannot "
+                f"be compared with what its proposition is about"
+            )
+            continue
+        source = next(iter(sources))
+        source_protocols = set(g.objects(source, SOURCE_PROTOCOL))
+        if len(source_protocols) != 1:
+            fail(
+                f"settlement source does not name exactly one protocol: {source} has "
+                f"{len(source_protocols)} ksh:sourceProtocol value(s), so {market} "
+                f"cannot be checked against the determination it settles on"
+            )
+            continue
+        settles_under = next(iter(source_protocols))
+        for prop in g.objects(market, EXPRESSES):
+            for subject in g.objects(prop, HAS_SUBJECT):
+                for protocol in g.objects(subject, UNDER_PROTOCOL):
+                    checked += 1
+                    if protocol != settles_under:
+                        fail(
+                            f"market settles on a different protocol than its "
+                            f"proposition names: {market} settles through {source} "
+                            f"under {settles_under}, but {prop} is about {subject} "
+                            f"under {protocol}"
+                        )
+    if EXAMPLES and not checked:
+        fail(
+            "no market reaches a target protocol, so the settlement-protocol check "
+            "matched nothing; the settlementSource or sourceProtocol chain is broken"
+        )
+    notes.append(f"{checked} market/protocol pair(s) checked for settlement agreement")
+
+
 def check_grouping_coherence(g: Graph) -> None:
     """An event grouping's markets partition the values of ONE target.
 
@@ -766,6 +851,7 @@ def main() -> int:
     check_current_assessments(ex)
     check_scores(ex)
     check_grouping_coherence(ex)
+    check_protocols(ex)
 
     # Domain sanity: the join the ontology exists for.
     #
