@@ -347,6 +347,65 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         """IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping_renamed")""",
         "the inEventGrouping or expressesProposition chain is broken",
     ),
+    (
+        # rdflib Literal truthiness is value-based, so bool(Literal(0)) is False.
+        # A settlement of zero read as no settlement at all and skipped the unit
+        # comparison this check exists for -- an ordinary value for degF or mm.
+        "settlement of zero recorded in Celsius against a Fahrenheit target",
+        EXAMPLE,
+        """    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .""",
+        """    ksh:settlementValue "0"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_C .""",
+        "unit mismatch (settlement value vs target)",
+    ),
+    (
+        # Same truthiness bug one function over: a zero value carrying no unit
+        # dodged the missing-unit failure entirely.
+        "settlement of zero carries no unit at all",
+        EXAMPLE,
+        """    ksh:settlementValue "82"^^xsd:decimal ;
+    wtl:hasUnit unit:DEG_F .""",
+        """    ksh:settlementValue "0"^^xsd:decimal .""",
+        "missing unit",
+    ),
+    (
+        # check_lead_times guards its float() and check_scores did not, so a
+        # non-numeric score raised out of main() and every later check was lost.
+        "Brier score stated as something non-numeric",
+        CORRECTION,
+        """    wtl:scoreValue "0.2704"^^xsd:decimal ;""",
+        """    wtl:scoreValue "n/a" ;""",
+        "is not numeric",
+    ),
+    (
+        # Absence used to be a skip: the grouping check quietly matched nothing
+        # while the counter still reported the pairs as checked.
+        "grouping covers no target at all",
+        EXAMPLE,
+        """    ksh:coversTarget ex:Target-HighTemp ;""",
+        """""",
+        "does not cover exactly one target",
+    ),
+    (
+        # ksh:coversTarget is not functional, so two targets satisfied the old
+        # membership test either way -- and overlaps() then compares brackets on
+        # two different determinations as if they were on one.
+        "grouping covers two targets",
+        EXAMPLE,
+        """    ksh:coversTarget ex:Target-HighTemp ;""",
+        """    ksh:coversTarget ex:Target-HighTemp , ex:Target-HighTemp-NWS ;""",
+        "does not cover exactly one target",
+    ),
+    (
+        # An inverted bracket can never resolve yes, and its overlap results
+        # against its neighbours are meaningless rather than merely wrong.
+        "bracket whose floor sits above its cap",
+        BRACKETS,
+        """    wtl:floorValue "84"^^xsd:decimal ;""",
+        """    wtl:floorValue "88"^^xsd:decimal ;""",
+        "is above cap",
+    ),
 ]
 
 
@@ -414,6 +473,21 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         """vex:A-20260701-LE81 a wtl:TruthAssessment ;
     wtl:assessesProposition vex:P-20260701-LE81 ;
     wtl:assessedTruthValue wtl:True ;""",
+        "differs from",
+    ),
+    (
+        # Discriminating on purpose: an assessment that was wtl:False scores 0
+        # either way, so only a query that DROPS wtl:Indeterminate changes its
+        # answer. Counting it as an observed "no" leaves every statistic intact
+        # and the defect invisible.
+        "an assessment becomes indeterminate rather than false",
+        VERIFICATION,
+        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;
+    wtl:assessedTruthValue wtl:False ;""",
+        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
+    wtl:assessesProposition vex:P-20260701-LE81 ;
+    wtl:assessedTruthValue wtl:Indeterminate ;""",
         "differs from",
     ),
     (

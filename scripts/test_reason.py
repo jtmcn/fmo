@@ -3,8 +3,8 @@
 
 scripts/validate.py is deliberately Java-free, so the guards whose whole job is to
 turn a mistake into a HermiT inconsistency have no coverage there: the
-owl:AllDifferent blocks in core.ttl, and the irreflexivity of
-wx:alternativeDeterminationOf. Each case here injects the mistake the guard exists
+owl:AllDifferent blocks in core.ttl -- over the units and over the truth values --
+and the irreflexivity of wx:alternativeDeterminationOf. Each case here injects the mistake the guard exists
 for and asserts ROBOT reports the ontology inconsistent.
 
 Skips with a notice when ROBOT or Java is absent, like `make reason`.
@@ -37,6 +37,16 @@ CASES = [
         """wx:conventionalUnit a owl:ObjectProperty ;
     rdfs:subPropertyOf wtl:hasUnit ;
     rdfs:label "conventional unit" ;""",
+    ),
+    (
+        # The AllDifferent block over the truth values. wtl:assessedTruthValue is
+        # functional, so two values on one assessment would identify wtl:True with
+        # wtl:False -- and everything downstream would keep computing -- if the
+        # individuals were not asserted distinct.
+        "one assessment asserting two truth values",
+        EXAMPLE,
+        "    wtl:assessedTruthValue wtl:True ;",
+        "    wtl:assessedTruthValue wtl:True , wtl:False ;",
     ),
     (
         # wx:alternativeDeterminationOf is irreflexive so that a target asserted to

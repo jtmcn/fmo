@@ -38,8 +38,9 @@ go wrong when hand-authoring a BFO application ontology:
   8. At most one truth assessment per proposition may rest on a record nothing
      supersedes. Two live assessments make CQ6 double-count the proposition rather
      than contradict it, and every other check stays green while it happens.
-  9. A market's grouping covers the same target its proposition names, and no two
-     brackets in a grouping asserted mutually exclusive overlap.
+  9. A market's grouping covers exactly one target, that target is the one the
+     market's proposition names, every bracket is satisfiable, and no two brackets
+     in a grouping asserted mutually exclusive overlap.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -194,7 +195,9 @@ def check_dimensions(g: Graph) -> None:
             )
             return None
         if not units:
-            if any(v for p in VALUE_PROPS for v in g.objects(entity, p)):
+            # Membership, not truthiness -- a zero value is still a value, and
+            # truthiness let it dodge the missing-unit failure.
+            if any((entity, p, None) in g for p in VALUE_PROPS):
                 fail(
                     f"missing unit: {entity} carries a numeric value but no "
                     f"wtl:hasUnit, so it cannot be compared against anything"
@@ -250,7 +253,9 @@ def check_dimensions(g: Graph) -> None:
     # wtl:realizedValue, which rdflib does not follow.
     settlement_compared = 0
     for resolution, market in g.subject_objects(RESOLUTION_OF):
-        if not any(g.objects(resolution, SETTLEMENT_VALUE)):
+        # Membership, not truthiness: bool(Literal(0)) is False, so a settlement
+        # of zero used to read as absent and skip the comparison entirely.
+        if (resolution, SETTLEMENT_VALUE, None) not in g:
             continue
         for prop in g.objects(market, EXPRESSES):
             for target in g.objects(prop, HAS_SUBJECT):
@@ -434,8 +439,18 @@ def check_scores(g: Graph) -> None:
             )
             continue
         outcome = 1.0 if truths[0] == TRUE_VALUE else 0.0
-        expected = (float(probs[0]) - outcome) ** 2
-        if abs(float(stated) - expected) > 1e-9:
+        # Same reasoning as check_lead_times: an uncaught raise here costs the
+        # operator every later check.
+        try:
+            expected = (float(probs[0]) - outcome) ** 2
+            stated_value = float(stated)
+        except (ValueError, TypeError) as exc:
+            fail(
+                f"{score}: cannot reproduce the arithmetic -- probability "
+                f"{probs[0]!r} or score {stated!r} is not numeric ({exc})"
+            )
+            continue
+        if abs(stated_value - expected) > 1e-9:
             fail(
                 f"Brier score mismatch: {score} says {stated} but probability "
                 f"{probs[0]} against outcome {outcome:.0f} is {expected:.4f}"
@@ -496,6 +511,15 @@ def check_grouping_coherence(g: Graph) -> None:
         except ValueError:
             fail(f"{prop}: its threshold value is not numeric")
             return None
+        # Checked whether or not the comparator consumes both: an inverted pair is
+        # unsatisfiable, and its overlap results against every other bracket are
+        # meaningless rather than merely wrong.
+        if floor_v is not None and cap_v is not None and floor_v > cap_v:
+            fail(
+                f"{prop}: floor {floor_v} is above cap {cap_v}, so no value "
+                f"satisfies it and its brackets cannot be compared"
+            )
+            return None
         return bounds(floor_v, cap_v)
 
     # Compares raw floor/cap numbers with no unit check of its own -- sound only
@@ -512,12 +536,24 @@ def check_grouping_coherence(g: Graph) -> None:
 
     checked = 0
     groupings: dict[URIRef, list] = {}
+    ambiguous: set[URIRef] = set()
     for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
+        # ksh:coversTarget is not functional and absence used to skip the check.
+        # Neither zero nor two targets can be compared against, and both break the
+        # single-target premise overlaps() below relies on.
+        covered = list(g.objects(grouping, COVERS_TARGET))
+        if len(covered) != 1 and grouping not in ambiguous:
+            ambiguous.add(grouping)
+            fail(
+                f"grouping does not cover exactly one target: {grouping} holds "
+                f"markets but has {len(covered)} ksh:coversTarget value(s) "
+                f"({sorted(str(c) for c in covered)}), so its brackets cannot be "
+                f"checked against a target or against each other."
+            )
         for prop in g.objects(market, EXPRESSES):
             for subject in g.objects(prop, HAS_SUBJECT):
                 checked += 1
-                covered = list(g.objects(grouping, COVERS_TARGET))
-                if covered and subject not in covered:
+                if len(covered) == 1 and subject not in covered:
                     fail(
                         f"market covers a different target than its grouping: "
                         f"{market} expresses {prop} about {subject}, but "
