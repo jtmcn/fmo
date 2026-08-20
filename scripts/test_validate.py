@@ -21,6 +21,7 @@ EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
 CORRECTION = "examples/kxhighny-2026-08-15-correction.ttl"
 VERIFICATION = "examples/verification-synthetic.ttl"
+TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -461,6 +462,47 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         """    wtl:floorValue "84"^^xsd:decimal ;""",
         """    wtl:floorValue "88"^^xsd:decimal ;""",
         "is above cap",
+    ),
+    (
+        # The trading layer's whole reason for existing is that it says what
+        # settles. Paying the side that lost is the one way to get that backwards
+        # while every other check stays green: the arithmetic still works, the
+        # market still matches, and a trader is still paid.
+        "payout to the side the market resolved against",
+        TRADING,
+        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
+        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-No-B ;",
+        "pays the losing side",
+    ),
+    (
+        "payout amount that does not match the lot it pays for",
+        TRADING,
+        "    ksh:payoutAmountCents 10000 .",
+        "    ksh:payoutAmountCents 6000 .",
+        "disagrees with what it pays for",
+    ),
+    (
+        # A lot in a different market than the resolution settles. ex:Market-T81 is
+        # a sibling bracket in the same grouping, so nothing but this check notices.
+        "payout settling one market's contracts on another's determination",
+        TRADING,
+        """tex:Lot-Yes-A a ksh:YesContract ;
+    rdfs:label "100 yes contracts in B82.5, held by A" ;
+    ksh:contractInMarket ex:Market-B82 ;""",
+        """tex:Lot-Yes-A a ksh:YesContract ;
+    rdfs:label "100 yes contracts in B82.5, held by A" ;
+    ksh:contractInMarket ex:Market-T81 ;""",
+        "payout crosses markets",
+    ),
+    (
+        # The coverage guard. The check is a walk over inputs, so a payout that
+        # names neither stops matching instead of failing -- which is how the
+        # trading layer went unexercised for four versions in the first place.
+        "a payout that names no resolution or lot at all",
+        TRADING,
+        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
+        "",
+        "trading layer is unexercised again",
     ),
 ]
 

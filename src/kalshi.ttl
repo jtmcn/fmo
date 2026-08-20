@@ -11,7 +11,7 @@
 
 <https://w3id.org/wantology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/kalshi/0.7.1> ;
+    owl:versionIRI <https://w3id.org/wantology/kalshi/0.8.0> ;
     owl:imports <https://w3id.org/wantology/core> , <https://w3id.org/wantology/weather> ;
     dcterms:title "Wantology Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -19,7 +19,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.7.1" ;
+    owl:versionInfo "0.8.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -149,6 +149,35 @@ ksh:Position a owl:Class ;
     rdfs:label "position" ;
     skos:definition "An information content entity recording the net quantity of yes and no contracts in a market held by one trader as of a reference time." .
 
+ksh:ContractSide a owl:Class ;
+    rdfs:subClassOf wtl:Designation ;
+    rdfs:label "contract side" ;
+    skos:definition "A designation of which of a binary market's two contracts an order, or a level of its order book, concerns." ;
+    skos:scopeNote """Mirrors the API's `side` field, which is orthogonal to `action`: selling yes and buying
+no leave a trader in economically similar places but are recorded as different orders, and
+collapsing them here would lose the distinction the exchange actually books.""" .
+
+ksh:YesSide a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "yes side" ;
+    skos:definition "The side whose contracts pay out if the market's proposition is true." .
+ksh:NoSide  a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "no side" ;
+    skos:definition "The side whose contracts pay out if the market's proposition is false." .
+
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( ksh:YesSide ksh:NoSide ) .
+
+ksh:OrderAction a owl:Class ;
+    rdfs:subClassOf wtl:Designation ;
+    rdfs:label "order action" ;
+    skos:definition "A designation of whether an order acquires or disposes of contracts on its side of the market." .
+
+ksh:Buy  a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "buy" ;
+    skos:definition "The order acquires contracts on its side, paying the price stated." .
+ksh:Sell a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "sell" ;
+    skos:definition "The order disposes of contracts on its side, receiving the price stated." .
+
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( ksh:Buy ksh:Sell ) .
+
 ################################################################
 # Trading processes
 ################################################################
@@ -181,6 +210,14 @@ ksh:OrderBookSnapshot a owl:Class ;
     rdfs:subClassOf wtl:MeasurementDatum ;
     rdfs:label "order book snapshot" ;
     skos:definition "A measurement datum reporting the resting order quantities at each price level in a market as of a reference time." .
+
+ksh:PriceLevel a owl:Class ;
+    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:label "price level" ;
+    skos:definition "A measurement datum reporting the quantity of contracts resting on one side of a market at one price, as of the reference time of the snapshot it is part of." ;
+    skos:scopeNote """Related to its snapshot by BFO's has continuant part, the way a daily report carries its
+observation datum, rather than by a bespoke property. Prices are stated on the level's own
+side: a yes ask of 62 appears here as a no level at 38, which is how the exchange books it.""" .
 
 ################################################################
 # Settlement
@@ -331,16 +368,50 @@ ksh:contractInMarket a owl:ObjectProperty ;
     a owl:FunctionalProperty ;
     skos:definition "Relates a binary contract to the market whose proposition determines whether it pays out." .
 
+ksh:datumForMarket a owl:ObjectProperty ;
+    rdfs:label "datum for market" ;
+    rdfs:domain wtl:MeasurementDatum ; rdfs:range ksh:Market ;
+    skos:definition "Relates a measurement datum reporting on trading to the market it reports on." ;
+    skos:scopeNote "Quotes and order book snapshots both report on one market. ksh:quoteForMarket is the functional specialisation for quotes; snapshots use this directly." .
+
 ksh:quoteForMarket a owl:ObjectProperty ;
+    rdfs:subPropertyOf ksh:datumForMarket ;
     rdfs:label "quote for market" ;
     rdfs:domain ksh:Quote ; rdfs:range ksh:Market ;
     a owl:FunctionalProperty ;
     skos:definition "Relates a quote to the market whose prices it reports." .
 
+ksh:orderInMarket a owl:ObjectProperty ;
+    rdfs:label "order in market" ;
+    rdfs:domain ksh:Order ; rdfs:range ksh:Market ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates an order to the market whose contracts it instructs the exchange to buy or sell." .
+
+ksh:hasSide a owl:ObjectProperty ;
+    rdfs:label "has side" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Order ksh:PriceLevel ) ] ;
+    rdfs:range ksh:ContractSide ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates an order, or a level of an order book, to the side of the market it concerns." .
+
+ksh:hasAction a owl:ObjectProperty ;
+    rdfs:label "has action" ;
+    rdfs:domain ksh:Order ; rdfs:range ksh:OrderAction ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates an order to the designation of whether it acquires or disposes of contracts." .
+
+ksh:positionInMarket a owl:ObjectProperty ;
+    rdfs:label "position in market" ;
+    rdfs:domain ksh:Position ; rdfs:range ksh:Market ;
+    a owl:FunctionalProperty ;
+    skos:definition "Relates a position to the market whose contracts it records a holding in." .
+
 ksh:heldBy a owl:ObjectProperty ;
     rdfs:label "held by" ;
-    rdfs:domain ksh:Position ; rdfs:range wtl:Agent ;
-    skos:definition "Relates a position to the agent bearing the trader role whose holdings it records." .
+    rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Position ksh:BinaryContract ) ] ;
+    rdfs:range wtl:Agent ;
+    skos:definition "Relates a position, or a lot of contracts, to the agent bearing the trader role that holds it." ;
+    skos:scopeNote "Widened from ksh:Position in 0.8.0. A trade brings contracts into existence held by the two counterparties, so a lot has a holder before any position is struck from it; a second property for the same relation would have to be kept in step with this one by hand." .
 
 ksh:hasStatus a owl:ObjectProperty ;
     rdfs:label "has status" ;
@@ -414,6 +485,37 @@ ksh:volume a owl:DatatypeProperty ; rdfs:label "volume" ; rdfs:domain ksh:Quote 
 ksh:openInterest a owl:DatatypeProperty ; rdfs:label "open interest" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
     skos:definition "The quantity of contracts outstanding and not yet settled as of the quote's reference time." ;
     skos:scopeNote "Decimal for the same reason as ksh:volume." .
+
+ksh:orderQuantity a owl:DatatypeProperty ; rdfs:label "order quantity" ; rdfs:domain ksh:Order ; rdfs:range xsd:decimal ;
+    skos:definition "The quantity of contracts the order instructs the exchange to buy or sell." ;
+    skos:scopeNote "Decimal for the same reason as ksh:volume: Kalshi contracts are fractional to a granularity of 0.01." .
+
+ksh:limitPriceCents a owl:DatatypeProperty ; rdfs:label "limit price cents" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Order ksh:PriceLevel ) ] ; rdfs:range xsd:decimal ;
+    skos:definition "The price in cents, on the side concerned, at which the order or level rests: the worst price a buy will pay, or the worst a sell will accept." ;
+    skos:scopeNote """Not checked against the price a trade executes at. A buy filled above its limit, or a sell
+filled below one, is a real defect class and a purely local one -- both orders and the price
+are in hand -- but no example exercises a partial or crossed fill, so a check would be
+asserting the arithmetic of a case nothing has ever produced.""" .
+
+ksh:restingQuantity a owl:DatatypeProperty ; rdfs:label "resting quantity" ; rdfs:domain ksh:PriceLevel ; rdfs:range xsd:decimal ;
+    skos:definition "The quantity of contracts resting unfilled at the level's price and side as of the snapshot's reference time." .
+
+ksh:executionPriceCents a owl:DatatypeProperty ; rdfs:label "execution price cents" ; rdfs:domain ksh:Trade ; rdfs:range xsd:decimal ;
+    skos:definition "The price in cents at which the trade matched." ;
+    skos:scopeNote "Stated on the yes side by convention, as the exchange reports it. The no side paid one hundred cents minus this; the two prices of a matched trade sum to the payout, which is what makes a binary market self-collateralising." .
+
+ksh:contractQuantity a owl:DatatypeProperty ; rdfs:label "contract quantity" ; rdfs:domain ksh:BinaryContract ; rdfs:range xsd:decimal ;
+    skos:definition "The quantity of contracts on identical terms that the lot comprises." ;
+    skos:scopeNote "Contracts in a market are fungible, so an individual of this class is a lot brought into existence by one trade and held by one party, not a single certificate. Its terms are fixed by ksh:contractInMarket; only the quantity and the holder distinguish two lots in the same market on the same side." .
+
+ksh:positionQuantity a owl:DatatypeProperty ; rdfs:label "position quantity" ; rdfs:domain ksh:Position ; rdfs:range xsd:decimal ;
+    skos:definition "The net quantity of contracts held in the market as of the position's reference time, positive for a net yes holding and negative for a net no holding." ;
+    skos:scopeNote "Signed, as the API's `position` field is, rather than split into two properties: a trader is net one way or the other, and two unsigned quantities admit the meaningless state of being long both sides of the same market." .
+
+ksh:payoutAmountCents a owl:DatatypeProperty ; rdfs:label "payout amount cents" ; rdfs:domain ksh:Payout ; rdfs:range xsd:decimal ;
+    skos:definition "The sum in cents transferred to the holder by the payout." ;
+    skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived so that scripts/validate.py has two independent statements to compare; see check_payouts." .
 
 ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
     skos:definition "The instant from which orders are accepted in the market." .
