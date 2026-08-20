@@ -495,6 +495,50 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         "payout crosses markets",
     ),
     (
+        # A lot with no side at all reached the side comparison and came out as
+        # "pays the losing side", which is the wrong diagnosis and sends the reader
+        # after the wrong triple. Reachable because nothing but the reasoner stops
+        # a lot being typed as the bare contract.
+        "a payout on a lot that states no side",
+        TRADING,
+        """tex:Lot-Yes-A a ksh:YesContract ;
+    rdfs:label "100 yes contracts in B82.5, held by A" ;""",
+        """tex:Lot-Yes-A a ksh:BinaryContract ;
+    rdfs:label "100 yes contracts in B82.5, held by A" ;""",
+        "side is not determinate",
+    ),
+    (
+        # Right amount, right side, wrong party. The lot names its holder and the
+        # payout reaches one only through the obligation it realizes, so nothing
+        # else compares them -- CQ8 reads the trader off the lot and would keep
+        # reporting A.
+        "a payout realizing the obligation of the trader who did not hold the lot",
+        TRADING,
+        """tex:Obligation-A a ksh:ContractHolderObligation ;
+    rdfs:label "A's contract holder obligation on the yes side of B82.5" ;
+    bfo:BFO_0000197 tex:TraderA .""",
+        """tex:Obligation-A a ksh:ContractHolderObligation ;
+    rdfs:label "A's contract holder obligation on the yes side of B82.5" ;
+    bfo:BFO_0000197 tex:TraderB .""",
+        "pays the wrong party",
+    ),
+    (
+        # One match made both lots, so they cannot be different sizes. The losing
+        # lot never reaches check_payouts -- it has no payout -- so its quantity
+        # was read by nothing at all before this check.
+        "a match whose two lots are different sizes",
+        TRADING,
+        """tex:Lot-No-B a ksh:NoContract ;
+    rdfs:label "100 no contracts in B82.5, held by B" ;
+    ksh:contractInMarket ex:Market-B82 ;
+    ksh:contractQuantity 100 ;""",
+        """tex:Lot-No-B a ksh:NoContract ;
+    rdfs:label "100 no contracts in B82.5, held by B" ;
+    ksh:contractInMarket ex:Market-B82 ;
+    ksh:contractQuantity 50 ;""",
+        "state different quantities",
+    ),
+    (
         # The coverage guard. The check is a walk over inputs, so a payout that
         # names neither stops matching instead of failing -- which is how the
         # trading layer went unexercised for four versions in the first place.
