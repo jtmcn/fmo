@@ -140,12 +140,12 @@ def instances_of(g: Graph, cls: URIRef) -> list:
 
 
 QUDT = "http://qudt.org/schema/qudt/"
-WTL = "https://w3id.org/forecast-market-ontology/core#"
+FM = "https://w3id.org/forecast-market-ontology/core#"
 WX = "https://w3id.org/forecast-market-ontology/weather#"
 KSH = "https://w3id.org/forecast-market-ontology/kalshi#"
 
-HAS_UNIT = URIRef(WTL + "hasUnit")
-HAS_SUBJECT = URIRef(WTL + "hasSubject")
+HAS_UNIT = URIRef(FM + "hasUnit")
+HAS_SUBJECT = URIRef(FM + "hasSubject")
 REPORTS_FOR = URIRef(WX + "reportsValueFor")
 TARGET_VAR = URIRef(WX + "targetVariable")
 CONVENTIONAL_UNIT = URIRef(WX + "conventionalUnit")
@@ -153,18 +153,18 @@ DIM_VECTOR = URIRef(QUDT + "hasDimensionVector")
 SETTLEMENT_VALUE = URIRef(KSH + "settlementValue")
 RESOLUTION_OF = URIRef(KSH + "resolutionOf")
 EXPRESSES = URIRef(KSH + "expressesProposition")
-ASSESSES = URIRef(WTL + "assessesProposition")
-BASED_ON_RECORD = URIRef(WTL + "basedOnRecord")
+ASSESSES = URIRef(FM + "assessesProposition")
+BASED_ON_RECORD = URIRef(FM + "basedOnRecord")
 SUPERSEDES = URIRef(WX + "supersedes")
-SCORES_ASSIGNMENT = URIRef(WTL + "scoresAssignment")
-USES_SCORING_RULE = URIRef(WTL + "usesScoringRule")
-SCORED_AGAINST = URIRef(WTL + "scoredAgainst")
-SCORE_VALUE = URIRef(WTL + "scoreValue")
-BRIER_SCORE = URIRef(WTL + "BrierScore")
-PROBABILITY_VALUE = URIRef(WTL + "probabilityValue")
-ASSESSED_TRUTH_VALUE = URIRef(WTL + "assessedTruthValue")
-TRUE_VALUE = URIRef(WTL + "True")
-FALSE_VALUE = URIRef(WTL + "False")
+SCORES_ASSIGNMENT = URIRef(FM + "scoresAssignment")
+USES_SCORING_RULE = URIRef(FM + "usesScoringRule")
+SCORED_AGAINST = URIRef(FM + "scoredAgainst")
+SCORE_VALUE = URIRef(FM + "scoreValue")
+BRIER_SCORE = URIRef(FM + "BrierScore")
+PROBABILITY_VALUE = URIRef(FM + "probabilityValue")
+ASSESSED_TRUTH_VALUE = URIRef(FM + "assessedTruthValue")
+TRUE_VALUE = URIRef(FM + "True")
+FALSE_VALUE = URIRef(FM + "False")
 IN_EVENT_GROUPING = URIRef(KSH + "inEventGrouping")
 COVERS_TARGET = URIRef(KSH + "coversTarget")
 MUTUALLY_EXCLUSIVE = URIRef(KSH + "mutuallyExclusive")
@@ -173,10 +173,10 @@ UNDER_PROTOCOL = URIRef(WX + "underProtocol")
 SETTLEMENT_SOURCE = URIRef(KSH + "settlementSource")
 SOURCE_PROTOCOL = URIRef(KSH + "sourceProtocol")
 IN_SERIES = URIRef(KSH + "inSeries")
-HAS_COMPARATOR = URIRef(WTL + "hasComparator")
-FLOOR_VALUE = URIRef(WTL + "floorValue")
-CAP_VALUE = URIRef(WTL + "capValue")
-HAS_INPUT = URIRef(WTL + "hasInput")
+HAS_COMPARATOR = URIRef(FM + "hasComparator")
+FLOOR_VALUE = URIRef(FM + "floorValue")
+CAP_VALUE = URIRef(FM + "capValue")
+HAS_INPUT = URIRef(FM + "hasInput")
 PAYOUT = URIRef(KSH + "Payout")
 RESOLUTION = URIRef(KSH + "Resolution")
 BINARY_CONTRACT = URIRef(KSH + "BinaryContract")
@@ -187,7 +187,7 @@ CONTRACT_QUANTITY = URIRef(KSH + "contractQuantity")
 PAYOUT_AMOUNT = URIRef(KSH + "payoutAmountCents")
 RESOLVES_TO = URIRef(KSH + "resolvesTo")
 TRADE = URIRef(KSH + "Trade")
-HAS_OUTPUT = URIRef(WTL + "hasOutput")
+HAS_OUTPUT = URIRef(FM + "hasOutput")
 HELD_BY = URIRef(KSH + "heldBy")
 HOLDER_OBLIGATION = URIRef(KSH + "ContractHolderObligation")
 REALIZES = URIRef(BFO + "BFO_0000055")
@@ -198,8 +198,8 @@ RESOLVED_NO = URIRef(KSH + "ResolvedNo")
 CENTS_PER_CONTRACT = 100
 
 # Properties whose presence means a unit is mandatory rather than optional.
-VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
-               URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
+VALUE_PROPS = (URIRef(FM + "floorValue"), URIRef(FM + "capValue"),
+               URIRef(FM + "realizedValue"), SETTLEMENT_VALUE)
 
 
 def check_dimensions(g: Graph) -> None:
@@ -347,9 +347,9 @@ def check_dimensions(g: Graph) -> None:
 LEAD_HOURS = URIRef(WX + "leadTimeHours")
 ISSUANCE = URIRef(WX + "issuanceTime")
 FORECAST_FOR = URIRef(WX + "forecastFor")
-OVER_INTERVAL = URIRef(WTL + "overTemporalInterval")
+OVER_INTERVAL = URIRef(FM + "overTemporalInterval")
 FIRST_INSTANT = URIRef(BFO + "BFO_0000222")
-INSTANT_DT = URIRef(WTL + "instantDateTime")
+INSTANT_DT = URIRef(FM + "instantDateTime")
 
 
 def check_lead_times(g: Graph) -> None:
@@ -631,12 +631,12 @@ def check_grouping_coherence(g: Graph) -> None:
     # one and turn a validation failure into a KeyError -- keeping both under one
     # key makes that impossible.
     COMPARATORS = {
-        URIRef(WTL + "Between"):            (True, True, lambda f, c: (f, True, c, True)),
-        URIRef(WTL + "LessThanOrEqual"):    (False, True, lambda f, c: (-inf, False, c, True)),
-        URIRef(WTL + "LessThan"):           (False, True, lambda f, c: (-inf, False, c, False)),
-        URIRef(WTL + "GreaterThanOrEqual"): (True, False, lambda f, c: (f, True, inf, False)),
-        URIRef(WTL + "GreaterThan"):        (True, False, lambda f, c: (f, False, inf, False)),
-        URIRef(WTL + "EqualTo"):            (True, False, lambda f, c: (f, True, f, True)),
+        URIRef(FM + "Between"):            (True, True, lambda f, c: (f, True, c, True)),
+        URIRef(FM + "LessThanOrEqual"):    (False, True, lambda f, c: (-inf, False, c, True)),
+        URIRef(FM + "LessThan"):           (False, True, lambda f, c: (-inf, False, c, False)),
+        URIRef(FM + "GreaterThanOrEqual"): (True, False, lambda f, c: (f, True, inf, False)),
+        URIRef(FM + "GreaterThan"):        (True, False, lambda f, c: (f, False, inf, False)),
+        URIRef(FM + "EqualTo"):            (True, False, lambda f, c: (f, True, f, True)),
     }
 
     def interval(prop):
@@ -1112,12 +1112,12 @@ def main() -> int:
     # SAME proposition carries a forecast probability AND a market-implied one.
     expressed = set(ex.objects(None, EXPRESSES))
     with_forecast = {
-        p for s in ex.subjects(RDF.type, URIRef(WTL + "ForecastProbability"))
-        for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))
+        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability"))
+        for p in ex.objects(s, URIRef(FM + "assignsProbabilityTo"))
     }
     with_market = {
-        p for s in ex.subjects(RDF.type, URIRef(WTL + "MarketImpliedProbability"))
-        for p in ex.objects(s, URIRef(WTL + "assignsProbabilityTo"))
+        p for s in ex.subjects(RDF.type, URIRef(FM + "MarketImpliedProbability"))
+        for p in ex.objects(s, URIRef(FM + "assignsProbabilityTo"))
     }
     joined = expressed & with_forecast & with_market
     # 6b. a forecast's target is the subject of the propositions it scores
@@ -1130,8 +1130,8 @@ def main() -> int:
     # being declared alternative determinations is not a defence; it is the point.
     alt_det = URIRef(WX + "alternativeDeterminationOf")
     has_part = URIRef(BFO + "BFO_0000178")
-    assigns = URIRef(WTL + "assignsProbabilityTo")
-    forecast_prob = URIRef(WTL + "ForecastProbability")
+    assigns = URIRef(FM + "assignsProbabilityTo")
+    forecast_prob = URIRef(FM + "ForecastProbability")
     scored = 0
     for forecast, ftarget in ex.subject_objects(FORECAST_FOR):
         for part in ex.objects(forecast, has_part):
