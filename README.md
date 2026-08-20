@@ -4,7 +4,7 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.8.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.9.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17. Term coverage is deliberately shallow in places; see
 [Open questions](#open-questions).

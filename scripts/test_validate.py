@@ -317,8 +317,8 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
         # data edit can empty the traversal.
         "the assessment check traverses nothing",
         "scripts/validate.py",
-        """ASSESSES = URIRef(WTL + "assessesProposition")""",
-        """ASSESSES = URIRef(WTL + "assessesProposition_renamed")""",
+        """ASSESSES = URIRef(FM + "assessesProposition")""",
+        """ASSESSES = URIRef(FM + "assessesProposition_renamed")""",
         "the assessesProposition chain is broken",
     ),
     (
@@ -357,8 +357,8 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
         # gates "is this a Brier score" empties the traversal for every score.
         "the score check traverses nothing",
         "scripts/validate.py",
-        """BRIER_SCORE = URIRef(WTL + "BrierScore")""",
-        """BRIER_SCORE = URIRef(WTL + "BrierScore_renamed")""",
+        """BRIER_SCORE = URIRef(FM + "BrierScore")""",
+        """BRIER_SCORE = URIRef(FM + "BrierScore_renamed")""",
         "the usesScoringRule or scoresAssignment chain is broken",
     ),
     (
