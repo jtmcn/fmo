@@ -20,7 +20,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check clean
+.PHONY: all setup test validate validate-negative cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -115,6 +115,17 @@ sys.exit('FAIL: ksh:WeatherMarket not inferred; got %s' % t) if not any('Weather
 else print('PASS: ksh:WeatherMarket inferred from the proposition-subject chain')"
 endif
 
+## Build the interactive map: build/ontology.html, self-contained, opens by
+## double-clicking. Frontend sources live in viz/; this only injects the data.
+## Always rebuilds; it takes under a second and the inputs span src/ and viz/.
+diagram:
+	$(PY) scripts/generate_diagram.py
+
+## Assert the extraction still finds every stanza and the README's pivot edges.
+## A viewer that quietly drops half the graph still renders a convincing picture.
+diagram-check:
+	$(PY) scripts/generate_diagram.py --check
+
 merge: $(BUILD)/merged.owl $(BUILD)/full.owl
 
 $(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(SRC)/imports/qudt-subset.ttl $(CATALOG)
@@ -135,7 +146,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative verification-data-check cq reason reason-negative competency
+test: validate validate-negative verification-data-check diagram-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)

@@ -54,6 +54,8 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
 | `scripts/generate_verification_data.py` | regenerates the synthetic calibration dataset (deterministic) |
+| `scripts/generate_diagram.py` | builds the interactive map from the modules |
+| `viz/` | the map's frontend: HTML, CSS, and four small JS modules |
 | `queries/` | competency questions as SPARQL, with `.expected` results |
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
@@ -70,8 +72,32 @@ make validate                        # structure, BFO grounding, unit coherence,
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make reason                          # HermiT consistency (needs robot.jar)
+make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
 ```
+
+## The map
+
+`make diagram` writes `build/ontology.html`: every class, the subsumption
+skeleton, and the object properties that join them, on one pannable field. It is
+one self-contained file with no dependencies and no network calls, so it opens by
+double-clicking and survives being emailed to someone.
+
+Selecting a term shows its definition, its scope note, what it connects to, and
+the Turtle stanza it is actually declared in — the axioms, not a summary of them.
+Colour follows the ontology's central claim rather than the namespace list: `wx`
+is the forecast side, `ksh` is the market side, `fm` is the pivot both point at,
+and borrowed BFO ground is held back in grey.
+
+The frontend is `viz/` — `index.html`, `style.css`, and four JS modules that split
+by job (`layout` places nodes, `graph` draws, `ui` is the chrome, `main` wires
+them). `generate_diagram.py` writes `viz/src/data.js` and inlines the rest; to
+change the map, edit `viz/` and rebuild. Open `viz/index.html` directly to work
+against the last generated data without a build step.
+
+`make diagram-check` runs in `make test`. It asserts every minted class still
+resolves to a Turtle stanza and that the pivot edges above survive, because a
+viewer that silently drops half the graph still renders a convincing picture.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
 `poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
