@@ -493,3 +493,14 @@ Splitting costs three prefix declarations.
 contract independently of a transaction, and they change without the contract changing. Filed as
 `wtl:MeasurementDatum` via `ksh:Quote`, with a reference time, which also gives somewhere natural
 to hang order book snapshots.
+
+**A binary contract individual as the market's terms rather than a lot.** Contracts in a Kalshi
+market are fungible, so "the yes contract of KXHIGHNY-26AUG15-B82.5" reads naturally as one
+information content entity per market per side, with quantity living entirely on `ksh:Position`.
+Rejected because `ksh:Trade` is defined as bringing contracts into existence held by the two
+counterparties, and under the terms reading it brings nothing into existence — the terms
+predate every trade, and `wtl:hasOutput` would be false. So an individual is a lot: one trade,
+one holder, a `ksh:contractQuantity`. The cost is that two lots on the same side of the same
+market are distinct individuals with identical terms, and reconstructing a holder's exposure
+means summing them rather than reading one number. `ksh:Position` exists for that, which is why
+this was the cheaper side of the trade.

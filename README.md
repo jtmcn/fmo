@@ -4,8 +4,8 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.7.1.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All seven competency questions are mechanically tested. Kalshi field names and enumerations
+Status: **0.8.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17. Term coverage is deliberately shallow in places; see
 [Open questions](#open-questions).
 
@@ -48,7 +48,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/imports/bfo-core.ttl` | vendored BFO 2020 core, unmodified |
 | `src/imports/qudt-subset.ttl` | 16 units + 10 quantity kinds extracted from QUDT (generated) |
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
-| `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, 40 synthetic days |
+| `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
@@ -67,7 +67,7 @@ dereference the IRIs need the catalog, which Protégé and ROBOT both pick up au
 ```bash
 make setup                           # poetry install, plus robot.jar if it is missing
 make validate                        # structure, BFO grounding, unit coherence, docs
-make cq                              # competency questions 1, 2, 4, 5, 6, 7 as SPARQL
+make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make reason                          # HermiT consistency (needs robot.jar)
 make test                            # all of the above, plus the competency check
@@ -168,7 +168,10 @@ silently drift onto a different target than the one its grouping ladder was buil
 observation target must name exactly one measurement protocol, and the protocol its settlement
 source publishes under must be the one its proposition's target names — the open-world assumption
 reads a missing protocol as unnamed rather than absent, so the reasoner cannot catch either, and a
-source disagreeing with its target is the 2026-08-14 migration as a modelling error. `make
+source disagreeing with its target is the 2026-08-14 migration as a modelling error. A payout must name one resolution and one lot of contracts,
+in the same market, on the side that resolution determined, for one dollar a contract — paying
+the losing side is the trading-layer form of the mistake `wtl:scoredAgainst` exists to expose,
+arithmetically self-consistent and resting on the wrong determination. `make
 reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
 prove the defined class actually fires.
 
@@ -222,12 +225,15 @@ Flagged rather than silently decided:
   input so the transformation stays auditable, but no derivation is specified. Naive
   `price/100` ignores spread, fees, and carry.
 - **Tropical cyclones as processes.** Defensible and contested; see `docs/design-notes.md`.
-- **The trading layer is vocabulary, not exercised.** `ksh:BinaryContract`, `ksh:Order`,
-  `ksh:Trade`, `ksh:Position`, `ksh:Payout` and `ksh:OrderBookSnapshot` have no instance in
-  any example and no competency question asks about order flow, so nothing has ever watched
-  them work. They are retained because the settlement story is incomplete without naming what
-  settles, but treat them as unproven. `validate.py` reports the instantiated-class count on
-  every run so the gap stays visible.
+- **The trading layer is thin, but no longer unexercised.** Through 0.7.1 these classes had
+  no instance in any example and no competency question asked about order flow. Writing
+  `examples/kxhighny-2026-08-15-trading.ttl` showed why the gap had persisted: the
+  vocabulary could not express an order at all — no side, no action, no quantity, no limit
+  price — so the classes were unusable rather than merely unused. 0.8.0 adds those
+  properties, one worked match with both counterparties, CQ8, and a validator check that a
+  payout pays the winning side what it owes. What is still unproven is breadth: one market,
+  one match, no partial fills, no cancellations, no multi-trade position. `validate.py`
+  reports the instantiated-class count on every run so the gap stays visible.
 - **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
   grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
   KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is

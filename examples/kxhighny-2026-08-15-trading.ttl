@@ -1,0 +1,199 @@
+# Worked example: the trading layer of KXHIGHNY-26AUG15-B82.5, from two resting
+# orders to the payout that settlement drives.
+#
+# This file exists because the trading vocabulary had names and no instances. Its
+# classes were retained through 0.7.1 on the argument that the settlement story is
+# incomplete without saying what settles -- but nothing had ever watched them work,
+# and writing this out is what showed the vocabulary could not express an order at
+# all: no side, no action, no quantity, no limit. Those properties are new in 0.8.0.
+#
+# It attaches to the market defined in kxhighny-2026-08-15.ttl rather than
+# restating one. The trade below is the one ex:Quote-1200Z reports as its last
+# price: same instant, same sixty cents.
+#
+# Values are illustrative and are not real orders, trades, or holdings.
+
+@prefix tex:  <https://w3id.org/wantology/examples/kxhighny-2026-08-15-trading#> .
+@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
+@prefix wtl:  <https://w3id.org/wantology/core#> .
+@prefix wx:   <https://w3id.org/wantology/weather#> .
+@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/wantology/examples/kxhighny-2026-08-15-trading>
+    a owl:Ontology ;
+    owl:imports <https://w3id.org/wantology/wantology> ;
+    rdfs:label "Worked example: order flow and payout for KXHIGHNY-26AUG15-B82.5" .
+
+################################################################
+# 1. The counterparties
+#
+# The role is what makes them traders, and it is realized in the placing of the
+# orders below -- not borne in virtue of being persons.
+################################################################
+
+tex:TraderA a wtl:Person ;
+    rdfs:label "trader A" .
+
+tex:TraderB a wtl:Person ;
+    rdfs:label "trader B" .
+
+tex:TraderRole-A a ksh:TraderRole ;
+    rdfs:label "trader role of A on Kalshi" ;
+    bfo:BFO_0000197 tex:TraderA .            # inheres in
+
+tex:TraderRole-B a ksh:TraderRole ;
+    rdfs:label "trader role of B on Kalshi" ;
+    bfo:BFO_0000197 tex:TraderB .
+
+################################################################
+# 2. The orders
+#
+# A buys yes, B buys no. Not "A buys, B sells": on a binary exchange the two
+# sides of a match are both purchases, and their prices sum to the payout, which
+# is what collateralises the contract. Sixty and forty here.
+#
+# Both are limit orders that would tolerate a worse fill than they got -- 61 and
+# 41 against a match at 60 and 40. ksh:limitPriceCents records that tolerance; no
+# check compares it to the fill, for the reason its scope note gives.
+################################################################
+
+tex:Order-A a ksh:Order ;
+    rdfs:label "A: buy 100 yes at 61" ;
+    ksh:orderInMarket ex:Market-B82 ;
+    ksh:hasSide ksh:YesSide ;
+    ksh:hasAction ksh:Buy ;
+    ksh:orderQuantity 100 ;
+    ksh:limitPriceCents 61 ;
+    wtl:issuedBy tex:TraderA ;
+    wtl:referenceTime "2026-08-15T11:58:14Z"^^xsd:dateTime .
+
+tex:Order-B a ksh:Order ;
+    rdfs:label "B: buy 100 no at 41" ;
+    ksh:orderInMarket ex:Market-B82 ;
+    ksh:hasSide ksh:NoSide ;
+    ksh:hasAction ksh:Buy ;
+    ksh:orderQuantity 100 ;
+    ksh:limitPriceCents 41 ;
+    wtl:issuedBy tex:TraderB ;
+    wtl:referenceTime "2026-08-15T11:59:02Z"^^xsd:dateTime .
+
+tex:Placement-A a ksh:OrderPlacement ;
+    rdfs:label "A submits its order" ;
+    wtl:hasAgent tex:TraderA ;
+    bfo:BFO_0000055 tex:TraderRole-A ;       # realizes
+    wtl:hasOutput tex:Order-A .
+
+tex:Placement-B a ksh:OrderPlacement ;
+    rdfs:label "B submits its order" ;
+    wtl:hasAgent tex:TraderB ;
+    bfo:BFO_0000055 tex:TraderRole-B ;
+    wtl:hasOutput tex:Order-B .
+
+################################################################
+# 3. The book, a moment before the match
+#
+# The same instant as ex:Quote-1200Z, and it must agree with it: the best yes bid
+# is 58, and the no level at 38 IS the yes ask of 62 the quote reports. Levels
+# carry the price of their own side, so reading a yes ask straight off this book
+# means subtracting from one hundred.
+################################################################
+
+tex:Book-1200Z a ksh:OrderBookSnapshot ;
+    rdfs:label "order book for KXHIGHNY-26AUG15-B82.5 at 12:00Z" ;
+    ksh:datumForMarket ex:Market-B82 ;
+    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    bfo:BFO_0000178 tex:Level-Yes-58 ,       # has continuant part
+                    tex:Level-No-38 .
+
+tex:Level-Yes-58 a ksh:PriceLevel ;
+    rdfs:label "400 yes resting at 58" ;
+    ksh:hasSide ksh:YesSide ;
+    ksh:limitPriceCents 58 ;
+    ksh:restingQuantity 400 .
+
+tex:Level-No-38 a ksh:PriceLevel ;
+    rdfs:label "250 no resting at 38" ;
+    ksh:hasSide ksh:NoSide ;
+    ksh:limitPriceCents 38 ;
+    ksh:restingQuantity 250 .
+
+################################################################
+# 4. The match
+#
+# The trade is a process; the contracts are its output. That ordering is the
+# point -- the lots do not exist before the match, so nothing here can be read as
+# a transfer of something already held.
+################################################################
+
+tex:Instant-Trade a bfo:BFO_0000203 ;        # temporal instant
+    wtl:instantDateTime "2026-08-15T12:00:00Z"^^xsd:dateTime .
+
+tex:Trade-1200Z a ksh:Trade ;
+    rdfs:label "100 contracts matched at 60" ;
+    wtl:hasAgent ksh:Kalshi ;
+    wtl:hasInput tex:Order-A , tex:Order-B ;
+    wtl:hasOutput tex:Lot-Yes-A , tex:Lot-No-B ;
+    ksh:executionPriceCents 60 ;
+    bfo:BFO_0000199 tex:Instant-Trade .      # occupies temporal region
+
+tex:Lot-Yes-A a ksh:YesContract ;
+    rdfs:label "100 yes contracts in B82.5, held by A" ;
+    ksh:contractInMarket ex:Market-B82 ;
+    ksh:contractQuantity 100 ;
+    ksh:heldBy tex:TraderA .
+
+tex:Lot-No-B a ksh:NoContract ;
+    rdfs:label "100 no contracts in B82.5, held by B" ;
+    ksh:contractInMarket ex:Market-B82 ;
+    ksh:contractQuantity 100 ;
+    ksh:heldBy tex:TraderB .
+
+# Net, and opposite, because one match made both. A position is a snapshot of a
+# holding at a reference time, not a running total the graph maintains.
+tex:Position-A a ksh:Position ;
+    rdfs:label "A is long 100 yes in B82.5" ;
+    ksh:positionInMarket ex:Market-B82 ;
+    ksh:heldBy tex:TraderA ;
+    ksh:positionQuantity 100 ;
+    wtl:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
+
+tex:Position-B a ksh:Position ;
+    rdfs:label "B is long 100 no in B82.5" ;
+    ksh:positionInMarket ex:Market-B82 ;
+    ksh:heldBy tex:TraderB ;
+    ksh:positionQuantity -100 ;
+    wtl:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
+
+################################################################
+# 5. Settlement pays one side
+#
+# ex:Resolution-B82 resolved the market yes on a determined value of 82, so A's
+# lot pays one hundred cents a contract and B's pays nothing. B gets no payout
+# individual at all: an expired-worthless lot is the absence of a transfer, not a
+# transfer of zero, and writing one would make the graph say the exchange paid.
+#
+# The obligation is a role of the holder, realized by the transfer. It is what
+# ksh:ContractHolderObligation is for, and it is institutional rather than
+# physical -- A's disposition to be paid is not grounded in anything about A.
+################################################################
+
+tex:Obligation-A a ksh:ContractHolderObligation ;
+    rdfs:label "the exchange's obligation to A on the yes side of B82.5" ;
+    bfo:BFO_0000197 tex:TraderA .            # inheres in
+
+tex:Payout-A a ksh:Payout ;
+    rdfs:label "10000 cents paid to A" ;
+    wtl:hasAgent ksh:Kalshi ;
+    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;
+    bfo:BFO_0000055 tex:Obligation-A ;       # realizes
+    ksh:payoutAmountCents 10000 .
+
+# A paid 6000 for the lot and was paid 10000 back, against a market-implied
+# probability of 0.60 at the moment of the match and a GEFS probability of 0.52.
+# Whether taking that side was right is a question about calibration over many
+# days, which is what examples/verification-synthetic.ttl and CQ6 are for; this
+# file only makes the single case sayable.

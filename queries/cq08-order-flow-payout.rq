@@ -1,0 +1,64 @@
+# CQ8. Who took which side of a market, at what price, and what were they paid?
+#
+# The question the trading layer exists to answer, and could not answer before
+# 0.8.0: its classes had no properties to carry a side, a quantity, or a price,
+# so an order was unsayable and nothing joined a holding to a settlement.
+#
+# Two rows, one per counterparty of the same match. Both bought -- on a binary
+# exchange the two sides of a trade are both purchases, and the price the
+# exchange records is the yes price, so ?paidCents is derived rather than read:
+# stating sixty against the trader who paid forty would be false on its own row.
+# Exactly one row carries a ?payoutCents: the other lot expired worthless, which is the absence of a
+# transfer rather than a transfer of zero, so the OPTIONAL is load-bearing. An
+# inner join here would silently drop the losing side and make every market look
+# like it paid everyone.
+#
+# ?impliedProbability is what the market believed at the moment of the match,
+# reached through the proposition rather than through the market, because the
+# proposition is the pivot the forecast side arrives on too. CQ2 puts the
+# forecast's number next to it.
+
+SELECT ?ticker ?trader ?side ?quantity ?paidCents ?impliedProbability ?payoutCents ?outcome
+WHERE {
+    ?trade a/rdfs:subClassOf* ksh:Trade ;
+           ksh:executionPriceCents ?yesPriceCents ;
+           wtl:hasOutput ?lot .
+
+    ?lot a/rdfs:subClassOf* ksh:BinaryContract ;
+         ksh:contractInMarket  ?market ;
+         ksh:contractQuantity  ?quantity ;
+         ksh:heldBy            ?trader ;
+         a                     ?side .
+    # ?side is bound by the asserted class, which is where a binary contract's
+    # side lives -- ksh:hasSide is for orders and book levels, which are not
+    # contracts. Restricted because `a` also binds every superclass reached above.
+    FILTER( ?side IN ( ksh:YesContract, ksh:NoContract ) )
+
+    # The two sides of a match sum to the payout, which is what collateralises a
+    # binary market; the no side's price is the complement of the recorded one.
+    BIND( IF( ?side = ksh:NoContract, 100 - ?yesPriceCents, ?yesPriceCents ) AS ?paidCents )
+
+    ?market ksh:marketTicker ?ticker ;
+            ksh:expressesProposition ?proposition .
+
+    OPTIONAL {
+        ?assignment a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
+                    wtl:assignsProbabilityTo ?proposition ;
+                    wtl:probabilityValue     ?impliedProbability ;
+                    wtl:referenceTime        ?probTime .
+        ?trade bfo:BFO_0000199 ?instant .
+        ?instant wtl:instantDateTime ?probTime .
+    }
+
+    # Unbound for the side that lost. ksh:Payout names both the resolution and
+    # the lot it pays for; scripts/validate.py checks they agree.
+    OPTIONAL {
+        ?payout a/rdfs:subClassOf* ksh:Payout ;
+                wtl:hasInput ?lot ;
+                wtl:hasInput ?resolution ;
+                ksh:payoutAmountCents ?payoutCents .
+        ?resolution a/rdfs:subClassOf* ksh:Resolution ;
+                    ksh:resolvesTo ?outcome .
+    }
+}
+ORDER BY ?ticker ?side

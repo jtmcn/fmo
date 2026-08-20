@@ -154,6 +154,21 @@ IN_SERIES = URIRef(KSH + "inSeries")
 HAS_COMPARATOR = URIRef(WTL + "hasComparator")
 FLOOR_VALUE = URIRef(WTL + "floorValue")
 CAP_VALUE = URIRef(WTL + "capValue")
+HAS_INPUT = URIRef(WTL + "hasInput")
+PAYOUT = URIRef(KSH + "Payout")
+RESOLUTION = URIRef(KSH + "Resolution")
+BINARY_CONTRACT = URIRef(KSH + "BinaryContract")
+YES_CONTRACT = URIRef(KSH + "YesContract")
+NO_CONTRACT = URIRef(KSH + "NoContract")
+CONTRACT_IN_MARKET = URIRef(KSH + "contractInMarket")
+CONTRACT_QUANTITY = URIRef(KSH + "contractQuantity")
+PAYOUT_AMOUNT = URIRef(KSH + "payoutAmountCents")
+RESOLVES_TO = URIRef(KSH + "resolvesTo")
+RESOLVED_YES = URIRef(KSH + "ResolvedYes")
+RESOLVED_NO = URIRef(KSH + "ResolvedNo")
+# A binary contract pays one dollar, stated in the cents its prices are stated in.
+CENTS_PER_CONTRACT = 100
+
 # Properties whose presence means a unit is mandatory rather than optional.
 VALUE_PROPS = (URIRef(WTL + "floorValue"), URIRef(WTL + "capValue"),
                URIRef(WTL + "realizedValue"), SETTLEMENT_VALUE)
@@ -690,6 +705,105 @@ def check_grouping_coherence(g: Graph) -> None:
     notes.append(f"{checked} market/grouping pair(s) checked for target agreement")
 
 
+def check_payouts(g: Graph) -> None:
+    """A payout pays the side the resolution determined, and pays it what it owes.
+
+    The trading layer was vocabulary with no instances through 0.7.1, so nothing
+    connected it to settlement. It is a short walk and an easy one to get wrong:
+    a payout names a resolution and a lot of contracts, and it is only correct if
+    the lot is on the winning side, in the market that resolved, for one dollar a
+    contract. Paying the losing side is the trading-layer form of the mistake
+    wtl:scoredAgainst exists to expose -- an entry that looks settled, is
+    arithmetically self-consistent, and rests on the wrong determination.
+
+    Voided and scalar outcomes are skipped rather than guessed at: neither pays a
+    fixed sum per contract on one side, and no example produces one.
+    """
+
+    def types_of(node):
+        out = set()
+        for cls in g.objects(node, RDF.type):
+            out.add(cls)
+            out |= ancestors(g, cls)
+        return out
+
+    checked = 0
+    for payout in g.subjects(RDF.type, PAYOUT):
+        inputs = list(g.objects(payout, HAS_INPUT))
+        resolutions = [i for i in inputs if RESOLUTION in types_of(i)]
+        lots = [i for i in inputs if BINARY_CONTRACT in types_of(i)]
+        if len(resolutions) != 1 or len(lots) != 1:
+            fail(
+                f"payout does not name one resolution and one contract lot: "
+                f"{payout} has {len(resolutions)} resolution(s) and {len(lots)} "
+                f"lot(s) among its inputs, so what it pays for cannot be checked"
+            )
+            continue
+        resolution, lot = resolutions[0], lots[0]
+        checked += 1
+
+        # Same market, or the payout is settling one market's contracts against
+        # another's determination. Both are functional, so more than one value is
+        # itself the defect.
+        markets = set(g.objects(resolution, RESOLUTION_OF))
+        held_in = set(g.objects(lot, CONTRACT_IN_MARKET))
+        if markets != held_in or len(markets) != 1:
+            fail(
+                f"payout crosses markets: {payout} pays {lot}, in "
+                f"{sorted(str(m) for m in held_in)}, on {resolution}, which "
+                f"resolves {sorted(str(m) for m in markets)}"
+            )
+            continue
+
+        outcomes = list(g.objects(resolution, RESOLVES_TO))
+        if len(outcomes) != 1:
+            fail(
+                f"payout rests on a resolution with {len(outcomes)} outcome(s): "
+                f"{resolution}, so the paying side is undetermined"
+            )
+            continue
+        outcome = outcomes[0]
+        winning = {RESOLVED_YES: YES_CONTRACT, RESOLVED_NO: NO_CONTRACT}.get(outcome)
+        if winning is None:
+            notes.append(f"payout skipped: {payout} rests on outcome {outcome}")
+            continue
+        if winning not in types_of(lot):
+            fail(
+                f"payout pays the losing side: {payout} pays {lot}, but "
+                f"{resolution} resolved to {outcome}, which pays holders of "
+                f"{winning}"
+            )
+
+        quantities = list(g.objects(lot, CONTRACT_QUANTITY))
+        amounts = list(g.objects(payout, PAYOUT_AMOUNT))
+        if len(quantities) != 1 or len(amounts) != 1:
+            fail(
+                f"payout amount cannot be checked: {lot} states "
+                f"{len(quantities)} quantity value(s) and {payout} states "
+                f"{len(amounts)} amount(s)"
+            )
+            continue
+        try:
+            expected = float(quantities[0]) * CENTS_PER_CONTRACT
+            stated = float(amounts[0])
+        except ValueError:
+            fail(f"payout amount or contract quantity is not numeric: {payout}")
+            continue
+        if abs(stated - expected) > 1e-9:
+            fail(
+                f"payout amount disagrees with what it pays for: {payout} states "
+                f"{stated} cents, but {lot} is {quantities[0]} contract(s) at "
+                f"{CENTS_PER_CONTRACT} cents, which is {expected}"
+            )
+
+    if EXAMPLES and not checked:
+        fail(
+            "no payout reaches a resolution and a contract lot, so the payout "
+            "check matched nothing; the trading layer is unexercised again"
+        )
+    notes.append(f"{checked} payout(s) checked against their resolution and lot")
+
+
 def main() -> int:
     g = Graph()
 
@@ -872,6 +986,7 @@ def main() -> int:
     check_scores(ex)
     check_grouping_coherence(ex)
     check_protocols(ex)
+    check_payouts(ex)
 
     # Domain sanity: the join the ontology exists for.
     #
