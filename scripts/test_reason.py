@@ -29,7 +29,7 @@ TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 # (name, path-to-mutate, find, replace)
 CASES = [
     (
-        # The trap README and core.ttl both warn about: wtl:hasUnit is functional,
+        # The trap README and core.ttl both warn about: fm:hasUnit is functional,
         # so a multi-valued sub-property forces every unit listed for a variable to
         # be one individual -- knots identified with metres per second.
         "conventionalUnit made a sub-property of the functional hasUnit",
@@ -37,18 +37,18 @@ CASES = [
         """wx:conventionalUnit a owl:ObjectProperty ;
     rdfs:label "conventional unit" ;""",
         """wx:conventionalUnit a owl:ObjectProperty ;
-    rdfs:subPropertyOf wtl:hasUnit ;
+    rdfs:subPropertyOf fm:hasUnit ;
     rdfs:label "conventional unit" ;""",
     ),
     (
-        # The AllDifferent block over the truth values. wtl:assessedTruthValue is
-        # functional, so two values on one assessment would identify wtl:True with
-        # wtl:False -- and everything downstream would keep computing -- if the
+        # The AllDifferent block over the truth values. fm:assessedTruthValue is
+        # functional, so two values on one assessment would identify fm:True with
+        # fm:False -- and everything downstream would keep computing -- if the
         # individuals were not asserted distinct.
         "one assessment asserting two truth values",
         EXAMPLE,
-        "    wtl:assessedTruthValue wtl:True ;",
-        "    wtl:assessedTruthValue wtl:True , wtl:False ;",
+        "    fm:assessedTruthValue fm:True ;",
+        "    fm:assessedTruthValue fm:True , fm:False ;",
     ),
     (
         # wx:alternativeDeterminationOf is irreflexive so that a target asserted to
@@ -74,8 +74,8 @@ CASES = [
         # restriction, which the disjointness above then rejects.
         "a payout naming two lots on opposite sides",
         TRADING,
-        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
-        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A , tex:Lot-No-B ;",
+        "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
+        "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A , tex:Lot-No-B ;",
     ),
 ]
 
@@ -95,7 +95,7 @@ def robot_command() -> list[str] | None:
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / "wantology"
+        work = Path(tmp) / "fmo"
         shutil.copytree(
             ROOT, work,
             ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc", ".venv"),
@@ -109,7 +109,7 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> 
 
         proc = subprocess.run(
             [*robot, "merge",
-             "--input", str(work / "src" / "wantology.ttl"),
+             "--input", str(work / "src" / "fmo.ttl"),
              "--input", str(work / EXAMPLE),
              "--input", str(work / TRADING),
              "--catalog", str(work / "src" / "catalog-v001.xml"),
@@ -140,7 +140,7 @@ def main() -> int:
     # extensionless os.devnull fails setup -- write to a throwaway .owl instead.
     with tempfile.TemporaryDirectory() as tmp:
         proc = subprocess.run(
-            [*robot, "merge", "--input", str(ROOT / "src" / "wantology.ttl"),
+            [*robot, "merge", "--input", str(ROOT / "src" / "fmo.ttl"),
              "--input", str(ROOT / EXAMPLE),
              "--input", str(ROOT / TRADING),
              "--catalog", str(ROOT / "src" / "catalog-v001.xml"),

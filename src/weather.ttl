@@ -1,5 +1,5 @@
-@prefix wx:   <https://w3id.org/wantology/weather#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -11,11 +11,11 @@
 @prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
 
-<https://w3id.org/wantology/weather>
+<https://w3id.org/forecast-market-ontology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/weather/0.8.0> ;
-    owl:imports <https://w3id.org/wantology/core> ;
-    dcterms:title "Wantology Weather: atmospheric entities, observation, and forecasting" ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.8.0> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/core> ;
+    dcterms:title "FMO Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
 ordinary weather talk runs together: the atmosphere and its qualities (continuants and
 their dependents), weather as something that happens (occurrents), and the observational
@@ -181,7 +181,7 @@ Ida') is the process; its track is the spatiotemporal region it occupies. This i
 long-standing test case for BFO and the classification is contested; see docs/design-notes.md.""" .
 
 wx:NamedStormDesignation a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "named storm designation" ;
     skos:definition "An information content entity assigned by a meteorological authority that names a particular tropical cyclone and carries its classification over time." .
 
@@ -200,7 +200,7 @@ being inferred from a date.""" .
 ################################################################
 
 wx:WeatherVariable a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "weather variable" ;
     skos:definition "An information content entity designating a quantity that can be determined for an observing site over a temporal interval by applying a stated statistic to a stated quality." ;
     skos:scopeNote "Instances are the members of a controlled vocabulary, listed below. Using individuals rather than punned classes keeps the ontology in OWL DL." .
@@ -208,79 +208,79 @@ wx:WeatherVariable a owl:Class ;
 wx:MaximumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "maximum air temperature" ;
     skos:definition "The greatest magnitude attained by air temperature at an observing site over a temporal interval." ;
-    wtl:hasQuantityKind quantitykind:Temperature ;
+    fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
 wx:MinimumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "minimum air temperature" ;
     skos:definition "The least magnitude attained by air temperature at an observing site over a temporal interval." ;
-    wtl:hasQuantityKind quantitykind:Temperature ;
+    fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
 wx:MeanAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "mean air temperature" ;
     skos:definition "The arithmetic mean of the maximum and minimum air temperature at an observing site over a temporal interval." ;
     skos:scopeNote "The NWS daily mean is the midpoint of the day's max and min, not a time-weighted average. A market settling on \"average temperature\" needs its protocol checked against this." ;
-    wtl:hasQuantityKind quantitykind:Temperature ;
+    fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
 wx:TotalPrecipitation a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total precipitation" ;
     skos:definition "The accumulated liquid-water-equivalent precipitation depth at an observing site over a temporal interval." ;
-    wtl:hasQuantityKind quantitykind:Length ;
+    fm:hasQuantityKind quantitykind:Length ;
     wx:conventionalUnit unit:IN , unit:MilliM .
 
 wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total snowfall" ;
     skos:definition "The accumulated settled depth of snow at an observing site over a temporal interval." ;
     skos:scopeNote "Settled depth, not liquid-water equivalent. Same dimension as total precipitation but not the same quantity, so dimensional compatibility alone will not catch a confusion between them." ;
-    wtl:hasQuantityKind quantitykind:Length ;
+    fm:hasQuantityKind quantitykind:Length ;
     wx:conventionalUnit unit:IN , unit:CentiM .
 
 wx:MaximumSustainedWindSpeed a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "maximum sustained wind speed" ;
     skos:definition "The greatest wind speed sustained over the averaging period stated by the measurement protocol, at an observing site over a temporal interval." ;
     skos:scopeNote "The averaging period is part of the protocol, not of the variable. US practice is a one-minute mean; WMO practice is ten minutes. The two give materially different numbers for the same wind." ;
-    wtl:hasQuantityKind quantitykind:Velocity ;
+    fm:hasQuantityKind quantitykind:Velocity ;
     wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC , unit:KiloM-PER-HR .
 
 wx:PeakWindGust a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "peak wind gust" ;
     skos:definition "The greatest instantaneous wind speed recorded at an observing site over a temporal interval." ;
-    wtl:hasQuantityKind quantitykind:Velocity ;
+    fm:hasQuantityKind quantitykind:Velocity ;
     wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC .
 
 wx:MeasurementProtocol a owl:Class ;
-    rdfs:subClassOf wtl:Plan ;
+    rdfs:subClassOf fm:Plan ;
     rdfs:label "measurement protocol" ;
     skos:definition "A plan specifying the instrumentation, siting, sampling interval, rounding, and interval boundaries by which a weather variable is to be determined." ;
     skos:scopeNote "Two determinations of \"the high temperature\" that differ in protocol are different observation targets, and can disagree. This is why protocol is a component of wx:WeatherObservationTarget rather than an annotation on it." .
 
 wx:WeatherObservationTarget a owl:Class ;
-    rdfs:subClassOf wtl:ObservationTarget ;
+    rdfs:subClassOf fm:ObservationTarget ;
     rdfs:label "weather observation target" ;
     skos:definition "An observation target that specifies a weather variable, an observing site, a temporal interval, and a measurement protocol." ;
     rdfs:subClassOf
         [ a owl:Restriction ; owl:onProperty wx:targetVariable ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
         [ a owl:Restriction ; owl:onProperty wx:atSite ;         owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
-        [ a owl:Restriction ; owl:onProperty wtl:overTemporalInterval ; owl:minCardinality "1"^^xsd:nonNegativeInteger ] ,
+        [ a owl:Restriction ; owl:onProperty fm:overTemporalInterval ; owl:minCardinality "1"^^xsd:nonNegativeInteger ] ,
         # Exactly one, like variable and site: the definition names protocol as a
         # component, and two protocols identify a target no better than none.
         [ a owl:Restriction ; owl:onProperty wx:underProtocol ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
 
 wx:WeatherObservation a owl:Class ;
-    rdfs:subClassOf wtl:MeasurementProcess ;
+    rdfs:subClassOf fm:MeasurementProcess ;
     rdfs:label "weather observation" ;
     skos:definition "A measurement process in which a weather station determines the magnitude of an atmospheric quality of the portion of air at its observing site." .
 
 wx:WeatherObservationDatum a owl:Class ;
-    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:subClassOf fm:MeasurementDatum ;
     rdfs:label "weather observation datum" ;
     skos:definition "A measurement datum reporting the value determined for a weather observation target." ;
     skos:example "The 82 in \"MAXIMUM TEMPERATURE 82\" on the CLINYC report for 2026-08-15." .
 
 wx:ClimatologicalReport a owl:Class ;
-    rdfs:subClassOf wtl:Document ;
+    rdfs:subClassOf fm:Document ;
     rdfs:label "climatological report" ;
     skos:definition "A document issued by a meteorological authority that states the values determined for a set of weather variables at an observing site over a stated interval." .
 
@@ -302,13 +302,13 @@ wx:ReportCorrection a owl:Class ;
 ################################################################
 
 wx:NumericalWeatherPredictionModel a owl:Class ;
-    rdfs:subClassOf wtl:Plan ;
+    rdfs:subClassOf fm:Plan ;
     rdfs:label "numerical weather prediction model" ;
     skos:definition "A plan consisting of a discretised representation of atmospheric dynamics together with a procedure for integrating it forward from an analysed initial state." ;
     skos:example "GFS; ECMWF IFS; HRRR; the GEFS ensemble system." .
 
 wx:ModelRun a owl:Class ;
-    rdfs:subClassOf wtl:PredictionProcess ;
+    rdfs:subClassOf fm:PredictionProcess ;
     rdfs:label "model run" ;
     skos:definition "A prediction process that realizes a numerical weather prediction model by integrating it forward from an initial state analysed as of a stated cycle time." ;
     skos:scopeNote "The 12Z run and the 18Z run of the same model are distinct processes producing distinct forecasts about the same observation target." .
@@ -319,7 +319,7 @@ wx:EnsembleMember a owl:Class ;
     skos:definition "A model run that is one of a set differing only in perturbation of initial conditions or model physics, and whose outputs are aggregated to yield a forecast probability." .
 
 wx:Forecast a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "forecast" ;
     skos:definition "An information content entity stating the expected value of, or a probability distribution over, one or more weather observation targets, issued before those targets are determinate." ;
     rdfs:subClassOf [ a owl:Restriction ;
@@ -336,7 +336,7 @@ wx:ProbabilisticForecast a owl:Class ;
     skos:definition "A forecast that has as parts one or more forecast probabilities over propositions concerning its observation targets." ;
     rdfs:subClassOf [ a owl:Restriction ;
         owl:onProperty bfo:BFO_0000178 ;    # has continuant part
-        owl:someValuesFrom wtl:ForecastProbability ] .
+        owl:someValuesFrom fm:ForecastProbability ] .
 
 wx:ForecastLeadTime a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000202 ;   # temporal interval
@@ -344,11 +344,11 @@ wx:ForecastLeadTime a owl:Class ;
     skos:definition "The temporal interval from the issuance of a forecast to the first instant of the interval it concerns." .
 
 wx:ForecastVerification a owl:Class ;
-    rdfs:subClassOf wtl:EvaluationProcess ;
+    rdfs:subClassOf fm:EvaluationProcess ;
     rdfs:label "forecast verification" ;
     skos:definition "An evaluation process that compares a forecast against the climatological report covering the same observation target and yields a skill score." ;
     skos:scopeNote """Takes a probability assignment and a truth assessment as input and has a
-wtl:SkillScore as output. One verification per assignment; calibration over many of them is a
+fm:SkillScore as output. One verification per assignment; calibration over many of them is a
 query, not a process instance.
 
 Verification must control for lead time. A forecast issued 72 hours out and one issued 6 hours
@@ -368,7 +368,7 @@ wx:targetVariable a owl:ObjectProperty ;
 
 wx:conventionalUnit a owl:ObjectProperty ;
     rdfs:label "conventional unit" ;
-    skos:scopeNote """Deliberately NOT a sub-property of wtl:hasUnit. wtl:hasUnit is functional --
+    skos:scopeNote """Deliberately NOT a sub-property of fm:hasUnit. fm:hasUnit is functional --
 one entity, one unit -- so making this a sub-property of it would force every unit listed for a
 variable to be inferred identical, silently identifying degrees Fahrenheit with degrees Celsius.
 The owl:AllDifferent assertion in core.ttl turns that mistake into an inconsistency rather than
@@ -386,7 +386,7 @@ wx:atSite a owl:ObjectProperty ;
     skos:definition "Relates an observation target to the observing site at which its variable is to be determined." .
 
 wx:underProtocol a owl:ObjectProperty ;
-    rdfs:subPropertyOf wtl:governedBy ;
+    rdfs:subPropertyOf fm:governedBy ;
     rdfs:label "under protocol" ;
     rdfs:domain wx:WeatherObservationTarget ;
     rdfs:range wx:MeasurementProtocol ;
@@ -448,7 +448,7 @@ wx:producedByModel a owl:ObjectProperty ;
 ################################################################
 
 wx:stationIdentifier a owl:DatatypeProperty ;
-    rdfs:subPropertyOf wtl:identifier ;
+    rdfs:subPropertyOf fm:identifier ;
     rdfs:label "station identifier" ;
     rdfs:range xsd:string ;
     skos:definition "The call sign or catalogue code by which the issuing network designates an observation station, unique within that network." ;
@@ -477,7 +477,7 @@ and such forecasts must not be pooled with genuinely ahead-of-time ones.""" .
 
 wx:issuanceTime a owl:DatatypeProperty ;
     rdfs:label "issuance time" ;
-    rdfs:domain wtl:InformationContentEntity ;
+    rdfs:domain fm:InformationContentEntity ;
     rdfs:range xsd:dateTime ;
     skos:definition "The instant at which an information content entity was made publicly available by its issuing agent." ;
     skos:scopeNote "Distinct from the interval the content concerns, and from a model run cycle time. A CLI report is issued the morning after the day it covers." .

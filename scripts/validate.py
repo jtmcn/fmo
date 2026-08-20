@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural checks for the Wantology modules.
+"""Structural checks for the FMO modules.
 
 Parses every module plus the vendored BFO, then checks the things that actually
 go wrong when hand-authoring a BFO application ontology:
@@ -24,16 +24,16 @@ go wrong when hand-authoring a BFO application ontology:
      probabilities assign to. Otherwise the forecast is scored against one
      determination of a quantity while the market settles on another, which is the
      error this ontology exists to prevent and the one it could not previously see.
-  6c. A stored wtl:BrierScore matches the probability and outcome it is derived
-     from, refuses to score an assessment whose truth value is neither wtl:True nor
-     wtl:False (a Brier score against an indeterminate outcome is undefined, not
+  6c. A stored fm:BrierScore matches the probability and outcome it is derived
+     from, refuses to score an assessment whose truth value is neither fm:True nor
+     fm:False (a Brier score against an indeterminate outcome is undefined, not
      zero), and fails if the assessment it scores rests on a superseded record.
   7. Units cohere. Where two values get compared, they must use the *same* QUDT unit;
      where a unit is merely chosen for a variable, its QUDT dimension vector must
      match. This catches both a Fahrenheit threshold read against a Celsius target
      (same dimension, still wrong) and inches read against a temperature. The same
      identical-unit rule reaches ksh:settlementValue through resolutionOf and
-     expressesProposition, since it is a sub-property of wtl:realizedValue that
+     expressesProposition, since it is a sub-property of fm:realizedValue that
      rdflib does not follow.
   8. At most one truth assessment per proposition may rest on a record nothing
      supersedes. Two live assessments make CQ6 double-count the proposition rather
@@ -87,12 +87,12 @@ BRANCHES = {
 }
 
 OUR_NS = (
-    "https://w3id.org/wantology/core#",
-    "https://w3id.org/wantology/weather#",
-    "https://w3id.org/wantology/kalshi#",
+    "https://w3id.org/forecast-market-ontology/core#",
+    "https://w3id.org/forecast-market-ontology/weather#",
+    "https://w3id.org/forecast-market-ontology/kalshi#",
 )
 
-MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "wantology.ttl"]
+MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl"]
 EXAMPLES = sorted((ROOT / "examples").glob("*.ttl"))
 
 failures: list[str] = []
@@ -140,9 +140,9 @@ def instances_of(g: Graph, cls: URIRef) -> list:
 
 
 QUDT = "http://qudt.org/schema/qudt/"
-WTL = "https://w3id.org/wantology/core#"
-WX = "https://w3id.org/wantology/weather#"
-KSH = "https://w3id.org/wantology/kalshi#"
+WTL = "https://w3id.org/forecast-market-ontology/core#"
+WX = "https://w3id.org/forecast-market-ontology/weather#"
+KSH = "https://w3id.org/forecast-market-ontology/kalshi#"
 
 HAS_UNIT = URIRef(WTL + "hasUnit")
 HAS_SUBJECT = URIRef(WTL + "hasSubject")
@@ -233,7 +233,7 @@ def check_dimensions(g: Graph) -> None:
     def unit_of(entity):
         """None means "not checkable", and says why first.
 
-        wtl:hasUnit is functional in OWL, but this runs without a reasoner, so two
+        fm:hasUnit is functional in OWL, but this runs without a reasoner, so two
         units here is a wrong answer rather than an inconsistency. A missing unit is
         at least as likely an authoring slip as a wrong one, so a value with no unit
         fails instead of quietly dropping out of the comparison.
@@ -241,8 +241,8 @@ def check_dimensions(g: Graph) -> None:
         units = list(g.objects(entity, HAS_UNIT))
         if len(units) > 1:
             fail(
-                f"ambiguous unit: {entity} has {len(units)} wtl:hasUnit values "
-                f"({sorted(str(u) for u in units)}). wtl:hasUnit is functional, so "
+                f"ambiguous unit: {entity} has {len(units)} fm:hasUnit values "
+                f"({sorted(str(u) for u in units)}). fm:hasUnit is functional, so "
                 f"this is an inconsistency the reasoner would catch; without one, "
                 f"the unit check would compare against whichever came first."
             )
@@ -253,7 +253,7 @@ def check_dimensions(g: Graph) -> None:
             if any((entity, p, None) in g for p in VALUE_PROPS):
                 fail(
                     f"missing unit: {entity} carries a numeric value but no "
-                    f"wtl:hasUnit, so it cannot be compared against anything"
+                    f"fm:hasUnit, so it cannot be compared against anything"
                 )
             return None
         return units[0]
@@ -269,7 +269,7 @@ def check_dimensions(g: Graph) -> None:
             if left_unit is not None or right_unit is not None:
                 missing = right if right_unit is None else left
                 fail(
-                    f"missing unit ({phrasing}): {missing} has no usable wtl:hasUnit, "
+                    f"missing unit ({phrasing}): {missing} has no usable fm:hasUnit, "
                     f"so this comparison cannot be checked"
                 )
             return
@@ -303,7 +303,7 @@ def check_dimensions(g: Graph) -> None:
     # The exchange's own number, against the target the market settles on. It
     # reaches the target through the market's proposition rather than directly,
     # so no earlier loop sees it -- and ksh:settlementValue is a sub-property of
-    # wtl:realizedValue, which rdflib does not follow.
+    # fm:realizedValue, which rdflib does not follow.
     settlement_compared = 0
     for resolution, market in g.subject_objects(RESOLUTION_OF):
         # Membership, not truthiness: bool(Literal(0)) is False, so a settlement
@@ -401,7 +401,7 @@ def check_lead_times(g: Graph) -> None:
             fail(
                 f"{forecast}: cannot measure lead time from issuance {issued[0]!r} to "
                 f"interval start {starts[0]!r}: {exc}. Both need a UTC offset -- see "
-                f"the wtl:instantDateTime scope note."
+                f"the fm:instantDateTime scope note."
             )
             continue
         if abs(float(stated) - actual) > 0.01:
@@ -455,7 +455,7 @@ def check_scores(g: Graph) -> None:
     convenience goes stale the moment either input moves, and nothing about the
     graph complains. The outcome must come from an assessment resting on a live
     record -- scoring against a superseded one measures what the exchange did
-    rather than what the record says, which is the one thing wtl:scoredAgainst
+    rather than what the record says, which is the one thing fm:scoredAgainst
     exists to make visible.
     """
     superseded = set(g.objects(None, SUPERSEDES))
@@ -487,7 +487,7 @@ def check_scores(g: Graph) -> None:
         if truths[0] not in (TRUE_VALUE, FALSE_VALUE):
             fail(
                 f"{score}: scored against {assessments[0]}, whose assessed truth "
-                f"value is {truths[0]}, not wtl:True or wtl:False. A Brier score "
+                f"value is {truths[0]}, not fm:True or fm:False. A Brier score "
                 f"against an indeterminate outcome is undefined, not zero."
             )
             continue
@@ -640,7 +640,7 @@ def check_grouping_coherence(g: Graph) -> None:
     }
 
     def interval(prop):
-        """None means not evaluable -- wtl:Custom, or a threshold not stated."""
+        """None means not evaluable -- fm:Custom, or a threshold not stated."""
         comps = list(g.objects(prop, HAS_COMPARATOR))
         if len(comps) != 1 or comps[0] not in COMPARATORS:
             return None
@@ -741,7 +741,7 @@ def check_payouts(g: Graph) -> None:
     a payout names a resolution and a lot of contracts, and it is only correct if
     the lot is on the winning side, in the market that resolved, held by the party
     whose obligation the payout realizes, for one dollar a contract. Paying the
-    losing side is the trading-layer form of the mistake wtl:scoredAgainst exists
+    losing side is the trading-layer form of the mistake fm:scoredAgainst exists
     to expose -- an entry that looks settled, is arithmetically self-consistent,
     and rests on the wrong determination. Paying the right amount to the wrong
     party is the same mistake about the other end of the transfer: the lot names
@@ -1026,7 +1026,7 @@ def main() -> int:
     # all 40 days. Nothing failed. The targets silently lost their protocol, which
     # for an ontology whose central rule is "the observation target carries the
     # protocol" is the worst available place to lose one.
-    in_scope = ("https://w3id.org/wantology/examples/",) + OUR_NS
+    in_scope = ("https://w3id.org/forecast-market-ontology/examples/",) + OUR_NS
     defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
     dangling = sorted(
         {
@@ -1069,7 +1069,7 @@ def main() -> int:
     # says so, but the count should be visible on every run rather than needing
     # an audit to find.
     # Subtract types asserted by the schema graph alone: a class instantiated only
-    # by a schema-level individual (wtl:BrierScore, ksh:MarketStatus, ...) is not
+    # by a schema-level individual (fm:BrierScore, ksh:MarketStatus, ...) is not
     # exercised by an example, and counting it overclaimed the figure README cites
     # as the mechanism that keeps the trading-layer gap visible.
     schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}

@@ -19,8 +19,8 @@
 SELECT ?ticker ?outcome ?settlementValue ?document ?issuer ?reportedValue ?assessedAtSettlement
 WHERE {
     ?settlement a/rdfs:subClassOf* ksh:MarketSettlement ;
-                wtl:hasInput  ?document ;
-                wtl:hasOutput ?resolution .
+                fm:hasInput  ?document ;
+                fm:hasOutput ?resolution .
 
     ?resolution ksh:resolutionOf ?market ;
                 ksh:resolvesTo   ?outcome .
@@ -30,18 +30,18 @@ WHERE {
             ksh:expressesProposition ?proposition .
 
     # The observation target, needed below to pick the right datum out of the document.
-    ?proposition wtl:hasSubject ?target .
+    ?proposition fm:hasSubject ?target .
 
     # The truth value assessed FROM THIS DOCUMENT. Bound to ?document rather than
     # read off the proposition, because a later correction produces a second
     # assessment of the same proposition with the opposite value -- see CQ7.
     OPTIONAL {
-        ?assessment wtl:assessesProposition ?proposition ;
-                    wtl:basedOnRecord ?document ;
-                    wtl:assessedTruthValue ?assessedAtSettlement .
+        ?assessment fm:assessesProposition ?proposition ;
+                    fm:basedOnRecord ?document ;
+                    fm:assessedTruthValue ?assessedAtSettlement .
     }
 
-    OPTIONAL { ?document wtl:issuedBy ?issuer }
+    OPTIONAL { ?document fm:issuedBy ?issuer }
 
     # The datum inside the document that carries the number FOR THIS MARKET'S TARGET.
     # A CLI product carries max temperature, min temperature and precipitation, so
@@ -50,7 +50,7 @@ WHERE {
     OPTIONAL {
         ?document bfo:BFO_0000178 ?datum .
         ?datum wx:reportsValueFor ?target ;
-               wtl:realizedValue ?reportedValue .
+               fm:realizedValue ?reportedValue .
     }
 }
 ORDER BY ?ticker

@@ -26,26 +26,26 @@
 # Both directions of error appear, which is what makes this useful test data: a
 # query that only caught false-positives would still pass on half of it.
 #
-# NOTE ON WHAT IS NOT ASSERTED. No wtl:hasTruthValue appears anywhere in these
+# NOTE ON WHAT IS NOT ASSERTED. No fm:hasTruthValue appears anywhere in these
 # examples. It is functional and untimed, so asserting a settlement-era value and
-# a post-correction value would force wtl:True and wtl:False to be one individual
+# a post-correction value would force fm:True and fm:False to be one individual
 # -- and thanks to the owl:AllDifferent block in core.ttl, that is now a reasoner
 # inconsistency rather than a silent wrong answer. Truth lives in
-# wtl:TruthAssessment, which carries the record it read and when.
+# fm:TruthAssessment, which carries the record it read and when.
 
-@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
-@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix unit: <http://qudt.org/vocab/unit/> .
 
-<https://w3id.org/wantology/examples/kxhighny-2026-08-15-correction>
+<https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-correction>
     a owl:Ontology ;
-    owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-bracketset> ;
     rdfs:label "Worked example: a post-settlement correction to the CLINYC record" .
 
 ################################################################
@@ -54,18 +54,18 @@
 
 ex:TWCRecord-2026-08-17-COR a wx:ReportCorrection ;
     rdfs:label "The Weather Company CLINYC record corrected, issued 2026-08-17" ;
-    wtl:issuedBy ex:TWC ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:issuedBy ex:TWC ;
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
     wx:supersedes ex:TWCRecord-2026-08-16 ;
-    wtl:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a transcription error in this record." ;
+    fm:statedAs "Corrected. The maximum temperature for 15 August 2026 was 84, not 82. The original value was affected by a transcription error in this record." ;
     bfo:BFO_0000178 ex:Datum-Max-Corrected .    # has continuant part
 
 ex:Datum-Max-Corrected a wx:WeatherObservationDatum ;
     rdfs:label "corrected max temperature, 84 F" ;
     wx:reportsValueFor ex:Target-HighTemp ;
-    wtl:realizedValue "84"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:realizedValue "84"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 
 ################################################################
 # Reassessment against the corrected record.
@@ -74,42 +74,42 @@ ex:Datum-Max-Corrected a wx:WeatherObservationDatum ;
 # Only the assessments are new, because only the record changed.
 ################################################################
 
-ex:Reassessment-82-83 a wtl:TruthAssessment ;
+ex:Reassessment-82-83 a fm:TruthAssessment ;
     rdfs:label "reassessment of Prop-82-83 after correction" ;
-    wtl:assessesProposition ex:Prop-82-83 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
-    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
-    wtl:statedAs "84 is not within [82, 83]. The market nonetheless paid out yes." .
+    fm:assessesProposition ex:Prop-82-83 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
+    fm:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
+    fm:statedAs "84 is not within [82, 83]. The market nonetheless paid out yes." .
 
-ex:Reassessment-84-85 a wtl:TruthAssessment ;
+ex:Reassessment-84-85 a fm:TruthAssessment ;
     rdfs:label "reassessment of Prop-84-85 after correction" ;
-    wtl:assessesProposition ex:Prop-84-85 ;
-    wtl:assessedTruthValue wtl:True ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
-    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
-    wtl:statedAs "84 is within [84, 85]. The market nonetheless paid out no." .
+    fm:assessesProposition ex:Prop-84-85 ;
+    fm:assessedTruthValue fm:True ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
+    fm:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime ;
+    fm:statedAs "84 is within [84, 85]. The market nonetheless paid out no." .
 
-ex:Reassessment-LE81 a wtl:TruthAssessment ;
+ex:Reassessment-LE81 a fm:TruthAssessment ;
     rdfs:label "reassessment of Prop-LE81 after correction" ;
-    wtl:assessesProposition ex:Prop-LE81 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
-    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-LE81 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
+    fm:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
 
-ex:Reassessment-GE86 a wtl:TruthAssessment ;
+ex:Reassessment-GE86 a fm:TruthAssessment ;
     rdfs:label "reassessment of Prop-GE86 after correction" ;
-    wtl:assessesProposition ex:Prop-GE86 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
-    wtl:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-GE86 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-17-COR ;
+    fm:referenceTime "2026-08-17T09:05:00Z"^^xsd:dateTime .
 
 # The evaluation process that produced the reassessments. Not a market
 # settlement: nobody was paid, and the exchange was not involved.
-ex:Reassessment-Process a wtl:EvaluationProcess ;
+ex:Reassessment-Process a fm:EvaluationProcess ;
     rdfs:label "reassessment of the KXHIGHNY-26AUG15 ladder against the corrected record" ;
-    wtl:hasInput ex:TWCRecord-2026-08-17-COR ;
-    wtl:hasOutput ex:Reassessment-82-83 , ex:Reassessment-84-85 ,
+    fm:hasInput ex:TWCRecord-2026-08-17-COR ;
+    fm:hasOutput ex:Reassessment-82-83 , ex:Reassessment-84-85 ,
                   ex:Reassessment-LE81 , ex:Reassessment-GE86 .
 
 ################################################################
@@ -121,19 +121,19 @@ ex:Reassessment-Process a wtl:EvaluationProcess ;
 # out yes, and scoring the forecast against what the exchange did rather than
 # what the record now says would measure the wrong thing.
 #
-# wtl:scoredAgainst is what makes that choice inspectable after the fact. Without
+# fm:scoredAgainst is what makes that choice inspectable after the fact. Without
 # it the score is a number whose provenance is a matter of trust.
 ################################################################
 
 ex:Verification-82-83 a wx:ForecastVerification ;
     rdfs:label "verification of the GEFS 06Z P(82-83F) against the corrected record" ;
-    wtl:hasInput ex:ForecastProb-82-83 , ex:Reassessment-82-83 ;
-    wtl:hasOutput ex:Score-82-83 .
+    fm:hasInput ex:ForecastProb-82-83 , ex:Reassessment-82-83 ;
+    fm:hasOutput ex:Score-82-83 .
 
-ex:Score-82-83 a wtl:SkillScore ;
+ex:Score-82-83 a fm:SkillScore ;
     rdfs:label "Brier score for the GEFS 06Z P(82-83F)" ;
-    wtl:scoresAssignment ex:ForecastProb-82-83 ;
-    wtl:usesScoringRule wtl:BrierScore ;
-    wtl:scoredAgainst ex:Reassessment-82-83 ;
-    wtl:scoreValue "0.2704"^^xsd:decimal ;
-    wtl:statedAs "(0.52 - 0)^2 = 0.2704. The proposition is false on the corrected record, though the market paid out yes." .
+    fm:scoresAssignment ex:ForecastProb-82-83 ;
+    fm:usesScoringRule fm:BrierScore ;
+    fm:scoredAgainst ex:Reassessment-82-83 ;
+    fm:scoreValue "0.2704"^^xsd:decimal ;
+    fm:statedAs "(0.52 - 0)^2 = 0.2704. The proposition is false on the corrected record, though the market paid out yes." .

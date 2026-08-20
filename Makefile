@@ -1,4 +1,4 @@
-# Wantology build and check targets.
+# FMO build and check targets.
 #
 # `make setup` installs everything. ROBOT is optional: set ROBOT_JAR=/path/to/robot.jar,
 # drop robot.jar in this directory, or put `robot` on PATH. Without it, `validate` still
@@ -7,7 +7,7 @@
 SRC     := src
 BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
-TOP     := $(SRC)/wantology.ttl
+TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
 
 PY      := poetry run python3
@@ -109,7 +109,7 @@ else
 		--output $(BUILD)/weak-reasoned.ttl
 	@$(PY) -c "import sys; from rdflib import Graph, RDF, URIRef; \
 g=Graph(); g.parse('$(BUILD)/weak-reasoned.ttl'); \
-m=URIRef('https://w3id.org/wantology/examples/kxhighny-2026-08-15#Market-B82'); \
+m=URIRef('https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#Market-B82'); \
 t=[str(x) for x in g.objects(m, RDF.type)]; \
 sys.exit('FAIL: ksh:WeatherMarket not inferred; got %s' % t) if not any('WeatherMarket' in x for x in t) \
 else print('PASS: ksh:WeatherMarket inferred from the proposition-subject chain')"

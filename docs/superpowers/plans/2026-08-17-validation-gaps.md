@@ -17,7 +17,7 @@
 - **New validator check ⇒ new negative test** in `scripts/test_validate.py`, asserting the specific failure message.
 - SPARQL does no subclass reasoning: class patterns use `a/rdfs:subClassOf*`.
 - `src/imports/bfo-core.ttl` is vendored and never edited. `examples/verification-synthetic.ttl` is generated — change `scripts/generate_verification_data.py`, never the file.
-- Adding a source file means updating `MODULES` in `scripts/validate.py` and `scripts/run_competency.py`, plus `src/wantology.ttl` and `src/catalog-v001.xml`. No task here adds one.
+- Adding a source file means updating `MODULES` in `scripts/validate.py` and `scripts/run_competency.py`, plus `src/fmo.ttl` and `src/catalog-v001.xml`. No task here adds one.
 - `make test` must pass at the end of every task.
 
 ## Findings this plan addresses
@@ -25,17 +25,17 @@
 | # | Finding | Task |
 |---|---|---|
 | 1 | `ksh:settlementValue` escapes every unit check; all four example resolutions carry a bare number | 1 |
-| 2 | A duplicate `wtl:TruthAssessment` silently inflates CQ6a/6b (demonstrated: n 160→161, every statistic moved) while `validate.py` prints OK | 2 |
+| 2 | A duplicate `fm:TruthAssessment` silently inflates CQ6a/6b (demonstrated: n 160→161, every statistic moved) while `validate.py` prints OK | 2 |
 | 3 | Nothing proves `examples/verification-synthetic.ttl` still matches its generator | 3 |
 | 4 | No negative test covers the two reasoner-only guards (`owl:AllDifferent` + functional `hasUnit`; irreflexive `alternativeDeterminationOf`) | 4 |
-| 5 | The scoring layer (`wtl:SkillScore`, `wtl:BrierScore`, `wtl:scoresAssignment`, `wtl:usesScoringRule`, `wtl:scoredAgainst`, `wtl:scoreValue`, `wx:ForecastVerification`) has zero instances; so does the trading layer | 5 |
+| 5 | The scoring layer (`fm:SkillScore`, `fm:BrierScore`, `fm:scoresAssignment`, `fm:usesScoringRule`, `fm:scoredAgainst`, `fm:scoreValue`, `wx:ForecastVerification`) has zero instances; so does the trading layer | 5 |
 | 6 | No check that a market's proposition subject matches its grouping's `ksh:coversTarget`; no check that a mutually exclusive ladder's brackets do not overlap | 6 |
 
 ---
 
 ### Task 1: Unit coherence for the settlement value
 
-**Why:** `ksh:settlementValue` is `rdfs:subPropertyOf wtl:realizedValue`, but `validate.py` matches predicates literally and runs no reasoner, so the "numeric value with no unit" rule never reaches it. It is the number that decides payouts and it is the only load-bearing quantity in the graph with no unit discipline.
+**Why:** `ksh:settlementValue` is `rdfs:subPropertyOf fm:realizedValue`, but `validate.py` matches predicates literally and runs no reasoner, so the "numeric value with no unit" rule never reaches it. It is the number that decides payouts and it is the only load-bearing quantity in the graph with no unit discipline.
 
 **Files:**
 - Modify: `scripts/validate.py` (constants block near `HAS_UNIT`, ~line 100-115; `check_dimensions`, ~line 200-215)
@@ -45,7 +45,7 @@
 
 **Interfaces:**
 - Produces: module-level `KSH` prefix constant and `SETTLEMENT_VALUE` URIRef in `validate.py`, used again by Task 6.
-- Failure messages: `"unit mismatch (settlement value vs target)"`, `"missing unit: ... carries a numeric value but no wtl:hasUnit"`.
+- Failure messages: `"unit mismatch (settlement value vs target)"`, `"missing unit: ... carries a numeric value but no fm:hasUnit"`.
 
 - [ ] **Step 1: Write the failing negative tests**
 
@@ -53,24 +53,24 @@ Append to `CASES` in `scripts/test_validate.py`:
 
 ```python
     (
-        # ksh:settlementValue is a sub-property of wtl:realizedValue, and rdflib
+        # ksh:settlementValue is a sub-property of fm:realizedValue, and rdflib
         # does no reasoning, so the unit rules did not reach the one number the
         # exchange actually pays out on.
         "settlement value recorded in Celsius against a Fahrenheit target",
         EXAMPLE,
         """    ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_C .""",
+    fm:hasUnit unit:DEG_C .""",
         "unit mismatch (settlement value vs target)",
     ),
     (
         "settlement value with no unit at all",
         EXAMPLE,
         """    ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:settlementValue "82"^^xsd:decimal .""",
         "missing unit",
     ),
@@ -86,7 +86,7 @@ ex:Resolution-B82 a ksh:Resolution ;
     ksh:resolutionOf ex:Market-B82 ;
     ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 ```
 
 Make the same edit to `ex:Resolution-T81`, `ex:Resolution-B84` and `ex:Resolution-T86` in `examples/kxhighny-2026-08-15-bracketset.ttl` (each currently ends `ksh:settlementValue "82"^^xsd:decimal .`). The bracket-set file already declares the `unit:` prefix.
@@ -101,7 +101,7 @@ Expected: both new cases print `FAIL [...]: validate.py passed but should have f
 In `scripts/validate.py`, beside the existing `QUDT`/`WTL`/`WX` constants:
 
 ```python
-KSH = "https://w3id.org/wantology/kalshi#"
+KSH = "https://w3id.org/forecast-market-ontology/kalshi#"
 
 SETTLEMENT_VALUE = URIRef(KSH + "settlementValue")
 RESOLUTION_OF = URIRef(KSH + "resolutionOf")
@@ -121,7 +121,7 @@ Then inside `check_dimensions`, after the `reportsValueFor` loop:
     # The exchange's own number, against the target the market settles on. It
     # reaches the target through the market's proposition rather than directly,
     # so no earlier loop sees it -- and ksh:settlementValue is a sub-property of
-    # wtl:realizedValue, which rdflib does not follow.
+    # fm:realizedValue, which rdflib does not follow.
     for resolution, market in g.subject_objects(RESOLUTION_OF):
         if not any(g.objects(resolution, SETTLEMENT_VALUE)):
             continue
@@ -149,7 +149,7 @@ git commit -m "Unit-check the settlement value, which sub-property matching let 
 
 ### Task 2: One current assessment per proposition, and collapse duplicates in CQ6
 
-**Why:** Appending one extra `wtl:TruthAssessment` for a proposition that already has one leaves `validate.py` printing OK while CQ6b's n goes 160→161 and every calibration figure shifts. Only the pinned `.expected` noticed, and that pin does not exist for real data. CQ5 already solved the same shape by collapsing to one row per market before summing; CQ6a/6b never got the treatment.
+**Why:** Appending one extra `fm:TruthAssessment` for a proposition that already has one leaves `validate.py` printing OK while CQ6b's n goes 160→161 and every calibration figure shifts. Only the pinned `.expected` noticed, and that pin does not exist for real data. CQ5 already solved the same shape by collapsing to one row per market before summing; CQ6a/6b never got the treatment.
 
 **Files:**
 - Modify: `scripts/validate.py` (new `check_current_assessments`, called from `main()` beside `check_lead_times`)
@@ -171,16 +171,16 @@ Append to `CASES` in `scripts/test_validate.py`:
         # to 161 and shifted every calibration statistic, while validate.py said OK.
         "a proposition carries two assessments of the current record",
         VERIFICATION,
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;""",
-        """vex:A-20260701-LE81-DUPLICATE a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord vex:Report-20260701 ;
-    wtl:referenceTime "2026-07-02T10:59:59-04:00"^^xsd:dateTime .
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;""",
+        """vex:A-20260701-LE81-DUPLICATE a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord vex:Report-20260701 ;
+    fm:referenceTime "2026-07-02T10:59:59-04:00"^^xsd:dateTime .
 
-vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;""",
+vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;""",
         "more than one current assessment",
     ),
 ```
@@ -276,16 +276,16 @@ WHERE {
                               wx:leadTimeHours   ?leadHours ;
                               bfo:BFO_0000178    ?fp .
 
-                    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
-                        wtl:assignsProbabilityTo ?proposition ;
-                        wtl:probabilityValue ?pv .
+                    ?fp a/rdfs:subClassOf* fm:ForecastProbability ;
+                        fm:assignsProbabilityTo ?proposition ;
+                        fm:probabilityValue ?pv .
 
-                    ?assessment wtl:assessesProposition ?proposition ;
-                                wtl:basedOnRecord ?record ;
-                                wtl:assessedTruthValue ?tv .
+                    ?assessment fm:assessesProposition ?proposition ;
+                                fm:basedOnRecord ?record ;
+                                fm:assessedTruthValue ?tv .
                     FILTER NOT EXISTS { ?newer wx:supersedes ?record }
 
-                    BIND(IF(?tv = wtl:True, 1, 0) AS ?ov)
+                    BIND(IF(?tv = fm:True, 1, 0) AS ?ov)
                 }
                 GROUP BY ?model ?leadHours ?fp
             }
@@ -340,17 +340,17 @@ WHERE {
                               wx:leadTimeHours   ?leadHours ;
                               bfo:BFO_0000178    ?fp .
 
-                    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
-                        wtl:assignsProbabilityTo ?proposition ;
-                        wtl:probabilityValue ?pv .
+                    ?fp a/rdfs:subClassOf* fm:ForecastProbability ;
+                        fm:assignsProbabilityTo ?proposition ;
+                        fm:probabilityValue ?pv .
 
                     # Only the assessment resting on a record nothing supersedes.
-                    ?assessment wtl:assessesProposition ?proposition ;
-                                wtl:basedOnRecord ?record ;
-                                wtl:assessedTruthValue ?tv .
+                    ?assessment fm:assessesProposition ?proposition ;
+                                fm:basedOnRecord ?record ;
+                                fm:assessedTruthValue ?tv .
                     FILTER NOT EXISTS { ?newer wx:supersedes ?record }
 
-                    BIND(IF(?tv = wtl:True, 1, 0) AS ?ov)
+                    BIND(IF(?tv = fm:True, 1, 0) AS ?ov)
                 }
                 GROUP BY ?model ?leadHours ?fp
             }
@@ -525,7 +525,7 @@ EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 # (name, path-to-mutate, find, replace)
 CASES = [
     (
-        # The trap README and core.ttl both warn about: wtl:hasUnit is functional,
+        # The trap README and core.ttl both warn about: fm:hasUnit is functional,
         # so a multi-valued sub-property forces every unit listed for a variable to
         # be one individual -- knots identified with metres per second.
         "conventionalUnit made a sub-property of the functional hasUnit",
@@ -533,7 +533,7 @@ CASES = [
         """wx:conventionalUnit a owl:ObjectProperty ;
     rdfs:label "conventional unit" ;""",
         """wx:conventionalUnit a owl:ObjectProperty ;
-    rdfs:subPropertyOf wtl:hasUnit ;
+    rdfs:subPropertyOf fm:hasUnit ;
     rdfs:label "conventional unit" ;""",
     ),
     (
@@ -563,7 +563,7 @@ def robot_command() -> list[str] | None:
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / "wantology"
+        work = Path(tmp) / "fmo"
         shutil.copytree(
             ROOT, work,
             ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc", ".venv"),
@@ -577,7 +577,7 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> 
 
         proc = subprocess.run(
             [*robot, "merge",
-             "--input", str(work / "src" / "wantology.ttl"),
+             "--input", str(work / "src" / "fmo.ttl"),
              "--input", str(work / EXAMPLE),
              "--catalog", str(work / "src" / "catalog-v001.xml"),
              "reason", "--reasoner", "HermiT",
@@ -605,7 +605,7 @@ def main() -> int:
     # Baseline: the unmodified tree must reason cleanly, or the results below
     # mean nothing.
     proc = subprocess.run(
-        [*robot, "merge", "--input", str(ROOT / "src" / "wantology.ttl"),
+        [*robot, "merge", "--input", str(ROOT / "src" / "fmo.ttl"),
          "--input", str(ROOT / EXAMPLE),
          "--catalog", str(ROOT / "src" / "catalog-v001.xml"),
          "reason", "--reasoner", "HermiT", "--output", os.devnull],
@@ -672,7 +672,7 @@ git commit -m "Test the guards only the reasoner enforces"
 
 ### Task 5: Exercise the scoring layer, and make term coverage visible
 
-**Why:** `wtl:SkillScore`, `wtl:BrierScore`, `wtl:scoresAssignment`, `wtl:usesScoringRule`, `wtl:scoredAgainst`, `wtl:scoreValue` and `wx:ForecastVerification` have no instance anywhere; CQ6a computes Brier inline in SPARQL and never touches them. `wtl:scoredAgainst` exists specifically so a score stays interpretable after a correction — the one case the examples do model — and it has never been used. By the repo's own standard, these are terms nobody has watched work.
+**Why:** `fm:SkillScore`, `fm:BrierScore`, `fm:scoresAssignment`, `fm:usesScoringRule`, `fm:scoredAgainst`, `fm:scoreValue` and `wx:ForecastVerification` have no instance anywhere; CQ6a computes Brier inline in SPARQL and never touches them. `fm:scoredAgainst` exists specifically so a score stays interpretable after a correction — the one case the examples do model — and it has never been used. By the repo's own standard, these are terms nobody has watched work.
 
 **Assumption, flag if wrong:** the scoring layer gets instantiated rather than deleted, because CQ6 is a stated competency question and the terms are its natural home. The trading layer (`ksh:BinaryContract`, `Order`, `OrderPlacement`, `Trade`, `Position`, `TraderRole`, `ContractHolderObligation`, `Payout`, `OrderBookSnapshot`) is left in place and *declared* unexercised rather than instantiated — no competency question asks about order flow. Deleting it instead is a defensible call and would be a 0.8.0 bump touching all four modules plus README.
 
@@ -683,7 +683,7 @@ git commit -m "Test the guards only the reasoner enforces"
 - Test: `scripts/test_validate.py` (append to `CASES`)
 
 **Interfaces:**
-- Consumes: `ex:ForecastProb-82-83` (0.52) and `ex:Reassessment-82-83` (`wtl:False`) from existing example files.
+- Consumes: `ex:ForecastProb-82-83` (0.52) and `ex:Reassessment-82-83` (`fm:False`) from existing example files.
 - Produces: `ex:Verification-82-83`, `ex:Score-82-83`; failure messages `"Brier score mismatch"` and `"score rests on a superseded record"`.
 
 - [ ] **Step 1: Add the scoring instances**
@@ -700,22 +700,22 @@ Append to `examples/kxhighny-2026-08-15-correction.ttl`:
 # out yes, and scoring the forecast against what the exchange did rather than
 # what the record now says would measure the wrong thing.
 #
-# wtl:scoredAgainst is what makes that choice inspectable after the fact. Without
+# fm:scoredAgainst is what makes that choice inspectable after the fact. Without
 # it the score is a number whose provenance is a matter of trust.
 ################################################################
 
 ex:Verification-82-83 a wx:ForecastVerification ;
     rdfs:label "verification of the GEFS 06Z P(82-83F) against the corrected record" ;
-    wtl:hasInput ex:ForecastProb-82-83 , ex:Reassessment-82-83 ;
-    wtl:hasOutput ex:Score-82-83 .
+    fm:hasInput ex:ForecastProb-82-83 , ex:Reassessment-82-83 ;
+    fm:hasOutput ex:Score-82-83 .
 
-ex:Score-82-83 a wtl:SkillScore ;
+ex:Score-82-83 a fm:SkillScore ;
     rdfs:label "Brier score for the GEFS 06Z P(82-83F)" ;
-    wtl:scoresAssignment ex:ForecastProb-82-83 ;
-    wtl:usesScoringRule wtl:BrierScore ;
-    wtl:scoredAgainst ex:Reassessment-82-83 ;
-    wtl:scoreValue "0.2704"^^xsd:decimal ;
-    wtl:statedAs "(0.52 - 0)^2 = 0.2704. The proposition is false on the corrected record, though the market paid out yes." .
+    fm:scoresAssignment ex:ForecastProb-82-83 ;
+    fm:usesScoringRule fm:BrierScore ;
+    fm:scoredAgainst ex:Reassessment-82-83 ;
+    fm:scoreValue "0.2704"^^xsd:decimal ;
+    fm:statedAs "(0.52 - 0)^2 = 0.2704. The proposition is false on the corrected record, though the market paid out yes." .
 ```
 
 - [ ] **Step 2: Write the failing negative tests**
@@ -728,17 +728,17 @@ Append to `CASES` in `scripts/test_validate.py`:
         # problem again: it goes stale the moment either input moves.
         "Brier score no longer matches the probability and outcome it scores",
         CORRECTION,
-        """    wtl:scoreValue "0.2704"^^xsd:decimal ;""",
-        """    wtl:scoreValue "0.1024"^^xsd:decimal ;""",
+        """    fm:scoreValue "0.2704"^^xsd:decimal ;""",
+        """    fm:scoreValue "0.1024"^^xsd:decimal ;""",
         "Brier score mismatch",
     ),
     (
         # Scoring against the settlement-era assessment measures what the exchange
-        # did, not what the record says. The whole point of wtl:scoredAgainst.
+        # did, not what the record says. The whole point of fm:scoredAgainst.
         "score points at an assessment of a superseded record",
         CORRECTION,
-        """    wtl:scoredAgainst ex:Reassessment-82-83 ;""",
-        """    wtl:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
+        """    fm:scoredAgainst ex:Reassessment-82-83 ;""",
+        """    fm:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
         "score rests on a superseded record",
     ),
 ```
@@ -773,7 +773,7 @@ def check_scores(g: Graph) -> None:
     convenience goes stale the moment either input moves, and nothing about the
     graph complains. The outcome must come from an assessment resting on a live
     record -- scoring against a superseded one measures what the exchange did
-    rather than what the record says, which is the one thing wtl:scoredAgainst
+    rather than what the record says, which is the one thing fm:scoredAgainst
     exists to make visible.
     """
     superseded = set(g.objects(None, SUPERSEDES))
@@ -849,10 +849,10 @@ In the Validation section, after the sentence ending "...and documentation cover
 
 ```markdown
 Stored derived values are checked against what they are derived from: `wx:leadTimeHours`
-against issuance and interval start, and a `wtl:SkillScore` under `wtl:BrierScore` against
+against issuance and interval start, and a `fm:SkillScore` under `fm:BrierScore` against
 the probability it scores and the outcome it was scored against. A score resting on a
 superseded record fails — scoring against a retracted value is the specific mistake
-`wtl:scoredAgainst` exists to make visible.
+`fm:scoredAgainst` exists to make visible.
 ```
 
 In Open questions, add:
@@ -912,10 +912,10 @@ Append to `CASES` in `scripts/test_validate.py`:
     (
         "two brackets of one mutually exclusive ladder overlap",
         BRACKETS,
-        """    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "84"^^xsd:decimal ;""",
-        """    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "83"^^xsd:decimal ;""",
+        """    fm:hasComparator fm:Between ;
+    fm:floorValue "84"^^xsd:decimal ;""",
+        """    fm:hasComparator fm:Between ;
+    fm:floorValue "83"^^xsd:decimal ;""",
         "overlapping brackets",
     ),
 ```
@@ -926,13 +926,13 @@ The first case needs a proposition to point at. Also append to `examples/kxhighn
 # The same bracket read against the authority the exchange did NOT settle on.
 # Nothing points at it; it exists so the grouping-agreement check has a target to
 # catch a market drifting onto, the way Target-HighTemp-NWS does for forecasts.
-ex:Prop-82-83-NWS a wtl:Proposition ;
+ex:Prop-82-83-NWS a fm:Proposition ;
     rdfs:label "high is between 82 and 83 degrees F, NWS determination" ;
-    wtl:hasSubject ex:Target-HighTemp-NWS ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "82"^^xsd:decimal ;
-    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasSubject ex:Target-HighTemp-NWS ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "82"^^xsd:decimal ;
+    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 ```
 
 - [ ] **Step 2: Run them to verify they fail**
@@ -980,7 +980,7 @@ def check_grouping_coherence(g: Graph) -> None:
     }
 
     def interval(prop):
-        """None means not evaluable -- wtl:Custom, or a threshold not stated."""
+        """None means not evaluable -- fm:Custom, or a threshold not stated."""
         comps = list(g.objects(prop, HAS_COMPARATOR))
         if len(comps) != 1 or comps[0] not in comparators:
             return None

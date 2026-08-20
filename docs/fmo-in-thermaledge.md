@@ -1,13 +1,13 @@
-# Using Wantology in ThermalEdge
+# Using FMO in ThermalEdge
 
-*Design note — 18 August 2026. Written against wantology 0.7.0 and the ThermalEdge prod
+*Design note — 18 August 2026. Written against FMO 0.7.0 and the ThermalEdge prod
 checkout at `~/Code/thermal-edge`.*
 
 ---
 
 ## 0. One thing to check before anything else
 
-Wantology's README asserts that on **2026-08-14 Kalshi moved its daily temperature series
+FMO’s README asserts that on **2026-08-14 Kalshi moved its daily temperature series
 from the NWS to The Weather Company** — same site, same variable, same day boundary,
 different publishing authority.
 
@@ -38,9 +38,9 @@ footnote.
 
 ## 1. What ThermalEdge is missing, stated precisely
 
-ThermalEdge and Wantology are about the same thing from two directions. ThermalEdge
-computes an edge: `p_model − p_market`. Wantology exists to make that subtraction
-well-formed, by insisting both numbers point at **the same `wtl:Proposition` individual**.
+ThermalEdge and FMO are about the same thing from two directions. ThermalEdge
+computes an edge: `p_model − p_market`. FMO exists to make that subtraction
+well-formed, by insisting both numbers point at **the same `fm:Proposition` individual**.
 
 Today, in ThermalEdge, they point at the same thing only *by string coincidence*:
 
@@ -62,7 +62,7 @@ the retired `KXHIGHATX` prefix is still scattered through `web/api/forecast_accu
 `web/routes/dashboard.py`, `domain/forecast_accuracy.py` and `analytics/performance.py`
 (as examples and comments rather than live lookups, but nothing distinguishes the two).
 
-Wantology's three shaping decisions each close a specific hole here:
+FMO’s three shaping decisions each close a specific hole here:
 
 1. **The observation target carries the protocol.** Change the publishing authority and you
    have a *different target*, therefore a different proposition, therefore two time series
@@ -78,13 +78,13 @@ Wantology's three shaping decisions each close a specific hole here:
 
 ### Five failure classes, each with a live referent in the code
 
-| # | Failure | Evidence in ThermalEdge | Wantology term |
+| # | Failure | Evidence in ThermalEdge | FMO term |
 |---|---|---|---|
 | F1 | Settlement source changes silently | `'nws_cli'` hardcoded; seed has no validity interval | `wx:MeasurementProtocol`, `wx:alternativeDeterminationOf` |
 | F2 | Ladder coherence computed, then discarded | the projector's `renormalization_factor` reaches only `web/`; its ladder-coverage `out_of_grid_mass` is dropped; no market-side check exists at all | `ksh:EventGrouping`, `ksh:mutuallyExclusive` (CQ5) |
-| F3 | Post-settlement correction rewrites history | `int_observations_daily_authoritative` ranks `amended > final > preliminary` and takes rn=1; `int_forecast_pairs` is incremental with a 5-day lookback, so a later amendment never reaches its `actual_high` | `wx:ReportCorrection`, `wx:supersedes`, `ksh:settlementValue` vs `wtl:realizedValue` (CQ7) |
-| F4 | Provenance not walkable | `trading_decisions` stores `market_data`/`weather_data` as opaque JSON + `reasoning` as prose; `source_record_id` exists in ten dbt models and **zero** Python files | settlement as `wtl:EvaluationProcess` with a document input (CQ4) |
-| F5 | Multi-city is a landmine | one seed row, one `dim_stations` row, `observation_stations` defaults to `KAUS`, one global `settlement_timezone` | per-target `wx:ClimatologicalDay` / `wtl:overTemporalInterval` |
+| F3 | Post-settlement correction rewrites history | `int_observations_daily_authoritative` ranks `amended > final > preliminary` and takes rn=1; `int_forecast_pairs` is incremental with a 5-day lookback, so a later amendment never reaches its `actual_high` | `wx:ReportCorrection`, `wx:supersedes`, `ksh:settlementValue` vs `fm:realizedValue` (CQ7) |
+| F4 | Provenance not walkable | `trading_decisions` stores `market_data`/`weather_data` as opaque JSON + `reasoning` as prose; `source_record_id` exists in ten dbt models and **zero** Python files | settlement as `fm:EvaluationProcess` with a document input (CQ4) |
+| F5 | Multi-city is a landmine | one seed row, one `dim_stations` row, `observation_stations` defaults to `KAUS`, one global `settlement_timezone` | per-target `wx:ClimatologicalDay` / `fm:overTemporalInterval` |
 
 F5 is the near-term pragmatic one. The moment a second city is listed, a single
 `settlement_timezone` string is wrong for it, and the climatological-day boundary (local
@@ -147,10 +147,10 @@ frozen dataclass; the settlement seed gains protocol epochs; `EventGrouping` rep
 
 RDF is a **build artifact**, never a runtime store. ThermalEdge keeps its Polars/DuckDB hot
 path untouched and exports a day's decisions, quotes, settlements and forecasts as Turtle.
-Wantology's existing `validate.py` and `queries/*.rq` run against that export in CI and
+FMO’s existing `validate.py` and `queries/*.rq` run against that export in CI and
 nightly.
 
-- **Cost:** medium. An IRI-minting module, an exporter, a SHACL contract in wantology, a CI
+- **Cost:** medium. An IRI-minting module, an exporter, a SHACL contract in FMO, a CI
   job. No change to `decide()`'s latency or dependencies.
 - **Closes:** all five. F2/F3/F4 become *alerts* rather than modelling exercises — CQ2
   returning empty means the join broke; CQ7 returning a row means a correction contradicts
@@ -239,13 +239,13 @@ date. This is F1 caught at build time, and it is the dbt-side twin of the check
 > `data/` directly or copy the DB first. A long-lived reader in the strategy service has
 > already caused the lock incident once.
 
-### New in Wantology
+### New in FMO
 
 **`shapes/thermaledge-export.ttl`** — SHACL saying what a valid ThermalEdge export looks
 like: every `ksh:Market` has exactly one `expressesProposition`; every proposition has a
 subject that is a `wx:WeatherObservationTarget` with an `wx:underProtocol`; every
-`wtl:ForecastProbability` and `wtl:MarketImpliedProbability` `assignsProbabilityTo` a
-proposition that exists. The contract lives in wantology because the ontology should own
+`fm:ForecastProbability` and `fm:MarketImpliedProbability` `assignsProbabilityTo` a
+proposition that exists. The contract lives in FMO because the ontology should own
 the definition of conformance to itself.
 
 **`scripts/run_competency.py`** — gains a `--data` flag so the CQs load an export instead of
@@ -259,9 +259,9 @@ the definition of conformance to itself.
 > may-be-empty) rather than relaxing the rule globally. Relaxing it globally is how the
 > check stops working while still appearing to run.
 
-**Version bump discipline** — per wantology's CLAUDE.md, a bump touches `owl:versionIRI` and
+**Version bump discipline** — per FMO’s CLAUDE.md, a bump touches `owl:versionIRI` and
 `owl:versionInfo` in all four modules plus the README status line. Adding `shapes/` means
-updating `MODULES` in `validate.py` and `run_competency.py`, `src/wantology.ttl`, and
+updating `MODULES` in `validate.py` and `run_competency.py`, `src/fmo.ttl`, and
 `src/catalog-v001.xml`.
 
 ### What each competency question becomes operationally
@@ -275,8 +275,8 @@ updating `MODULES` in `validate.py` and `run_competency.py`, `src/wantology.ttl`
 | CQ7 correction contradiction | shows the divergence | **any row is an alert.** A correction has contradicted a market that already paid out — and your backtest is now scoring against a number nobody was paid |
 
 CQ7 deserves emphasis. ThermalEdge has *one* column for the settled value and its
-amendment-ranking logic overwrites it. Wantology keeps `ksh:settlementValue` (what the
-exchange applied) and `wtl:realizedValue` (what is now authoritative) apart precisely
+amendment-ranking logic overwrites it. FMO keeps `ksh:settlementValue` (what the
+exchange applied) and `fm:realizedValue` (what is now authoritative) apart precisely
 because they can diverge. Until ThermalEdge does the same, a backtest can silently score
 against a value the market never paid.
 
@@ -293,7 +293,7 @@ chosen deliberately, and it is exactly the distinction the two properties make s
 ## 4. Phasing
 
 **Phase 0 — reconcile the settlement source.** Confirm against Kalshi's series rules
-whether KXHIGHAUS moved to The Weather Company on 14 August — the wantology README asserts
+whether KXHIGHAUS moved to The Weather Company on 14 August — the FMO README asserts
 it but does not source it. If it did, the calibration history and the obs-conditional prior
 span two quantities and need splitting at that date. Independent of everything below; do it
 first.
@@ -308,7 +308,7 @@ be grouped by target rather than by ticker.
 model joins on them; the new dbt test fails on divergence.
 *Accept when:* a synthetic mid-history source change fails `dbt build` with a named error.
 
-**Phase 3 — export and conform.** `ontology export`; wantology's SHACL shapes; CQ2/CQ4/CQ7
+**Phase 3 — export and conform.** `ontology export`; FMO’s SHACL shapes; CQ2/CQ4/CQ7
 nightly against real exports.
 *Accept when:* an injected mismatch (forecast target ≠ settlement target) makes CQ2 return
 empty and the job fail, with the per-mode empty-result rule in place.
@@ -335,7 +335,7 @@ auditing one, and it should not be attempted before Phase 3 has been quiet for a
 - **Making the ontology a source of truth for numbers.** It should be the source of truth
   for *identity and protocol*. TimescaleDB, parquet and DuckDB stay authoritative for
   values — the hybrid split already in the architecture.
-- **A "migration" framing.** Nothing migrates. Wantology adds a layer that says what the
+- **A "migration" framing.** Nothing migrates. FMO adds a layer that says what the
   existing numbers are *about*, and fails loudly when two of them turn out to be about
   different things.
 
@@ -343,7 +343,7 @@ auditing one, and it should not be attempted before Phase 3 has been quiet for a
 
 ## Sources
 
-- `~/Code/wantology` — `README.md`, `CLAUDE.md`, `src/{core,weather,kalshi}.ttl`,
+- `~/Code/fmo` — `README.md`, `CLAUDE.md`, `src/{core,weather,kalshi}.ttl`,
   `queries/cq0{1,2,4,5,6,7}*.rq`
 - `~/Code/thermal-edge` — `CLAUDE.md`, `thermal_edge/strategy/{decide,calibration,config}.py`,
   `thermal_edge/domain/market_models.py`, `thermal_edge/database/trading_models.py`,

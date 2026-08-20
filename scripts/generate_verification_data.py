@@ -62,10 +62,10 @@ CLIM_SD = 3.5        # and its spread
 # Same ladder as the KXHIGHNY example: <=81, [82,83], [84,85], >=86.
 # (key, local-name suffix, comparator, floor, cap)
 BRACKETS = [
-    ("le81", "LE81", "wtl:LessThanOrEqual", None, 81),
-    ("b82", "B82", "wtl:Between", 82, 83),
-    ("b84", "B84", "wtl:Between", 84, 85),
-    ("ge86", "GE86", "wtl:GreaterThanOrEqual", 86, None),
+    ("le81", "LE81", "fm:LessThanOrEqual", None, 81),
+    ("b82", "B82", "fm:Between", 82, 83),
+    ("b84", "B84", "fm:Between", 84, 85),
+    ("ge86", "GE86", "fm:GreaterThanOrEqual", 86, None),
 ]
 
 MODELS = [
@@ -134,19 +134,19 @@ def main() -> int:
 # states its true error spread; model B states one {int((1 - OVERCONFIDENCE) * 100)}% too small, so B should
 # show observed frequency below mean forecast probability in the high bins.
 
-@prefix vex:  <https://w3id.org/wantology/examples/verification#> .
-@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
+@prefix vex:  <https://w3id.org/forecast-market-ontology/examples/verification#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix unit: <http://qudt.org/vocab/unit/> .
 
-<https://w3id.org/wantology/examples/verification>
+<https://w3id.org/forecast-market-ontology/examples/verification>
     a owl:Ontology ;
-    owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15> ;
     rdfs:label "Synthetic verification dataset for CQ6" .
 """)
 
@@ -168,44 +168,44 @@ def main() -> int:
 vex:ClimDay-{tag} a wx:ClimatologicalDay ;
     rdfs:label "climatological day {day.strftime('%Y-%m-%d')} at Central Park" ;
     bfo:BFO_0000222 vex:Start-{tag} ; bfo:BFO_0000224 vex:End-{tag} .
-vex:Start-{tag} a bfo:BFO_0000203 ; wtl:instantDateTime "{iso(start)}"^^xsd:dateTime .
-vex:End-{tag}   a bfo:BFO_0000203 ; wtl:instantDateTime "{iso(end)}"^^xsd:dateTime .
+vex:Start-{tag} a bfo:BFO_0000203 ; fm:instantDateTime "{iso(start)}"^^xsd:dateTime .
+vex:End-{tag}   a bfo:BFO_0000203 ; fm:instantDateTime "{iso(end)}"^^xsd:dateTime .
 
 vex:Target-{tag} a wx:WeatherObservationTarget ;
     rdfs:label "max air temperature, Central Park, {day.strftime('%Y-%m-%d')}" ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
-    wtl:overTemporalInterval vex:ClimDay-{tag} ;
+    fm:overTemporalInterval vex:ClimDay-{tag} ;
     wx:underProtocol ex:TWCDailyTempProtocol ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 vex:Report-{tag} a wx:DailyClimatologicalReport ;
     rdfs:label "CLINYC record for {day.strftime('%Y-%m-%d')}" ;
-    wtl:issuedBy ex:TWC ;
-    wtl:overTemporalInterval vex:ClimDay-{tag} ;
+    fm:issuedBy ex:TWC ;
+    fm:overTemporalInterval vex:ClimDay-{tag} ;
     bfo:BFO_0000178 vex:Datum-{tag} .
 vex:Datum-{tag} a wx:WeatherObservationDatum ;
     wx:reportsValueFor vex:Target-{tag} ;
-    wtl:realizedValue "{t}"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:realizedValue "{t}"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 """)
 
         for key, suffix, comparator, floor, cap in BRACKETS:
             thresholds = ""
             if floor is not None:
-                thresholds += f'    wtl:floorValue "{floor}"^^xsd:decimal ;\n'
+                thresholds += f'    fm:floorValue "{floor}"^^xsd:decimal ;\n'
             if cap is not None:
-                thresholds += f'    wtl:capValue "{cap}"^^xsd:decimal ;\n'
-            truth = "wtl:True" if holds(key, t) else "wtl:False"
-            w(f"""vex:P-{tag}-{suffix} a wtl:Proposition ;
-    wtl:hasSubject vex:Target-{tag} ;
-    wtl:hasComparator {comparator} ;
-{thresholds}    wtl:hasUnit unit:DEG_F .
-vex:A-{tag}-{suffix} a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-{tag}-{suffix} ;
-    wtl:assessedTruthValue {truth} ;
-    wtl:basedOnRecord vex:Report-{tag} ;
-    wtl:referenceTime "{iso(end + timedelta(hours=10))}"^^xsd:dateTime .
+                thresholds += f'    fm:capValue "{cap}"^^xsd:decimal ;\n'
+            truth = "fm:True" if holds(key, t) else "fm:False"
+            w(f"""vex:P-{tag}-{suffix} a fm:Proposition ;
+    fm:hasSubject vex:Target-{tag} ;
+    fm:hasComparator {comparator} ;
+{thresholds}    fm:hasUnit unit:DEG_F .
+vex:A-{tag}-{suffix} a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-{tag}-{suffix} ;
+    fm:assessedTruthValue {truth} ;
+    fm:basedOnRecord vex:Report-{tag} ;
+    fm:referenceTime "{iso(end + timedelta(hours=10))}"^^xsd:dateTime .
 """)
 
         for lead in LEADS:
@@ -230,10 +230,10 @@ vex:A-{tag}-{suffix} a wtl:TruthAssessment ;
     bfo:BFO_0000178 {parts} .
 """)
                 for key, suffix, _, _, _ in BRACKETS:
-                    w(f"""vex:FP-{name}-{lead}-{tag}-{suffix} a wtl:ForecastProbability ;
-    wtl:assignsProbabilityTo vex:P-{tag}-{suffix} ;
-    wtl:probabilityValue "{probs[key]:.3f}"^^xsd:decimal ;
-    wtl:referenceTime "{iso(issued)}"^^xsd:dateTime .
+                    w(f"""vex:FP-{name}-{lead}-{tag}-{suffix} a fm:ForecastProbability ;
+    fm:assignsProbabilityTo vex:P-{tag}-{suffix} ;
+    fm:probabilityValue "{probs[key]:.3f}"^^xsd:decimal ;
+    fm:referenceTime "{iso(issued)}"^^xsd:dateTime .
 """)
 
     args.output.write_text("\n".join(out))

@@ -23,22 +23,22 @@ WHERE {
             ksh:marketTicker ?ticker ;
             ksh:expressesProposition ?proposition .
 
-    ?proposition wtl:hasSubject ?target ;
-                 wtl:hasComparator ?comparator .
-    OPTIONAL { ?proposition wtl:floorValue ?floor }
-    OPTIONAL { ?proposition wtl:capValue   ?cap }
-    OPTIONAL { ?proposition wtl:hasUnit    ?unit }
+    ?proposition fm:hasSubject ?target ;
+                 fm:hasComparator ?comparator .
+    OPTIONAL { ?proposition fm:floorValue ?floor }
+    OPTIONAL { ?proposition fm:capValue   ?cap }
+    OPTIONAL { ?proposition fm:hasUnit    ?unit }
 
     ?target wx:targetVariable ?variable ;
             wx:atSite ?site ;
-            wtl:overTemporalInterval ?interval .
+            fm:overTemporalInterval ?interval .
     OPTIONAL { ?target wx:underProtocol ?protocol }
 
     # Interval boundaries written out, because the climatological day is not the
     # calendar day and this is where settlement disputes live.
     ?interval bfo:BFO_0000222 ?startInstant ;
               bfo:BFO_0000224 ?endInstant .
-    ?startInstant wtl:instantDateTime ?from .
-    ?endInstant   wtl:instantDateTime ?to .
+    ?startInstant fm:instantDateTime ?from .
+    ?endInstant   fm:instantDateTime ?to .
 }
 ORDER BY ?ticker

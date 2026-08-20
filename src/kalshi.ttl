@@ -1,6 +1,6 @@
-@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -9,11 +9,11 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 
-<https://w3id.org/wantology/kalshi>
+<https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/kalshi/0.8.0> ;
-    owl:imports <https://w3id.org/wantology/core> , <https://w3id.org/wantology/weather> ;
-    dcterms:title "Wantology Kalshi: prediction market listings, trading, and settlement" ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.8.0> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
+    dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
 hierarchy, binary contracts, orders and trades, and settlement against an authoritative
 source. Weather markets are the motivating case, so this module also carries the axioms
@@ -30,7 +30,7 @@ contract quantities; see the scope notes on those terms.""" .
 ################################################################
 
 ksh:Exchange a owl:Class ;
-    rdfs:subClassOf wtl:Organization ;
+    rdfs:subClassOf fm:Organization ;
     rdfs:label "exchange" ;
     skos:definition "An organization that lists contracts, matches orders between counterparties, and settles those contracts according to published rules." .
 
@@ -56,7 +56,7 @@ ksh:Kalshi a ksh:DesignatedContractMarket, owl:NamedIndividual ;
 ################################################################
 
 ksh:Listing a owl:Class ;
-    rdfs:subClassOf wtl:DirectiveInformationEntity ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;
     rdfs:label "listing" ;
     skos:definition "A directive information entity published by an exchange that specifies contracts available for trading and the rules under which they resolve." .
 
@@ -95,16 +95,16 @@ ksh:WeatherMarket a owl:Class ;
     owl:equivalentClass [ a owl:Class ; owl:intersectionOf (
         ksh:Market
         [ a owl:Restriction ; owl:onProperty ksh:expressesProposition ;
-          owl:someValuesFrom [ a owl:Restriction ; owl:onProperty wtl:hasSubject ;
+          owl:someValuesFrom [ a owl:Restriction ; owl:onProperty fm:hasSubject ;
                                owl:someValuesFrom wx:WeatherObservationTarget ] ] ) ] .
 
 ksh:MarketRules a owl:Class ;
-    rdfs:subClassOf wtl:DirectiveInformationEntity ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;
     rdfs:label "market rules" ;
     skos:definition "A directive information entity stating the condition under which a market resolves yes, the source consulted, and the handling of unavailable or corrected source data." .
 
 ksh:SettlementSource a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "settlement source" ;
     skos:definition "An information content entity designating the publication that an exchange consults, to the exclusion of others, to determine the truth value of a market's proposition." ;
     skos:example "The Weather Company daily temperature record for the relevant station of record, which Kalshi adopted for its daily temperature series on 2026-08-14 in place of the NWS Climatological Report (Daily)." ;
@@ -119,7 +119,7 @@ and a series of them is not one time series.""" .
 ################################################################
 
 ksh:BinaryContract a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "binary contract" ;
     skos:definition "An information content entity specifying an agreement to pay a fixed sum to its holder if the proposition of its market is true at settlement, and nothing otherwise." ;
     rdfs:subClassOf [ a owl:Restriction ;
@@ -138,7 +138,7 @@ ksh:NoContract a owl:Class ;
     skos:definition "A binary contract that pays its holder if the market's proposition is false." .
 
 ksh:TraderRole a owl:Class ;
-    rdfs:subClassOf wtl:AgentRole ;
+    rdfs:subClassOf fm:AgentRole ;
     rdfs:label "trader role" ;
     skos:definition "An agent role borne by a person or organization in virtue of an agreement with an exchange, realized in the placing of orders." .
 
@@ -149,12 +149,12 @@ ksh:ContractHolderObligation a owl:Class ;
     skos:scopeNote "A role rather than a disposition: it is grounded in an institutional arrangement external to the bearer's physical make-up, not in that make-up." .
 
 ksh:Position a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "position" ;
     skos:definition "An information content entity recording the net quantity of yes and no contracts in a market held by one trader as of a reference time." .
 
 ksh:ContractSide a owl:Class ;
-    rdfs:subClassOf wtl:Designation ;
+    rdfs:subClassOf fm:Designation ;
     rdfs:label "contract side" ;
     skos:definition "A designation of which of a binary market's two contracts an order, or a level of its order book, concerns." ;
     skos:scopeNote """Mirrors the API's `side` field, which is orthogonal to `action`: selling yes and buying
@@ -170,7 +170,7 @@ ksh:NoSide  a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "no side" ;
    owl:distinctMembers ( ksh:YesSide ksh:NoSide ) .
 
 ksh:OrderAction a owl:Class ;
-    rdfs:subClassOf wtl:Designation ;
+    rdfs:subClassOf fm:Designation ;
     rdfs:label "order action" ;
     skos:definition "A designation of whether an order acquires or disposes of contracts on its side of the market." .
 
@@ -187,7 +187,7 @@ ksh:Sell a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "sell" ;
 ################################################################
 
 ksh:Order a owl:Class ;
-    rdfs:subClassOf wtl:DirectiveInformationEntity ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;
     rdfs:label "order" ;
     skos:definition "A directive information entity submitted by a trader instructing an exchange to buy or sell a stated quantity of contracts in a market, subject to stated price and time conditions." .
 
@@ -201,22 +201,22 @@ ksh:Trade a owl:Class ;
     rdfs:label "trade" ;
     skos:definition "A process in which an exchange matches two orders, bringing into existence binary contracts held by the two counterparties at an agreed price." ;
     rdfs:subClassOf [ a owl:Restriction ;
-        owl:onProperty wtl:hasOutput ; owl:someValuesFrom ksh:BinaryContract ] .
+        owl:onProperty fm:hasOutput ; owl:someValuesFrom ksh:BinaryContract ] .
 
 ksh:Quote a owl:Class ;
-    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:subClassOf fm:MeasurementDatum ;
     rdfs:label "quote" ;
     skos:definition "A measurement datum reporting the best bid and offer, or the last traded price, in a market as of a reference time." ;
     rdfs:subClassOf [ a owl:Restriction ;
         owl:onProperty ksh:quoteForMarket ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
 
 ksh:OrderBookSnapshot a owl:Class ;
-    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:subClassOf fm:MeasurementDatum ;
     rdfs:label "order book snapshot" ;
     skos:definition "A measurement datum reporting the resting order quantities at each price level in a market as of a reference time." .
 
 ksh:PriceLevel a owl:Class ;
-    rdfs:subClassOf wtl:MeasurementDatum ;
+    rdfs:subClassOf fm:MeasurementDatum ;
     rdfs:label "price level" ;
     skos:definition "A measurement datum reporting the quantity of contracts resting on one side of a market at one price, as of the reference time of the snapshot it is part of." ;
     skos:scopeNote """Related to its snapshot by BFO's has continuant part, the way a daily report carries its
@@ -228,18 +228,18 @@ side: a yes ask of 62 appears here as a no level at 38, which is how the exchang
 ################################################################
 
 ksh:MarketSettlement a owl:Class ;
-    rdfs:subClassOf wtl:EvaluationProcess ;
+    rdfs:subClassOf fm:EvaluationProcess ;
     rdfs:label "market settlement" ;
     skos:definition "An evaluation process in which an exchange consults a market's settlement source, assigns a truth value to that market's proposition, and thereby determines which contracts pay out." ;
     rdfs:subClassOf
-        [ a owl:Restriction ; owl:onProperty wtl:hasInput ;  owl:someValuesFrom wtl:Document ] ,
-        [ a owl:Restriction ; owl:onProperty wtl:hasOutput ; owl:someValuesFrom ksh:Resolution ] .
+        [ a owl:Restriction ; owl:onProperty fm:hasInput ;  owl:someValuesFrom fm:Document ] ,
+        [ a owl:Restriction ; owl:onProperty fm:hasOutput ; owl:someValuesFrom ksh:Resolution ] .
 
 ksh:Payout a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000015 ;   # process
     rdfs:label "payout" ;
     skos:definition "A process in which an exchange transfers funds to the holder of one lot of contracts determined to pay out by a market settlement, realizing that holder's contract holder obligation." ;
-    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty wtl:hasInput ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty fm:hasInput ;
         owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass ksh:BinaryContract ] ;
     skos:scopeNote """One lot per payout, not one per market: scripts/validate.py checks the amount against
 that lot's quantity, which means nothing summed over several, and the obligation realized is
@@ -247,12 +247,12 @@ one holder's. With ksh:YesContract disjoint from ksh:NoContract, two lots on opp
 is a HermiT inconsistency rather than an unchecked amount.""" .
 
 ksh:Resolution a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;
+    rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "resolution" ;
     skos:definition "An information content entity issued by an exchange stating the outcome of a market and the value determined for its observation target." .
 
 ksh:ResolutionOutcome a owl:Class ;
-    rdfs:subClassOf wtl:Designation ;
+    rdfs:subClassOf fm:Designation ;
     rdfs:label "resolution outcome" ;
     skos:definition "A designation of how a market resolved." .
 
@@ -274,7 +274,7 @@ institutional grounds and should not be read as a mapping target.""" .
    owl:distinctMembers ( ksh:ResolvedYes ksh:ResolvedNo ksh:ResolvedScalar ksh:Voided ) .
 
 ksh:MarketStatus a owl:Class ;
-    rdfs:subClassOf wtl:Designation ;
+    rdfs:subClassOf fm:Designation ;
     rdfs:label "market status" ;
     skos:definition "A designation of a market's position in its lifecycle." ;
     skos:scopeNote """These individuals mirror the `status` field returned on a market. They are NOT the vocabulary
@@ -310,7 +310,7 @@ ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized"
 ################################################################
 
 ksh:PriceToProbabilityDerivation a owl:Class ;
-    rdfs:subClassOf wtl:InformationProcess ;
+    rdfs:subClassOf fm:InformationProcess ;
     rdfs:label "price to probability derivation" ;
     skos:definition "An information process taking a quote as input and yielding a market implied probability, according to a stated transformation." ;
     skos:scopeNote """Kalshi prices yes contracts between zero and one dollar on a per-market tick grid, so
@@ -341,13 +341,13 @@ ksh:hasMarket a owl:ObjectProperty ; rdfs:label "has market" ;
 
 ksh:expressesProposition a owl:ObjectProperty ;
     rdfs:label "expresses proposition" ;
-    rdfs:domain ksh:Market ; rdfs:range wtl:Proposition ;
+    rdfs:domain ksh:Market ; rdfs:range fm:Proposition ;
     a owl:FunctionalProperty ;
     skos:definition "Relates a market to the proposition whose truth value determines which of its contracts pay out. The join point between this module and the weather module." .
 
 ksh:coversTarget a owl:ObjectProperty ;
     rdfs:label "covers target" ;
-    rdfs:domain ksh:EventGrouping ; rdfs:range wtl:ObservationTarget ;
+    rdfs:domain ksh:EventGrouping ; rdfs:range fm:ObservationTarget ;
     skos:definition "Relates an event grouping to the observation target whose possible values its markets range over." .
 
 ksh:settlementSource a owl:ObjectProperty ;
@@ -367,7 +367,7 @@ as a modelling error rather than a data one. Asserting this is what lets scripts
 compare the two.""" .
 
 ksh:hasRules a owl:ObjectProperty ;
-    rdfs:subPropertyOf wtl:governedBy ;
+    rdfs:subPropertyOf fm:governedBy ;
     rdfs:label "has rules" ;
     rdfs:range ksh:MarketRules ;
     skos:definition "Relates a listing to the market rules governing its resolution." .
@@ -380,7 +380,7 @@ ksh:contractInMarket a owl:ObjectProperty ;
 
 ksh:datumForMarket a owl:ObjectProperty ;
     rdfs:label "datum for market" ;
-    rdfs:domain wtl:MeasurementDatum ; rdfs:range ksh:Market ;
+    rdfs:domain fm:MeasurementDatum ; rdfs:range ksh:Market ;
     skos:definition "Relates a measurement datum reporting on trading to the market it reports on." ;
     skos:scopeNote "Quotes and order book snapshots both report on one market. ksh:quoteForMarket is the functional specialisation for quotes; snapshots use this directly." .
 
@@ -419,7 +419,7 @@ ksh:positionInMarket a owl:ObjectProperty ;
 ksh:heldBy a owl:ObjectProperty ;
     rdfs:label "held by" ;
     rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Position ksh:BinaryContract ) ] ;
-    rdfs:range wtl:Agent ;
+    rdfs:range fm:Agent ;
     skos:definition "Relates a position, or a lot of contracts, to the agent bearing the trader role that holds it." ;
     skos:scopeNote "Widened from ksh:Position in 0.8.0. A trade brings contracts into existence held by the two counterparties, so a lot has a holder before any position is struck from it; a second property for the same relation would have to be kept in step with this one by hand." .
 
@@ -444,7 +444,7 @@ ksh:resolutionOf a owl:ObjectProperty ;
 
 ksh:derivedFromQuote a owl:ObjectProperty ;
     rdfs:label "derived from quote" ;
-    rdfs:domain wtl:MarketImpliedProbability ; rdfs:range ksh:Quote ;
+    rdfs:domain fm:MarketImpliedProbability ; rdfs:range ksh:Quote ;
     skos:definition "Relates a market implied probability to the quote it was computed from." .
 
 ################################################################
@@ -452,19 +452,19 @@ ksh:derivedFromQuote a owl:ObjectProperty ;
 ################################################################
 
 ksh:seriesTicker a owl:DatatypeProperty ;
-    rdfs:subPropertyOf wtl:identifier ; rdfs:label "series ticker" ;
+    rdfs:subPropertyOf fm:identifier ; rdfs:label "series ticker" ;
     rdfs:domain ksh:Series ; rdfs:range xsd:string ;
     skos:definition "The exchange's identifier for a series, naming the recurring question rather than any one occasion of it." ;
     skos:example "\"KXHIGHNY\"" .
 
 ksh:eventTicker a owl:DatatypeProperty ;
-    rdfs:subPropertyOf wtl:identifier ; rdfs:label "event ticker" ;
+    rdfs:subPropertyOf fm:identifier ; rdfs:label "event ticker" ;
     rdfs:domain ksh:EventGrouping ; rdfs:range xsd:string ;
     skos:definition "The exchange's identifier for one occasion of a series, naming the set of markets that share a settlement source and date." ;
     skos:example "\"KXHIGHNY-26AUG15\"" .
 
 ksh:marketTicker a owl:DatatypeProperty ;
-    rdfs:subPropertyOf wtl:identifier ; rdfs:label "market ticker" ;
+    rdfs:subPropertyOf fm:identifier ; rdfs:label "market ticker" ;
     rdfs:domain ksh:Market ; rdfs:range xsd:string ;
     skos:definition "The exchange's identifier for a single market, naming one bracket or condition within an event grouping." ;
     skos:example "\"KXHIGHNY-26AUG15-B82.5\"" .
@@ -547,7 +547,7 @@ six hours after the close against six days after it. The API's `expiration_time`
 is a deprecated legacy field carrying this value; read it from `latest_expiration_time`.""" .
 
 ksh:settlementValue a owl:DatatypeProperty ;
-    rdfs:subPropertyOf wtl:realizedValue ;
+    rdfs:subPropertyOf fm:realizedValue ;
     rdfs:label "settlement value" ;
     rdfs:domain ksh:Resolution ; rdfs:range xsd:decimal ;
     skos:definition "The value the exchange determined for the observation target and applied to the market's condition." ;

@@ -3,16 +3,16 @@
 #
 # The point of the example is the join. ex:Prop-82-83 appears as the object of
 # ksh:expressesProposition (from the market) and as the object of
-# wtl:assignsProbabilityTo (from both the forecast probability and the market
+# fm:assignsProbabilityTo (from both the forecast probability and the market
 # implied probability). Nothing else has to line up for the two beliefs to be
 # comparable: not tickers, not station names, not dates.
 #
 # Values are illustrative and are not real observations or quotes.
 
-@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
-@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -21,9 +21,9 @@
 @prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
 
-<https://w3id.org/wantology/examples/kxhighny-2026-08-15>
+<https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15>
     a owl:Ontology ;
-    owl:imports <https://w3id.org/wantology/wantology> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/fmo> ;
     rdfs:label "Worked example: KXHIGHNY-26AUG15" .
 
 ################################################################
@@ -39,7 +39,7 @@ ex:KNYC a wx:WeatherStation ;
     wx:stationIdentifier "KNYC" ;
     bfo:BFO_0000171 ex:CentralParkSite .    # located in
 
-ex:NWS a wtl:Organization ;
+ex:NWS a fm:Organization ;
     rdfs:label "National Weather Service" .
 
 # Kalshi moved daily temperature settlement from the NWS to The Weather Company
@@ -47,7 +47,7 @@ ex:NWS a wtl:Organization ;
 # primary underlying source, so the numbers usually agree -- but the authority
 # that settles the market is TWC, and under the protocol rule that is what fixes
 # the observation target. NWS remains here as the issuer of GEFS.
-ex:TWC a wtl:Organization ;
+ex:TWC a fm:Organization ;
     rdfs:label "The Weather Company" .
 
 ################################################################
@@ -64,8 +64,8 @@ ex:ClimDay-2026-08-15 a wx:ClimatologicalDay ;
     bfo:BFO_0000222 ex:Instant-Start ;      # has first instant
     bfo:BFO_0000224 ex:Instant-End .        # has last instant
 
-ex:Instant-Start a bfo:BFO_0000203 ; wtl:instantDateTime "2026-08-15T01:00:00-04:00"^^xsd:dateTime .
-ex:Instant-End   a bfo:BFO_0000203 ; wtl:instantDateTime "2026-08-16T00:59:59-04:00"^^xsd:dateTime .
+ex:Instant-Start a bfo:BFO_0000203 ; fm:instantDateTime "2026-08-15T01:00:00-04:00"^^xsd:dateTime .
+ex:Instant-End   a bfo:BFO_0000203 ; fm:instantDateTime "2026-08-16T00:59:59-04:00"^^xsd:dateTime .
 
 ################################################################
 # 3. What is being measured
@@ -73,29 +73,29 @@ ex:Instant-End   a bfo:BFO_0000203 ; wtl:instantDateTime "2026-08-16T00:59:59-04
 
 ex:TWCDailyTempProtocol a wx:MeasurementProtocol ;
     rdfs:label "The Weather Company daily temperature protocol for CLINYC" ;
-    wtl:statedAs "Maximum temperature for the New York City station of record, identified as CLINYC, over the climatological day, in whole degrees Fahrenheit, as published by The Weather Company at weather.com/kalshi." ;
-    wtl:issuedBy ex:TWC .
+    fm:statedAs "Maximum temperature for the New York City station of record, identified as CLINYC, over the climatological day, in whole degrees Fahrenheit, as published by The Weather Company at weather.com/kalshi." ;
+    fm:issuedBy ex:TWC .
 
 ex:Target-HighTemp a wx:WeatherObservationTarget ;
     rdfs:label "max air temperature, Central Park, climatological day 2026-08-15" ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:underProtocol ex:TWCDailyTempProtocol ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 ################################################################
 # 4. The proposition -- the pivot
 ################################################################
 
-ex:Prop-82-83 a wtl:Proposition ;
+ex:Prop-82-83 a fm:Proposition ;
     rdfs:label "high is between 82 and 83 degrees F" ;
-    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "82"^^xsd:decimal ;
-    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at the Central Park station of record over the climatological day of 15 August 2026, as published by The Weather Company, is between 82 and 83 degrees Fahrenheit inclusive." .
+    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "82"^^xsd:decimal ;
+    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;
+    fm:statedAs "The maximum air temperature at the Central Park station of record over the climatological day of 15 August 2026, as published by The Weather Company, is between 82 and 83 degrees Fahrenheit inclusive." .
 
 ################################################################
 # 5. The market side
@@ -104,13 +104,13 @@ ex:Prop-82-83 a wtl:Proposition ;
 ex:TWCSettlementSource a ksh:SettlementSource ;
     rdfs:label "The Weather Company daily temperature record for CLINYC" ;
     ksh:sourceProtocol ex:TWCDailyTempProtocol ;
-    wtl:issuedBy ex:TWC .
+    fm:issuedBy ex:TWC .
 
 ex:KXHIGHNY a ksh:Series ;
     rdfs:label "Kalshi: highest temperature in NYC" ;
     ksh:seriesTicker "KXHIGHNY" ;
     ksh:settlementSource ex:TWCSettlementSource ;
-    wtl:issuedBy ksh:Kalshi .
+    fm:issuedBy ksh:Kalshi .
 
 ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
     rdfs:label "Kalshi: NYC high on 2026-08-15" ;
@@ -132,24 +132,24 @@ ex:Market-B82 a ksh:WeatherMarket ;
 ex:Quote-1200Z a ksh:Quote ;
     rdfs:label "quote for KXHIGHNY-26AUG15-B82.5 at 12:00Z" ;
     ksh:quoteForMarket ex:Market-B82 ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 58 ;
     ksh:yesAskCents 62 ;
     ksh:lastPriceCents 60 ;
     ksh:volume 14350 ;
     ksh:openInterest 8210 .
 
-ex:MarketProb-1200Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-1200Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(82-83F) at 12:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-82-83 ;
-    wtl:probabilityValue "0.60"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-82-83 ;
+    fm:probabilityValue "0.60"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-1200Z ;
-    wtl:statedAs "Last traded price of 60 cents divided by 100. Ignores spread, fees, and carry." .
+    fm:statedAs "Last traded price of 60 cents divided by 100. Ignores spread, fees, and carry." .
 
 ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
-    wtl:hasInput ex:Quote-1200Z ;
-    wtl:hasOutput ex:MarketProb-1200Z .
+    fm:hasInput ex:Quote-1200Z ;
+    fm:hasOutput ex:MarketProb-1200Z .
 
 ################################################################
 # 6. The forecast side -- same proposition, different agent, different process
@@ -157,13 +157,13 @@ ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
 
 ex:GEFS a wx:NumericalWeatherPredictionModel ;
     rdfs:label "Global Ensemble Forecast System" ;
-    wtl:issuedBy ex:NWS .
+    fm:issuedBy ex:NWS .
 
 ex:GEFS-Run-2026-08-15T06Z a wx:ModelRun ;
     rdfs:label "GEFS 06Z run, 2026-08-15" ;
     wx:cycleTime "2026-08-15T06:00:00Z"^^xsd:dateTime ;
-    wtl:hasAgent ex:NWS ;
-    wtl:hasOutput ex:Forecast-GEFS-06Z .
+    fm:hasAgent ex:NWS ;
+    fm:hasOutput ex:Forecast-GEFS-06Z .
 
 ex:Forecast-GEFS-06Z a wx:ProbabilisticForecast ;
     rdfs:label "GEFS 06Z probabilistic forecast for Central Park high, 2026-08-15" ;
@@ -176,11 +176,11 @@ ex:Forecast-GEFS-06Z a wx:ProbabilisticForecast ;
     wx:leadTimeHours "-4.667"^^xsd:decimal ;
     bfo:BFO_0000178 ex:ForecastProb-82-83 .     # has continuant part
 
-ex:ForecastProb-82-83 a wtl:ForecastProbability ;
+ex:ForecastProb-82-83 a fm:ForecastProbability ;
     rdfs:label "GEFS 06Z P(82-83F)" ;
-    wtl:assignsProbabilityTo ex:Prop-82-83 ;
-    wtl:probabilityValue "0.52"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T06:00:00Z"^^xsd:dateTime .
+    fm:assignsProbabilityTo ex:Prop-82-83 ;
+    fm:probabilityValue "0.52"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T06:00:00Z"^^xsd:dateTime .
 
 # The 8-point gap between ex:ForecastProb-82-83 and ex:MarketProb-1200Z is the
 # quantity this ontology exists to make well-formed. Both are probability
@@ -194,18 +194,18 @@ ex:Observation-Max a wx:WeatherObservation ;
     rdfs:label "determination of the daily max at KNYC" ;
     bfo:BFO_0000057 ex:KNYC ;                   # has participant
     bfo:BFO_0000199 ex:ClimDay-2026-08-15 ;     # occupies temporal region
-    wtl:hasOutput ex:Datum-Max .
+    fm:hasOutput ex:Datum-Max .
 
 ex:Datum-Max a wx:WeatherObservationDatum ;
     rdfs:label "max temperature 82 F" ;
     wx:reportsValueFor ex:Target-HighTemp ;
-    wtl:realizedValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:realizedValue "82"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 
 ex:TWCRecord-2026-08-16 a wx:DailyClimatologicalReport ;
     rdfs:label "The Weather Company CLINYC record, issued 2026-08-16" ;
-    wtl:issuedBy ex:TWC ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:issuedBy ex:TWC ;
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-16T10:15:00Z"^^xsd:dateTime ;
     bfo:BFO_0000178 ex:Datum-Max .              # has continuant part
 
@@ -225,30 +225,30 @@ ex:TWCRecord-2026-08-16 a wx:DailyClimatologicalReport ;
 
 ex:NWSDailyClimateProtocol a wx:MeasurementProtocol ;
     rdfs:label "NWS daily climatological summary protocol" ;
-    wtl:statedAs "Maximum temperature observed at the station of record over the climatological day, in whole degrees Fahrenheit, as published in the CLI product." ;
-    wtl:issuedBy ex:NWS .
+    fm:statedAs "Maximum temperature observed at the station of record over the climatological day, in whole degrees Fahrenheit, as published in the CLI product." ;
+    fm:issuedBy ex:NWS .
 
 ex:Target-HighTemp-NWS a wx:WeatherObservationTarget ;
     rdfs:label "max air temperature, Central Park, climatological day 2026-08-15, NWS protocol" ;
     wx:targetVariable wx:MaximumAirTemperature ;
     wx:atSite ex:CentralParkSite ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:underProtocol ex:NWSDailyClimateProtocol ;
-    wtl:hasUnit unit:DEG_F ;
+    fm:hasUnit unit:DEG_F ;
     wx:alternativeDeterminationOf ex:Target-HighTemp .
 
 ex:CLINYC-2026-08-16 a wx:DailyClimatologicalReport ;
     rdfs:label "NWS CLINYC issued 2026-08-16" ;
-    wtl:issuedBy ex:NWS ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:issuedBy ex:NWS ;
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
     wx:issuanceTime "2026-08-16T10:15:00Z"^^xsd:dateTime ;
     bfo:BFO_0000178 ex:Datum-Max-NWS .          # has continuant part
 
 ex:Datum-Max-NWS a wx:WeatherObservationDatum ;
     rdfs:label "max temperature 83 F, NWS" ;
     wx:reportsValueFor ex:Target-HighTemp-NWS ;
-    wtl:realizedValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:realizedValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 
 # Nothing settles on ex:Target-HighTemp-NWS and nothing forecasts for it. It is
 # here to be disagreed with, and to give the validator a misalignment to detect
@@ -257,36 +257,36 @@ ex:Datum-Max-NWS a wx:WeatherObservationDatum ;
 # The same bracket read against the authority the exchange did NOT settle on.
 # Nothing points at it; it exists so the grouping-agreement check has a target to
 # catch a market drifting onto, the way Target-HighTemp-NWS does for forecasts.
-ex:Prop-82-83-NWS a wtl:Proposition ;
+ex:Prop-82-83-NWS a fm:Proposition ;
     rdfs:label "high is between 82 and 83 degrees F, NWS determination" ;
-    wtl:hasSubject ex:Target-HighTemp-NWS ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "82"^^xsd:decimal ;
-    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasSubject ex:Target-HighTemp-NWS ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "82"^^xsd:decimal ;
+    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
 
 ex:Settlement-B82 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B82.5" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:TWCRecord-2026-08-16 ;
-    wtl:hasOutput ex:Resolution-B82 .
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput ex:TWCRecord-2026-08-16 ;
+    fm:hasOutput ex:Resolution-B82 .
 
 ex:Resolution-B82 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-B82.5 resolved yes" ;
     ksh:resolutionOf ex:Market-B82 ;
     ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 # Settlement is what assigns the truth value. Before this, the proposition had
 # none -- which is not the same as being false.
 #
-# Recorded as a wtl:TruthAssessment rather than wtl:hasTruthValue because the
+# Recorded as a fm:TruthAssessment rather than fm:hasTruthValue because the
 # document it rests on can be superseded. See examples/...-correction.ttl, where
 # exactly that happens and this assessment stops being the current one.
-ex:Assessment-82-83-at-settlement a wtl:TruthAssessment ;
+ex:Assessment-82-83-at-settlement a fm:TruthAssessment ;
     rdfs:label "assessment of Prop-82-83 at settlement" ;
-    wtl:assessesProposition ex:Prop-82-83 ;
-    wtl:assessedTruthValue wtl:True ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
-    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-82-83 ;
+    fm:assessedTruthValue fm:True ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;
+    fm:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .

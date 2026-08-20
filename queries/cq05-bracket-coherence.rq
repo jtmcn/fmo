@@ -65,14 +65,14 @@ WHERE {
                 ?market ksh:inEventGrouping ?grouping ;
                         ksh:expressesProposition ?proposition .
 
-                ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
-                    wtl:assignsProbabilityTo ?proposition ;
-                    wtl:probabilityValue ?pv ;
-                    wtl:referenceTime ?asOf .
+                ?mp a/rdfs:subClassOf* fm:MarketImpliedProbability ;
+                    fm:assignsProbabilityTo ?proposition ;
+                    fm:probabilityValue ?pv ;
+                    fm:referenceTime ?asOf .
 
                 # Same ?asOf on both sides: one snapshot, not a mixture.
                 ?quote ksh:quoteForMarket ?market ;
-                       wtl:referenceTime ?asOf ;
+                       fm:referenceTime ?asOf ;
                        ksh:yesBidCents ?bidv ;
                        ksh:yesAskCents ?askv .
             }

@@ -1,5 +1,5 @@
 [project]
-name = "wantology"
+name = "forecast-market-ontology"
 version = "0.1.0"
 description = "BFO-grounded ontology for weather forecasts and Kalshi markets"
 requires-python = ">=3.12"

@@ -64,19 +64,19 @@ WHERE {
                               wx:leadTimeHours   ?leadHours ;
                               bfo:BFO_0000178    ?fp .
 
-                    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
-                        wtl:assignsProbabilityTo ?proposition ;
-                        wtl:probabilityValue ?pv .
+                    ?fp a/rdfs:subClassOf* fm:ForecastProbability ;
+                        fm:assignsProbabilityTo ?proposition ;
+                        fm:probabilityValue ?pv .
 
-                    ?assessment wtl:assessesProposition ?proposition ;
-                                wtl:basedOnRecord ?record ;
-                                wtl:assessedTruthValue ?tv .
+                    ?assessment fm:assessesProposition ?proposition ;
+                                fm:basedOnRecord ?record ;
+                                fm:assessedTruthValue ?tv .
                     FILTER NOT EXISTS { ?newer wx:supersedes ?record }
 
-                    # wtl:Indeterminate is a legal truth value and is not an
+                    # fm:Indeterminate is a legal truth value and is not an
                     # observed "no"; scoring it as 0 would silently count it.
-                    FILTER(?tv IN (wtl:True, wtl:False))
-                    BIND(IF(?tv = wtl:True, 1, 0) AS ?ov)
+                    FILTER(?tv IN (fm:True, fm:False))
+                    BIND(IF(?tv = fm:True, 1, 0) AS ?ov)
                 }
                 GROUP BY ?model ?leadHours ?fp
             }

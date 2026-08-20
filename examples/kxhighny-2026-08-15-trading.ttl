@@ -13,19 +13,19 @@
 #
 # Values are illustrative and are not real orders, trades, or holdings.
 
-@prefix tex:  <https://w3id.org/wantology/examples/kxhighny-2026-08-15-trading#> .
-@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
-@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix tex:  <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix bfo:  <http://purl.obolibrary.org/obo/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 
-<https://w3id.org/wantology/examples/kxhighny-2026-08-15-trading>
+<https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading>
     a owl:Ontology ;
-    owl:imports <https://w3id.org/wantology/wantology> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/fmo> ;
     rdfs:label "Worked example: order flow and payout for KXHIGHNY-26AUG15-B82.5" .
 
 ################################################################
@@ -35,10 +35,10 @@
 # orders below -- not borne in virtue of being persons.
 ################################################################
 
-tex:TraderA a wtl:Person ;
+tex:TraderA a fm:Person ;
     rdfs:label "trader A" .
 
-tex:TraderB a wtl:Person ;
+tex:TraderB a fm:Person ;
     rdfs:label "trader B" .
 
 tex:TraderRole-A a ksh:TraderRole ;
@@ -71,8 +71,8 @@ tex:Order-A a ksh:Order ;
     ksh:hasAction ksh:Buy ;
     ksh:orderQuantity 100 ;
     ksh:limitPriceCents 61 ;
-    wtl:issuedBy tex:TraderA ;
-    wtl:referenceTime "2026-08-15T11:59:59.4Z"^^xsd:dateTime .
+    fm:issuedBy tex:TraderA ;
+    fm:referenceTime "2026-08-15T11:59:59.4Z"^^xsd:dateTime .
 
 tex:Order-B a ksh:Order ;
     rdfs:label "B: buy 100 no at 41" ;
@@ -81,20 +81,20 @@ tex:Order-B a ksh:Order ;
     ksh:hasAction ksh:Buy ;
     ksh:orderQuantity 100 ;
     ksh:limitPriceCents 41 ;
-    wtl:issuedBy tex:TraderB ;
-    wtl:referenceTime "2026-08-15T11:59:59.8Z"^^xsd:dateTime .
+    fm:issuedBy tex:TraderB ;
+    fm:referenceTime "2026-08-15T11:59:59.8Z"^^xsd:dateTime .
 
 tex:Placement-A a ksh:OrderPlacement ;
     rdfs:label "A submits its order" ;
-    wtl:hasAgent tex:TraderA ;
+    fm:hasAgent tex:TraderA ;
     bfo:BFO_0000055 tex:TraderRole-A ;       # realizes
-    wtl:hasOutput tex:Order-A .
+    fm:hasOutput tex:Order-A .
 
 tex:Placement-B a ksh:OrderPlacement ;
     rdfs:label "B submits its order" ;
-    wtl:hasAgent tex:TraderB ;
+    fm:hasAgent tex:TraderB ;
     bfo:BFO_0000055 tex:TraderRole-B ;
-    wtl:hasOutput tex:Order-B .
+    fm:hasOutput tex:Order-B .
 
 ################################################################
 # 3. The book the match leaves behind
@@ -113,7 +113,7 @@ tex:Placement-B a ksh:OrderPlacement ;
 tex:Book-1200Z a ksh:OrderBookSnapshot ;
     rdfs:label "order book for KXHIGHNY-26AUG15-B82.5 at 12:00Z" ;
     ksh:datumForMarket ex:Market-B82 ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     bfo:BFO_0000178 tex:Level-Yes-58 ,       # has continuant part
                     tex:Level-No-38 .
 
@@ -138,13 +138,13 @@ tex:Level-No-38 a ksh:PriceLevel ;
 ################################################################
 
 tex:Instant-Trade a bfo:BFO_0000203 ;        # temporal instant
-    wtl:instantDateTime "2026-08-15T12:00:00Z"^^xsd:dateTime .
+    fm:instantDateTime "2026-08-15T12:00:00Z"^^xsd:dateTime .
 
 tex:Trade-1200Z a ksh:Trade ;
     rdfs:label "100 contracts matched at 60" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput tex:Order-A , tex:Order-B ;
-    wtl:hasOutput tex:Lot-Yes-A , tex:Lot-No-B ;
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput tex:Order-A , tex:Order-B ;
+    fm:hasOutput tex:Lot-Yes-A , tex:Lot-No-B ;
     ksh:executionPriceCents 60 ;
     bfo:BFO_0000199 tex:Instant-Trade .      # occupies temporal region
 
@@ -167,14 +167,14 @@ tex:Position-A a ksh:Position ;
     ksh:positionInMarket ex:Market-B82 ;
     ksh:heldBy tex:TraderA ;
     ksh:positionQuantity 100 ;
-    wtl:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
+    fm:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
 
 tex:Position-B a ksh:Position ;
     rdfs:label "B is long 100 no in B82.5" ;
     ksh:positionInMarket ex:Market-B82 ;
     ksh:heldBy tex:TraderB ;
     ksh:positionQuantity -100 ;
-    wtl:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
+    fm:referenceTime "2026-08-15T12:00:01Z"^^xsd:dateTime .
 
 ################################################################
 # 5. Settlement pays one side
@@ -195,8 +195,8 @@ tex:Obligation-A a ksh:ContractHolderObligation ;
 
 tex:Payout-A a ksh:Payout ;
     rdfs:label "10000 cents paid to A" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;
     bfo:BFO_0000055 tex:Obligation-A ;       # realizes
     ksh:payoutAmountCents 10000 .
 
