@@ -168,10 +168,13 @@ silently drift onto a different target than the one its grouping ladder was buil
 observation target must name exactly one measurement protocol, and the protocol its settlement
 source publishes under must be the one its proposition's target names — the open-world assumption
 reads a missing protocol as unnamed rather than absent, so the reasoner cannot catch either, and a
-source disagreeing with its target is the 2026-08-14 migration as a modelling error. A payout must name one resolution and one lot of contracts,
-in the same market, on the side that resolution determined, for one dollar a contract — paying
-the losing side is the trading-layer form of the mistake `wtl:scoredAgainst` exists to expose,
-arithmetically self-consistent and resting on the wrong determination. `make
+source disagreeing with its target is the 2026-08-14 migration as a modelling error. A match must
+output one yes lot and one no lot of equal quantity, and a payout must name one resolution and one
+lot of contracts, in the same market, on the side that resolution determined, held by the party
+whose obligation it realizes, for one dollar a contract — paying the losing side is the
+trading-layer form of the mistake `wtl:scoredAgainst` exists to expose, arithmetically
+self-consistent and resting on the wrong determination, and paying the right amount to the wrong
+party is the same mistake about the other end of the transfer. `make
 reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
 prove the defined class actually fires.
 

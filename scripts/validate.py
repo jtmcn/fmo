@@ -46,6 +46,9 @@ go wrong when hand-authoring a BFO application ontology:
      names. A missing protocol is invisible to the reasoner -- open-world reads it as
      unnamed rather than absent -- and a settlement source disagreeing with a target's
      protocol is the 2026-08-14 migration expressed as a modelling error.
+ 11. The trading layer settles what it says it settles: a match outputs one yes lot and
+     one no lot of equal quantity, and a payout pays the side its resolution determined,
+     to the holder whose obligation it realizes, at one dollar a contract.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -117,6 +120,25 @@ def ancestors(g: Graph, cls: URIRef) -> set[URIRef]:
     return seen
 
 
+def types_of(g: Graph, node) -> set:
+    """Asserted types plus their named ancestors -- the a/rdfs:subClassOf* the queries walk."""
+    out: set = set()
+    for cls in g.objects(node, RDF.type):
+        out.add(cls)
+        out |= ancestors(g, cls)
+    return out
+
+
+def instances_of(g: Graph, cls: URIRef) -> list:
+    """Every node whose type reaches cls, asserted subclasses included.
+
+    g.subjects(RDF.type, cls) sees the asserted type only, so a minted subclass --
+    a void refund under ksh:Payout, say -- would get no validation while still
+    turning up in the competency questions, which all use a/rdfs:subClassOf*.
+    """
+    return sorted({s for s in g.subjects(RDF.type, None) if cls in types_of(g, s)}, key=str)
+
+
 QUDT = "http://qudt.org/schema/qudt/"
 WTL = "https://w3id.org/wantology/core#"
 WX = "https://w3id.org/wantology/weather#"
@@ -164,6 +186,12 @@ CONTRACT_IN_MARKET = URIRef(KSH + "contractInMarket")
 CONTRACT_QUANTITY = URIRef(KSH + "contractQuantity")
 PAYOUT_AMOUNT = URIRef(KSH + "payoutAmountCents")
 RESOLVES_TO = URIRef(KSH + "resolvesTo")
+TRADE = URIRef(KSH + "Trade")
+HAS_OUTPUT = URIRef(WTL + "hasOutput")
+HELD_BY = URIRef(KSH + "heldBy")
+HOLDER_OBLIGATION = URIRef(KSH + "ContractHolderObligation")
+REALIZES = URIRef(BFO + "BFO_0000055")
+INHERES_IN = URIRef(BFO + "BFO_0000197")
 RESOLVED_YES = URIRef(KSH + "ResolvedYes")
 RESOLVED_NO = URIRef(KSH + "ResolvedNo")
 # A binary contract pays one dollar, stated in the cents its prices are stated in.
@@ -706,32 +734,29 @@ def check_grouping_coherence(g: Graph) -> None:
 
 
 def check_payouts(g: Graph) -> None:
-    """A payout pays the side the resolution determined, and pays it what it owes.
+    """A payout pays the side the resolution determined, the holder who held it, what it owes.
 
     The trading layer was vocabulary with no instances through 0.7.1, so nothing
     connected it to settlement. It is a short walk and an easy one to get wrong:
     a payout names a resolution and a lot of contracts, and it is only correct if
-    the lot is on the winning side, in the market that resolved, for one dollar a
-    contract. Paying the losing side is the trading-layer form of the mistake
-    wtl:scoredAgainst exists to expose -- an entry that looks settled, is
-    arithmetically self-consistent, and rests on the wrong determination.
+    the lot is on the winning side, in the market that resolved, held by the party
+    whose obligation the payout realizes, for one dollar a contract. Paying the
+    losing side is the trading-layer form of the mistake wtl:scoredAgainst exists
+    to expose -- an entry that looks settled, is arithmetically self-consistent,
+    and rests on the wrong determination. Paying the right amount to the wrong
+    party is the same mistake about the other end of the transfer: the lot names
+    its holder, the payout reaches one only through the obligation it realizes,
+    and nothing but this compares them.
 
     Voided and scalar outcomes are skipped rather than guessed at: neither pays a
     fixed sum per contract on one side, and no example produces one.
     """
-
-    def types_of(node):
-        out = set()
-        for cls in g.objects(node, RDF.type):
-            out.add(cls)
-            out |= ancestors(g, cls)
-        return out
-
-    checked = 0
-    for payout in g.subjects(RDF.type, PAYOUT):
+    reached = 0   # payouts naming a resolution and a lot -- what the coverage guard is about
+    verified = 0  # ...and whose side, recipient and amount were actually compared
+    for payout in instances_of(g, PAYOUT):
         inputs = list(g.objects(payout, HAS_INPUT))
-        resolutions = [i for i in inputs if RESOLUTION in types_of(i)]
-        lots = [i for i in inputs if BINARY_CONTRACT in types_of(i)]
+        resolutions = [i for i in inputs if RESOLUTION in types_of(g, i)]
+        lots = [i for i in inputs if BINARY_CONTRACT in types_of(g, i)]
         if len(resolutions) != 1 or len(lots) != 1:
             fail(
                 f"payout does not name one resolution and one contract lot: "
@@ -740,7 +765,7 @@ def check_payouts(g: Graph) -> None:
             )
             continue
         resolution, lot = resolutions[0], lots[0]
-        checked += 1
+        reached += 1
 
         # Same market, or the payout is settling one market's contracts against
         # another's determination. Both are functional, so more than one value is
@@ -767,12 +792,44 @@ def check_payouts(g: Graph) -> None:
         if winning is None:
             notes.append(f"payout skipped: {payout} rests on outcome {outcome}")
             continue
-        if winning not in types_of(lot):
+
+        # A lot with no side, or with both, is a different defect than a lot on the
+        # losing one, and saying "pays the losing side" of it sends the reader after
+        # the wrong fix. Both sides at once is what ksh:YesContract's disjointness
+        # makes a HermiT inconsistency; this is the Java-free half of that guard.
+        sides = types_of(g, lot) & {YES_CONTRACT, NO_CONTRACT}
+        if len(sides) != 1:
+            fail(
+                f"payout pays a lot whose side is not determinate: {lot} is typed "
+                f"as {len(sides)} of ksh:YesContract, ksh:NoContract, so which side "
+                f"{resolution} pays cannot be read off it"
+            )
+        elif winning not in sides:
             fail(
                 f"payout pays the losing side: {payout} pays {lot}, but "
                 f"{resolution} resolved to {outcome}, which pays holders of "
                 f"{winning}"
             )
+
+        obligations = [
+            o for o in g.objects(payout, REALIZES) if HOLDER_OBLIGATION in types_of(g, o)
+        ]
+        holders = set(g.objects(lot, HELD_BY))
+        if len(obligations) != 1 or len(holders) != 1:
+            fail(
+                f"payout recipient cannot be checked: {payout} realizes "
+                f"{len(obligations)} contract holder obligation(s) and {lot} names "
+                f"{len(holders)} holder(s)"
+            )
+        else:
+            bearers = set(g.objects(obligations[0], INHERES_IN))
+            if bearers != holders:
+                fail(
+                    f"payout pays the wrong party: {payout} realizes "
+                    f"{obligations[0]}, which inheres in "
+                    f"{sorted(str(b) for b in bearers)}, but {lot} is held by "
+                    f"{sorted(str(h) for h in holders)}"
+                )
 
         quantities = list(g.objects(lot, CONTRACT_QUANTITY))
         amounts = list(g.objects(payout, PAYOUT_AMOUNT))
@@ -795,13 +852,70 @@ def check_payouts(g: Graph) -> None:
                 f"{stated} cents, but {lot} is {quantities[0]} contract(s) at "
                 f"{CENTS_PER_CONTRACT} cents, which is {expected}"
             )
+        verified += 1
 
-    if EXAMPLES and not checked:
+    if EXAMPLES and not reached:
         fail(
             "no payout reaches a resolution and a contract lot, so the payout "
             "check matched nothing; the trading layer is unexercised again"
         )
-    notes.append(f"{checked} payout(s) checked against their resolution and lot")
+    # Counted after the comparisons, not on arrival: a payout on a scalar or voided
+    # outcome leaves the loop before its side and amount are ever compared, and
+    # reporting it as checked is how a skip reads as a pass.
+    notes.append(f"{verified} payout(s) checked against their resolution, holder and lot")
+
+
+def check_trades(g: Graph) -> None:
+    """A match outputs two lots: opposite sides, equal quantity.
+
+    "The two sides of a match sum to the payout" is what collateralises a binary
+    market, and both CQ8's derived price and ksh:executionPriceCents' scope note
+    rest on it. Nothing enforced it: ksh:contractQuantity was read by check_payouts
+    alone, and only for a lot that had a payout, so the losing lot could state any
+    quantity at all and only a .expected diff would notice.
+    """
+    checked = 0
+    for trade in instances_of(g, TRADE):
+        lots = [o for o in g.objects(trade, HAS_OUTPUT) if BINARY_CONTRACT in types_of(g, o)]
+        if len(lots) != 2:
+            fail(
+                f"trade does not output two contract lots: {trade} outputs "
+                f"{len(lots)}, so the two sides of the match cannot be compared"
+            )
+            continue
+        checked += 1
+        sides = [types_of(g, lot) & {YES_CONTRACT, NO_CONTRACT} for lot in lots]
+        if any(len(s) != 1 for s in sides) or sides[0] == sides[1]:
+            fail(
+                f"trade's two lots are not one yes and one no: {trade} outputs "
+                f"{sorted(str(lot) for lot in lots)}"
+            )
+            continue
+        quantities = [list(g.objects(lot, CONTRACT_QUANTITY)) for lot in lots]
+        if any(len(q) != 1 for q in quantities):
+            fail(
+                f"trade's lot quantities cannot be compared: {trade} outputs lots "
+                f"stating {[len(q) for q in quantities]} quantity value(s)"
+            )
+            continue
+        try:
+            left, right = (float(q[0]) for q in quantities)
+        except ValueError:
+            fail(f"trade states a non-numeric contract quantity: {trade}")
+            continue
+        if left != right:
+            fail(
+                f"trade's two lots state different quantities: {trade} outputs "
+                f"{lots[0]} at {quantities[0][0]} and {lots[1]} at "
+                f"{quantities[1][0]}, but one match made both"
+            )
+
+    if EXAMPLES and not checked:
+        fail(
+            "no trade outputs two contract lots, so the match check matched "
+            "nothing; the trading layer is unexercised again"
+        )
+    notes.append(f"{checked} trade(s) checked for opposite sides and equal quantity")
 
 
 def main() -> int:
@@ -987,6 +1101,7 @@ def main() -> int:
     check_grouping_coherence(ex)
     check_protocols(ex)
     check_payouts(ex)
+    check_trades(ex)
 
     # Domain sanity: the join the ontology exists for.
     #

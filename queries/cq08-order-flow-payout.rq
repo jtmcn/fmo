@@ -6,10 +6,15 @@
 #
 # Two rows, one per counterparty of the same match. Both bought -- on a binary
 # exchange the two sides of a trade are both purchases, and the price the
-# exchange records is the yes price, so ?paidCents is derived rather than read:
-# stating sixty against the trader who paid forty would be false on its own row.
-# Exactly one row carries a ?payoutCents: the other lot expired worthless, which is the absence of a
-# transfer rather than a transfer of zero, so the OPTIONAL is load-bearing. An
+# exchange records is the yes price, so ?pricePerContractCents is derived rather
+# than read: stating sixty against the trader who paid forty would be false on
+# its own row. It is per contract where ?payoutCents is the total for the lot --
+# named that way because reading the two as comparable is the obvious mistake,
+# and ?quantity is on the row to bridge them.
+#
+# Exactly one row carries a ?payoutCents: the other lot expired worthless, which
+# is the absence of a transfer rather than a transfer of zero, so the OPTIONAL is
+# load-bearing. An
 # inner join here would silently drop the losing side and make every market look
 # like it paid everyone.
 #
@@ -18,7 +23,7 @@
 # proposition is the pivot the forecast side arrives on too. CQ2 puts the
 # forecast's number next to it.
 
-SELECT ?ticker ?trader ?side ?quantity ?paidCents ?impliedProbability ?payoutCents ?outcome
+SELECT ?ticker ?trader ?side ?quantity ?pricePerContractCents ?impliedProbability ?payoutCents ?outcome
 WHERE {
     ?trade a/rdfs:subClassOf* ksh:Trade ;
            ksh:executionPriceCents ?yesPriceCents ;
@@ -36,7 +41,7 @@ WHERE {
 
     # The two sides of a match sum to the payout, which is what collateralises a
     # binary market; the no side's price is the complement of the recorded one.
-    BIND( IF( ?side = ksh:NoContract, 100 - ?yesPriceCents, ?yesPriceCents ) AS ?paidCents )
+    BIND( IF( ?side = ksh:NoContract, 100 - ?yesPriceCents, ?yesPriceCents ) AS ?pricePerContractCents )
 
     ?market ksh:marketTicker ?ticker ;
             ksh:expressesProposition ?proposition .

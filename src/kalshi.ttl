@@ -127,7 +127,11 @@ ksh:BinaryContract a owl:Class ;
 
 ksh:YesContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "yes contract" ;
-    skos:definition "A binary contract that pays its holder if the market's proposition is true." .
+    owl:disjointWith ksh:NoContract ;
+    skos:definition "A binary contract that pays its holder if the market's proposition is true." ;
+    skos:scopeNote """Disjoint from ksh:NoContract because the asserted class is where a lot's side lives:
+scripts/validate.py reads the paying side off it and CQ8 binds ?side from it. A lot typed
+both would let a payout pay the losing side with every check green.""" .
 
 ksh:NoContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "no contract" ;
@@ -234,7 +238,13 @@ ksh:MarketSettlement a owl:Class ;
 ksh:Payout a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000015 ;   # process
     rdfs:label "payout" ;
-    skos:definition "A process in which an exchange transfers funds to the holders of contracts determined to pay out by a market settlement, realizing their contract holder obligations." .
+    skos:definition "A process in which an exchange transfers funds to the holder of one lot of contracts determined to pay out by a market settlement, realizing that holder's contract holder obligation." ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty wtl:hasInput ;
+        owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass ksh:BinaryContract ] ;
+    skos:scopeNote """One lot per payout, not one per market: scripts/validate.py checks the amount against
+that lot's quantity, which means nothing summed over several, and the obligation realized is
+one holder's. With ksh:YesContract disjoint from ksh:NoContract, two lots on opposite sides
+is a HermiT inconsistency rather than an unchecked amount.""" .
 
 ksh:Resolution a owl:Class ;
     rdfs:subClassOf wtl:InformationContentEntity ;

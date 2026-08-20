@@ -1,4 +1,4 @@
-# Worked example: the trading layer of KXHIGHNY-26AUG15-B82.5, from two resting
+# Worked example: the trading layer of KXHIGHNY-26AUG15-B82.5, from two crossing
 # orders to the payout that settlement drives.
 #
 # This file exists because the trading vocabulary had names and no instances. Its
@@ -59,6 +59,9 @@ tex:TraderRole-B a ksh:TraderRole ;
 # Both are limit orders that would tolerate a worse fill than they got -- 61 and
 # 41 against a match at 60 and 40. ksh:limitPriceCents records that tolerance; no
 # check compares it to the fill, for the reason its scope note gives.
+#
+# They arrive a fraction of a second apart and cross the moment the second lands,
+# which is why the match below carries the next instant and not a later one.
 ################################################################
 
 tex:Order-A a ksh:Order ;
@@ -69,7 +72,7 @@ tex:Order-A a ksh:Order ;
     ksh:orderQuantity 100 ;
     ksh:limitPriceCents 61 ;
     wtl:issuedBy tex:TraderA ;
-    wtl:referenceTime "2026-08-15T11:58:14Z"^^xsd:dateTime .
+    wtl:referenceTime "2026-08-15T11:59:59.4Z"^^xsd:dateTime .
 
 tex:Order-B a ksh:Order ;
     rdfs:label "B: buy 100 no at 41" ;
@@ -79,7 +82,7 @@ tex:Order-B a ksh:Order ;
     ksh:orderQuantity 100 ;
     ksh:limitPriceCents 41 ;
     wtl:issuedBy tex:TraderB ;
-    wtl:referenceTime "2026-08-15T11:59:02Z"^^xsd:dateTime .
+    wtl:referenceTime "2026-08-15T11:59:59.8Z"^^xsd:dateTime .
 
 tex:Placement-A a ksh:OrderPlacement ;
     rdfs:label "A submits its order" ;
@@ -94,12 +97,17 @@ tex:Placement-B a ksh:OrderPlacement ;
     wtl:hasOutput tex:Order-B .
 
 ################################################################
-# 3. The book, a moment before the match
+# 3. The book the match leaves behind
 #
 # The same instant as ex:Quote-1200Z, and it must agree with it: the best yes bid
 # is 58, and the no level at 38 IS the yes ask of 62 the quote reports. Levels
 # carry the price of their own side, so reading a yes ask straight off this book
 # means subtracting from one hundred.
+#
+# Neither order above is in it, and that is the point: 61 and 41 sum past a
+# hundred, so the two crossed on arrival and filled each other in full rather
+# than resting. Nothing here rests that could have traded -- a buy of yes at 61
+# does not lift the 62 ask, and a buy of no at 41 does not lift its 42.
 ################################################################
 
 tex:Book-1200Z a ksh:OrderBookSnapshot ;
@@ -182,7 +190,7 @@ tex:Position-B a ksh:Position ;
 ################################################################
 
 tex:Obligation-A a ksh:ContractHolderObligation ;
-    rdfs:label "the exchange's obligation to A on the yes side of B82.5" ;
+    rdfs:label "A's contract holder obligation on the yes side of B82.5" ;
     bfo:BFO_0000197 tex:TraderA .            # inheres in
 
 tex:Payout-A a ksh:Payout ;
