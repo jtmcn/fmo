@@ -22,18 +22,18 @@
 # prefixes) follows the pattern in the base file and is unverified -- Kalshi's API
 # reference was not reachable when this was written.
 
-@prefix ex:   <https://w3id.org/wantology/examples/kxhighny-2026-08-15#> .
-@prefix wtl:  <https://w3id.org/wantology/core#> .
-@prefix wx:   <https://w3id.org/wantology/weather#> .
-@prefix ksh:  <https://w3id.org/wantology/kalshi#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix unit: <http://qudt.org/vocab/unit/> .
 
-<https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset>
+<https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-bracketset>
     a owl:Ontology ;
-    owl:imports <https://w3id.org/wantology/examples/kxhighny-2026-08-15> ;
+    owl:imports <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15> ;
     rdfs:label "Worked example: the full KXHIGHNY-26AUG15 bracket ladder" .
 
 ################################################################
@@ -41,30 +41,30 @@
 # Same subject target as Prop-82-83; only the condition differs.
 ################################################################
 
-ex:Prop-LE81 a wtl:Proposition ;
+ex:Prop-LE81 a fm:Proposition ;
     rdfs:label "high is 81F or below" ;
-    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:LessThanOrEqual ;
-    wtl:capValue "81"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 81 degrees Fahrenheit or below." .
+    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:LessThanOrEqual ;
+    fm:capValue "81"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;
+    fm:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 81 degrees Fahrenheit or below." .
 
-ex:Prop-84-85 a wtl:Proposition ;
+ex:Prop-84-85 a fm:Proposition ;
     rdfs:label "high is between 84 and 85 degrees F" ;
-    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "84"^^xsd:decimal ;
-    wtl:capValue "85"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is between 84 and 85 degrees Fahrenheit inclusive." .
+    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "84"^^xsd:decimal ;
+    fm:capValue "85"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;
+    fm:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is between 84 and 85 degrees Fahrenheit inclusive." .
 
-ex:Prop-GE86 a wtl:Proposition ;
+ex:Prop-GE86 a fm:Proposition ;
     rdfs:label "high is 86F or above" ;
-    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:GreaterThanOrEqual ;
-    wtl:floorValue "86"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;
-    wtl:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 86 degrees Fahrenheit or above." .
+    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:GreaterThanOrEqual ;
+    fm:floorValue "86"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;
+    fm:statedAs "The maximum air temperature at Central Park over the climatological day of 15 August 2026, as published by The Weather Company, is 86 degrees Fahrenheit or above." .
 
 ################################################################
 # The three additional markets
@@ -111,43 +111,43 @@ ex:Market-T86 a ksh:WeatherMarket ;
 ex:Quote-T81-1200Z a ksh:Quote ;
     rdfs:label "quote, T81, 12:00Z" ;
     ksh:quoteForMarket ex:Market-T81 ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 10 ; ksh:yesAskCents 13 ; ksh:lastPriceCents 12 ;
     ksh:volume 3120 ; ksh:openInterest 2050 .
 
 ex:Quote-B84-1200Z a ksh:Quote ;
     rdfs:label "quote, B84.5, 12:00Z" ;
     ksh:quoteForMarket ex:Market-B84 ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 23 ; ksh:yesAskCents 27 ; ksh:lastPriceCents 25 ;
     ksh:volume 6740 ; ksh:openInterest 4310 .
 
 ex:Quote-T86-1200Z a ksh:Quote ;
     rdfs:label "quote, T86, 12:00Z" ;
     ksh:quoteForMarket ex:Market-T86 ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 5 ; ksh:yesAskCents 8 ; ksh:lastPriceCents 7 ;
     ksh:volume 1890 ; ksh:openInterest 1120 .
 
-ex:MarketProb-T81-1200Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-T81-1200Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(<=81F), 12:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-LE81 ;
-    wtl:probabilityValue "0.12"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-LE81 ;
+    fm:probabilityValue "0.12"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-T81-1200Z .
 
-ex:MarketProb-B84-1200Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-B84-1200Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(84-85F), 12:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-84-85 ;
-    wtl:probabilityValue "0.25"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-84-85 ;
+    fm:probabilityValue "0.25"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-B84-1200Z .
 
-ex:MarketProb-T86-1200Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-T86-1200Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(>=86F), 12:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-GE86 ;
-    wtl:probabilityValue "0.07"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-GE86 ;
+    fm:probabilityValue "0.07"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-T86-1200Z .
 
 ################################################################
@@ -160,57 +160,57 @@ ex:MarketProb-T86-1200Z a wtl:MarketImpliedProbability ;
 ex:Quote-T81-1800Z a ksh:Quote ;
     rdfs:label "quote, T81, 18:00Z" ;
     ksh:quoteForMarket ex:Market-T81 ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 6 ; ksh:yesAskCents 9 ; ksh:lastPriceCents 8 ;
     ksh:volume 4880 ; ksh:openInterest 2310 .
 
 ex:Quote-B82-1800Z a ksh:Quote ;
     rdfs:label "quote, B82.5, 18:00Z" ;
     ksh:quoteForMarket ex:Market-B82 ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 66 ; ksh:yesAskCents 70 ; ksh:lastPriceCents 68 ;
     ksh:volume 21400 ; ksh:openInterest 9870 .
 
 ex:Quote-B84-1800Z a ksh:Quote ;
     rdfs:label "quote, B84.5, 18:00Z" ;
     ksh:quoteForMarket ex:Market-B84 ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 19 ; ksh:yesAskCents 23 ; ksh:lastPriceCents 21 ;
     ksh:volume 8020 ; ksh:openInterest 4650 .
 
 ex:Quote-T86-1800Z a ksh:Quote ;
     rdfs:label "quote, T86, 18:00Z" ;
     ksh:quoteForMarket ex:Market-T86 ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:yesBidCents 3 ; ksh:yesAskCents 6 ; ksh:lastPriceCents 5 ;
     ksh:volume 2240 ; ksh:openInterest 1180 .
 
-ex:MarketProb-T81-1800Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-T81-1800Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(<=81F), 18:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-LE81 ;
-    wtl:probabilityValue "0.08"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-LE81 ;
+    fm:probabilityValue "0.08"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-T81-1800Z .
 
-ex:MarketProb-B82-1800Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-B82-1800Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(82-83F), 18:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-82-83 ;
-    wtl:probabilityValue "0.68"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-82-83 ;
+    fm:probabilityValue "0.68"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-B82-1800Z .
 
-ex:MarketProb-B84-1800Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-B84-1800Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(84-85F), 18:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-84-85 ;
-    wtl:probabilityValue "0.21"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-84-85 ;
+    fm:probabilityValue "0.21"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-B84-1800Z .
 
-ex:MarketProb-T86-1800Z a wtl:MarketImpliedProbability ;
+ex:MarketProb-T86-1800Z a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(>=86F), 18:00Z" ;
-    wtl:assignsProbabilityTo ex:Prop-GE86 ;
-    wtl:probabilityValue "0.05"^^xsd:decimal ;
-    wtl:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
+    fm:assignsProbabilityTo ex:Prop-GE86 ;
+    fm:probabilityValue "0.05"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-T86-1800Z .
 
 ################################################################
@@ -223,60 +223,60 @@ ex:MarketProb-T86-1800Z a wtl:MarketImpliedProbability ;
 
 ex:Settlement-T81 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-T81" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:TWCRecord-2026-08-16 ;
-    wtl:hasOutput ex:Resolution-T81 .
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput ex:TWCRecord-2026-08-16 ;
+    fm:hasOutput ex:Resolution-T81 .
 
 ex:Resolution-T81 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-T81 resolved no" ;
     ksh:resolutionOf ex:Market-T81 ;
     ksh:resolvesTo ksh:ResolvedNo ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 ex:Settlement-B84 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-B84.5" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:TWCRecord-2026-08-16 ;
-    wtl:hasOutput ex:Resolution-B84 .
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput ex:TWCRecord-2026-08-16 ;
+    fm:hasOutput ex:Resolution-B84 .
 
 ex:Resolution-B84 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-B84.5 resolved no" ;
     ksh:resolutionOf ex:Market-B84 ;
     ksh:resolvesTo ksh:ResolvedNo ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 ex:Settlement-T86 a ksh:MarketSettlement ;
     rdfs:label "settlement of KXHIGHNY-26AUG15-T86" ;
-    wtl:hasAgent ksh:Kalshi ;
-    wtl:hasInput ex:TWCRecord-2026-08-16 ;
-    wtl:hasOutput ex:Resolution-T86 .
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput ex:TWCRecord-2026-08-16 ;
+    fm:hasOutput ex:Resolution-T86 .
 
 ex:Resolution-T86 a ksh:Resolution ;
     rdfs:label "KXHIGHNY-26AUG15-T86 resolved no" ;
     ksh:resolutionOf ex:Market-T86 ;
     ksh:resolvesTo ksh:ResolvedNo ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
-ex:Assessment-LE81-at-settlement a wtl:TruthAssessment ;
+ex:Assessment-LE81-at-settlement a fm:TruthAssessment ;
     rdfs:label "assessment of Prop-LE81 at settlement" ;
-    wtl:assessesProposition ex:Prop-LE81 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
-    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-LE81 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;
+    fm:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
-ex:Assessment-84-85-at-settlement a wtl:TruthAssessment ;
+ex:Assessment-84-85-at-settlement a fm:TruthAssessment ;
     rdfs:label "assessment of Prop-84-85 at settlement" ;
-    wtl:assessesProposition ex:Prop-84-85 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
-    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-84-85 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;
+    fm:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
 
-ex:Assessment-GE86-at-settlement a wtl:TruthAssessment ;
+ex:Assessment-GE86-at-settlement a fm:TruthAssessment ;
     rdfs:label "assessment of Prop-GE86 at settlement" ;
-    wtl:assessesProposition ex:Prop-GE86 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord ex:TWCRecord-2026-08-16 ;
-    wtl:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .
+    fm:assessesProposition ex:Prop-GE86 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;
+    fm:referenceTime "2026-08-16T14:30:00Z"^^xsd:dateTime .

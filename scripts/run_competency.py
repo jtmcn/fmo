@@ -31,16 +31,16 @@ QUERIES = ROOT / "queries"
 
 MODULES = [
     "imports/bfo-core.ttl", "imports/qudt-subset.ttl",
-    "core.ttl", "weather.ttl", "kalshi.ttl", "wantology.ttl",
+    "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl",
 ]
 
 PREFIXES = {
-    "https://w3id.org/wantology/core#": "wtl:",
-    "https://w3id.org/wantology/weather#": "wx:",
-    "https://w3id.org/wantology/kalshi#": "ksh:",
-    "https://w3id.org/wantology/examples/kxhighny-2026-08-15#": "ex:",
-    "https://w3id.org/wantology/examples/verification#": "vex:",
-    "https://w3id.org/wantology/examples/kxhighny-2026-08-15-trading#": "tex:",
+    "https://w3id.org/forecast-market-ontology/core#": "fm:",
+    "https://w3id.org/forecast-market-ontology/weather#": "wx:",
+    "https://w3id.org/forecast-market-ontology/kalshi#": "ksh:",
+    "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#": "ex:",
+    "https://w3id.org/forecast-market-ontology/examples/verification#": "vex:",
+    "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#": "tex:",
     "http://purl.obolibrary.org/obo/": "bfo:",
     "http://qudt.org/vocab/unit/": "unit:",
     "http://qudt.org/vocab/quantitykind/": "quantitykind:",

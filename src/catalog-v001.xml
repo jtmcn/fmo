@@ -4,13 +4,13 @@
 <catalog prefer="public" xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
     <uri id="bfo"      name="http://purl.obolibrary.org/obo/bfo.owl"    uri="imports/bfo-core.ttl"/>
     <uri id="bfo-purl" name="http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl" uri="imports/bfo-core.ttl"/>
-    <uri id="qudt"     name="https://w3id.org/wantology/imports/qudt-subset" uri="imports/qudt-subset.ttl"/>
-    <uri id="core"     name="https://w3id.org/wantology/core"           uri="core.ttl"/>
-    <uri id="weather"  name="https://w3id.org/wantology/weather"        uri="weather.ttl"/>
-    <uri id="kalshi"   name="https://w3id.org/wantology/kalshi"         uri="kalshi.ttl"/>
-    <uri id="top"      name="https://w3id.org/wantology/wantology"      uri="wantology.ttl"/>
+    <uri id="qudt"     name="https://w3id.org/forecast-market-ontology/imports/qudt-subset" uri="imports/qudt-subset.ttl"/>
+    <uri id="core"     name="https://w3id.org/forecast-market-ontology/core"           uri="core.ttl"/>
+    <uri id="weather"  name="https://w3id.org/forecast-market-ontology/weather"        uri="weather.ttl"/>
+    <uri id="kalshi"   name="https://w3id.org/forecast-market-ontology/kalshi"         uri="kalshi.ttl"/>
+    <uri id="top"      name="https://w3id.org/forecast-market-ontology/fmo"      uri="fmo.ttl"/>
     <!-- Example data. The bracket-set file imports the base example, so this entry is
          required for ROBOT and Protege to resolve it offline. -->
-    <uri id="ex-base"     name="https://w3id.org/wantology/examples/kxhighny-2026-08-15"           uri="../examples/kxhighny-2026-08-15.ttl"/>
-    <uri id="ex-brackets" name="https://w3id.org/wantology/examples/kxhighny-2026-08-15-bracketset" uri="../examples/kxhighny-2026-08-15-bracketset.ttl"/>
+    <uri id="ex-base"     name="https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15"           uri="../examples/kxhighny-2026-08-15.ttl"/>
+    <uri id="ex-brackets" name="https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-bracketset" uri="../examples/kxhighny-2026-08-15-bracketset.ttl"/>
 </catalog>

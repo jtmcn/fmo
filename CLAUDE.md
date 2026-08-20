@@ -36,9 +36,9 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   classes (QUDT) get grounded in `core.ttl` too — four classes once floated under
   `owl:Thing` and the check exists because of it.
 - **Adding a source file means updating the `MODULES` list** in both `scripts/validate.py`
-  and `scripts/run_competency.py`, plus `src/wantology.ttl` and `src/catalog-v001.xml`.
+  and `scripts/run_competency.py`, plus `src/fmo.ttl` and `src/catalog-v001.xml`.
 - **Version bumps touch all four modules** — `owl:versionIRI` and `owl:versionInfo` in
-  `core.ttl`, `weather.ttl`, `kalshi.ttl`, `wantology.ttl`, plus the status line in
+  `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status line in
   `README.md`.
 - **`src/imports/bfo-core.ttl` is vendored unmodified.** Never edit it.
   `src/imports/qudt-subset.ttl` is generated — edit `scripts/extract_qudt_subset.py` and
@@ -59,5 +59,5 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional
-  `wtl:hasUnit`; the `owl:AllDifferent` block in `core.ttl` makes that mistake a HermiT
+  `fm:hasUnit`; the `owl:AllDifferent` block in `core.ttl` makes that mistake a HermiT
   inconsistency rather than a wrong answer.

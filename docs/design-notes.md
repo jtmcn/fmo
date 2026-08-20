@@ -54,10 +54,10 @@ Options considered:
 2. **Modal or possible-worlds machinery.** Out of scope for OWL DL, and overkill.
 3. **Compose the proposition.** Chosen.
 
-A `wtl:Proposition` has a `wtl:hasSubject` pointing at a `wtl:ObservationTarget` — itself an
+A `fm:Proposition` has a `fm:hasSubject` pointing at a `fm:ObservationTarget` — itself an
 information content entity, so it exists as soon as someone specifies it — plus a comparator and
 threshold values. All of that exists at forecast time. The truth value is attached later by a
-`wtl:EvaluationProcess` that consults the record. Absence of a truth value means undetermined,
+`fm:EvaluationProcess` that consults the record. Absence of a truth value means undetermined,
 not false.
 
 This has a payoff beyond tidiness: it is exactly the structure Kalshi's own schema has
@@ -97,7 +97,7 @@ landfall, category, and named-storm counts, all of which route through observati
 designations rather than through the storm's own classification. If the process reading turns out
 to obstruct something, it can be revised without touching the market side.
 
-**`wtl:Designation` under information content entity, not quality.** Truth values, comparators,
+**`fm:Designation` under information content entity, not quality.** Truth values, comparators,
 market statuses, and resolution outcomes classify things that are themselves information content
 entities. BFO qualities inhere only in independent continuants, so they cannot inhere in a
 proposition. Designations are individuals in a controlled vocabulary rather than classes, which
@@ -114,7 +114,7 @@ Adopted QUDT in 0.2.0, replacing the `xsd:string` unit of 0.1.0. Sixteen units a
 kinds are vendored via `scripts/extract_qudt_subset.py`; QUDT proper is ~74k triples.
 
 **Grounding.** QUDT makes no upper-level commitment, so `qudt:Unit` is asserted under
-`wtl:MeasurementUnit` and `qudt:QuantityKind` under `wtl:Designation` in `core.ttl`. A unit is a
+`fm:MeasurementUnit` and `qudt:QuantityKind` under `fm:Designation` in `core.ttl`. A unit is a
 convention rather than a property of the world — the degree Fahrenheit does not inhere in
 anything — so it is a generically dependent continuant, not a quality.
 
@@ -139,8 +139,8 @@ dimensionless. Quantity confusions need the variable to be right, which is what
 `wx:WeatherVariable` is for.
 
 **The functional sub-property trap.** `wx:conventionalUnit` lists several units per variable.
-Making it `rdfs:subPropertyOf wtl:hasUnit` — which looked tidy — would have been a serious bug:
-`wtl:hasUnit` is functional, so every listed unit would be inferred identical, silently
+Making it `rdfs:subPropertyOf fm:hasUnit` — which looked tidy — would have been a serious bug:
+`fm:hasUnit` is functional, so every listed unit would be inferred identical, silently
 identifying knots with metres per second and °F with °C. OWL does not assume named individuals
 are distinct, so nothing would have complained. The `owl:AllDifferent` block over the vendored
 units in `core.ttl` exists to turn that class of mistake into a HermiT inconsistency. Verified by
@@ -151,11 +151,11 @@ reintroducing the bug and confirming the reasoner reports it. Automated in
 
 Recorded because they are representative of what goes wrong, not for posterity.
 
-**Four classes floating under `owl:Thing`.** `wtl:Comparator`, `wtl:TruthValue`,
+**Four classes floating under `owl:Thing`.** `fm:Comparator`, `fm:TruthValue`,
 `ksh:MarketStatus`, `ksh:ResolutionOutcome` were declared with individuals and definitions but no
 `rdfs:subClassOf`. Everything parsed and nothing complained; they were simply not part of the
 ontology in any load-bearing sense. Caught by the grounding check in `validate.py`. Fixed by
-introducing `wtl:Designation`.
+introducing `fm:Designation`.
 
 **`InformationBearingEntity` unsatisfiable.** It was defined as a material entity that
 `concretizes` some information content entity. BFO 2020 gives `concretizes` the domain *process or
@@ -310,34 +310,34 @@ Both directions of error appear, which is what makes the example useful: a query
 caught false positives would still pass on half of it. Two design points:
 
 - **The verdict is computed, not looked up.** The query re-evaluates the comparator, which is
-  the first thing in the ontology to actually use `wtl:Comparator` semantics rather than just
-  record them. The stored `wtl:TruthAssessment` is carried alongside as a cross-check; if the
+  the first thing in the ontology to actually use `fm:Comparator` semantics rather than just
+  record them. The stored `fm:TruthAssessment` is carried alongside as a cross-check; if the
   two ever disagree, the stored assessment is wrong.
 - **It returns every affected market, not only contradictions.** Filtering to contradictions
   would return zero rows whenever a correction changed nothing, which the runner treats as
   failure — and would hide the useful fact that a correction was issued and checked. The
-  finding is in the `verdict` column, not in the row count. `wtl:Custom` conditions are
+  finding is in the `verdict` column, not in the row count. `fm:Custom` conditions are
   excluded explicitly rather than defaulting to "consistent"; they need a human.
 
 ## Truth is not a property of a proposition
 
-Writing CQ7 exposed a modelling error in 0.3.0. `wtl:hasTruthValue` is functional and untimed,
+Writing CQ7 exposed a modelling error in 0.3.0. `fm:hasTruthValue` is functional and untimed,
 so it cannot represent a proposition that was true against the record as it stood and false
 against the record as corrected. The proposition did not change and the exchange's resolution
 did not change — only the document did.
 
 Asserting both values would have been worse than wrong. OWL does not assume named individuals
-are distinct, so a functional property forced to take two values *identifies* them: `wtl:True`
-would silently become the same individual as `wtl:False`, and everything downstream would still
+are distinct, so a functional property forced to take two values *identifies* them: `fm:True`
+would silently become the same individual as `fm:False`, and everything downstream would still
 compute. `owl:AllDifferent` blocks over the truth values, comparators, resolution outcomes, and
 market statuses now turn that into a reasoner inconsistency. Same guard, same reasoning as the
 units case. `scripts/test_reason.py` asserts two truth values on one assessment and confirms
 HermiT reports it; the comparator, outcome and status blocks rest on the same axiom and have no
 case of their own.
 
-The fix is `wtl:TruthAssessment`: a reified assignment carrying the proposition, the value, the
+The fix is `fm:TruthAssessment`: a reified assignment carrying the proposition, the value, the
 record consulted, and the time. Truth is a relation between a proposition and a state of the
-record, not a property the proposition carries alone. `wtl:hasTruthValue` survives for cases
+record, not a property the proposition carries alone. `fm:hasTruthValue` survives for cases
 resting on a record that cannot be superseded, with a scope note saying so — but no example uses
 it, which is the honest signal about how often that case arises here.
 
@@ -438,19 +438,19 @@ prevent those, it is an ORM layer with extra steps.
 
 **Import IAO for the information layer.** The [Information Artifact
 Ontology](https://github.com/information-artifact-ontology/IAO) is the OBO Foundry mid-level
-ontology sitting directly under BFO, covering exactly what `wtl:` covers. Roughly eight of our
+ontology sitting directly under BFO, covering exactly what `fm:` covers. Roughly eight of our
 terms have IAO counterparts:
 
 | Ours | IAO |
 |---|---|
-| `wtl:InformationContentEntity` | `IAO_0000030` information content entity |
-| `wtl:MeasurementDatum` | `IAO_0000109` measurement datum |
-| `wtl:Document` | `IAO_0000310` document |
-| `wtl:DirectiveInformationEntity` | `IAO_0000033` directive information entity |
-| `wtl:Plan` | `IAO_0000104` plan specification |
-| `wtl:InformationBearingEntity` | `IAO_0000015` information carrier |
-| `wtl:isAbout` | `IAO_0000136` is about |
-| `wtl:hasUnit` | `IAO_0000039` + `IAO_0000003` measurement unit label |
+| `fm:InformationContentEntity` | `IAO_0000030` information content entity |
+| `fm:MeasurementDatum` | `IAO_0000109` measurement datum |
+| `fm:Document` | `IAO_0000310` document |
+| `fm:DirectiveInformationEntity` | `IAO_0000033` directive information entity |
+| `fm:Plan` | `IAO_0000104` plan specification |
+| `fm:InformationBearingEntity` | `IAO_0000015` information carrier |
+| `fm:isAbout` | `IAO_0000136` is about |
+| `fm:hasUnit` | `IAO_0000039` + `IAO_0000003` measurement unit label |
 
 Rejected, because the benefit of IAO is standard IRIs for downstream consumers and this
 ontology has none. Without that, importing 210 classes to replace eight is a net loss in
@@ -478,7 +478,7 @@ it is the part most likely to be misremembered later:
   conflict.
 
 Consequence for units: IAO's `measurement unit label` was the one clear win, so with IAO
-rejected, `wtl:hasUnit` being a string is now our problem to solve directly. It remains the
+rejected, `fm:hasUnit` being a string is now our problem to solve directly. It remains the
 one genuine soundness gap in 0.1.0.
 
 **Register the w3id namespace IRIs.** Rejected for the same reason. The IRIs are stable
@@ -491,7 +491,7 @@ Splitting costs three prefix declarations.
 
 **Model price as a quality of a contract.** Prices are not qualities: they are not borne by the
 contract independently of a transaction, and they change without the contract changing. Filed as
-`wtl:MeasurementDatum` via `ksh:Quote`, with a reference time, which also gives somewhere natural
+`fm:MeasurementDatum` via `ksh:Quote`, with a reference time, which also gives somewhere natural
 to hang order book snapshots.
 
 **A binary contract individual as the market's terms rather than a lot.** Contracts in a Kalshi
@@ -499,7 +499,7 @@ market are fungible, so "the yes contract of KXHIGHNY-26AUG15-B82.5" reads natur
 information content entity per market per side, with quantity living entirely on `ksh:Position`.
 Rejected because `ksh:Trade` is defined as bringing contracts into existence held by the two
 counterparties, and under the terms reading it brings nothing into existence — the terms
-predate every trade, and `wtl:hasOutput` would be false. So an individual is a lot: one trade,
+predate every trade, and `fm:hasOutput` would be false. So an individual is a lot: one trade,
 one holder, a `ksh:contractQuantity`. The cost is that two lots on the same side of the same
 market are distinct individuals with identical terms, and reconstructing a holder's exposure
 means summing them rather than reading one number. `ksh:Position` exists for that, which is why

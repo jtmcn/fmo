@@ -28,39 +28,39 @@ CASES = [
     (
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,
-        """    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;""",
-        """    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_C ;""",
+        """    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;""",
+        """    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_C ;""",
         "unit mismatch (proposition threshold vs target)",
     ),
     (
         "length unit on a temperature target",
         EXAMPLE,
         """    wx:underProtocol ex:TWCDailyTempProtocol ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    wx:underProtocol ex:TWCDailyTempProtocol ;
-    wtl:hasUnit unit:IN .""",
+    fm:hasUnit unit:IN .""",
         "dimension mismatch (proposition threshold vs target)",
     ),
     (
         "datum reported in Celsius for a Fahrenheit target",
         EXAMPLE,
-        """    wtl:realizedValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
-        """    wtl:realizedValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_C .""",
+        """    fm:realizedValue "82"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .""",
+        """    fm:realizedValue "82"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_C .""",
         "unit mismatch (datum vs target)",
     ),
     (
         "a target with no measurement protocol at all",
         EXAMPLE,
         """    wx:underProtocol ex:TWCDailyTempProtocol ;
-    wtl:hasUnit unit:DEG_F .
+    fm:hasUnit unit:DEG_F .
 
 ################################################################
 # 4. The proposition""",
-        """    wtl:hasUnit unit:DEG_F .
+        """    fm:hasUnit unit:DEG_F .
 
 ################################################################
 # 4. The proposition""",
@@ -88,7 +88,7 @@ CASES = [
         """ex:NWSSettlementSource a ksh:SettlementSource ;
     rdfs:label "NWS daily climate report for CLINYC" ;
     ksh:sourceProtocol ex:NWSDailyClimateProtocol ;
-    wtl:issuedBy ex:NWS .
+    fm:issuedBy ex:NWS .
 
 ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
     rdfs:label "Kalshi: NYC high on 2026-08-15" ;
@@ -154,15 +154,15 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "class unrooted from BFO",
         "src/kalshi.ttl",
         """ksh:Position a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;""",
+    rdfs:subClassOf fm:InformationContentEntity ;""",
         """ksh:Position a owl:Class ;""",
         "not grounded in BFO",
     ),
     (
         "the only forecast probability downgraded, breaking the join",
         EXAMPLE,
-        """ex:ForecastProb-82-83 a wtl:ForecastProbability ;""",
-        """ex:ForecastProb-82-83 a wtl:ProbabilityAssignment ;""",
+        """ex:ForecastProb-82-83 a fm:ForecastProbability ;""",
+        """ex:ForecastProb-82-83 a fm:ProbabilityAssignment ;""",
         "the forecast/market join is not demonstrated",
     ),
     (
@@ -178,9 +178,9 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "information artifact misfiled as a process",
         "src/kalshi.ttl",
         """ksh:Resolution a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity ;""",
+    rdfs:subClassOf fm:InformationContentEntity ;""",
         """ksh:Resolution a owl:Class ;
-    rdfs:subClassOf wtl:InformationContentEntity , bfo:BFO_0000015 ;""",
+    rdfs:subClassOf fm:InformationContentEntity , bfo:BFO_0000015 ;""",
         "both continuant and occurrent",
     ),
     (
@@ -189,21 +189,21 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         # a wrong unit, and only the wrong-unit case had coverage.
         "threshold with a numeric value but no unit at all",
         EXAMPLE,
-        """    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;""",
-        """    wtl:capValue "83"^^xsd:decimal ;""",
-        "carries a numeric value but no wtl:hasUnit",
+        """    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;""",
+        """    fm:capValue "83"^^xsd:decimal ;""",
+        "carries a numeric value but no fm:hasUnit",
     ),
     (
-        # wtl:hasUnit is functional, so HermiT catches this -- but `make reason` is
+        # fm:hasUnit is functional, so HermiT catches this -- but `make reason` is
         # the Java-optional path, and unit_of used to take units[0] from an
         # unordered list, which is precisely the Celsius/Fahrenheit defect above.
         "two units on one term, so the unit check picks one arbitrarily",
         EXAMPLE,
-        """    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F ;""",
-        """    wtl:capValue "83"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F , unit:DEG_C ;""",
+        """    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F ;""",
+        """    fm:capValue "83"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F , unit:DEG_C ;""",
         "ambiguous unit",
     ),
     (
@@ -227,8 +227,8 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
 
 ex:Target-LowTemp a wx:ObservationTarget ;
     rdfs:label "min temperature at KNYC" ;
-    wtl:overTemporalInterval ex:ClimDay-2026-08-15 ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:overTemporalInterval ex:ClimDay-2026-08-15 ;
+    fm:hasUnit unit:DEG_F .""",
         "lead time is ambiguous",
     ),
     (
@@ -238,14 +238,14 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "src/weather.ttl",
         """    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." .""",
         """    skos:scopeNote "Reported as the bearing the wind blows FROM." .""",
-        "no skos:definition: https://w3id.org/wantology/weather#WindDirection",
+        "no skos:definition: https://w3id.org/forecast-market-ontology/weather#WindDirection",
     ),
     (
         # Check 2b hard-coded two QUDT IRIs, so the third class the generator adds
         # floated under owl:Thing -- the exact defect 2b exists to catch.
         "a bridged QUDT class left unrooted",
         "src/core.ttl",
-        """qudt:QuantityKindDimensionVector rdfs:subClassOf wtl:Designation .""",
+        """qudt:QuantityKindDimensionVector rdfs:subClassOf fm:Designation .""",
         """""",
         "bridged external class not grounded in BFO",
     ),
@@ -258,29 +258,29 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         """ksh:UndeclaredPosition rdfs:subClassOf ksh:Position .
 
 ksh:Position a owl:Class ;""",
-        "no rdfs:label: https://w3id.org/wantology/kalshi#UndeclaredPosition",
+        "no rdfs:label: https://w3id.org/forecast-market-ontology/kalshi#UndeclaredPosition",
     ),
     (
-        # ksh:settlementValue is a sub-property of wtl:realizedValue, and rdflib
+        # ksh:settlementValue is a sub-property of fm:realizedValue, and rdflib
         # does no reasoning, so the unit rules did not reach the one number the
         # exchange actually pays out on.
         "settlement value recorded in Celsius against a Fahrenheit target",
         EXAMPLE,
         """    ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:resolvesTo ksh:ResolvedYes ;
     ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_C .""",
+    fm:hasUnit unit:DEG_C .""",
         "unit mismatch (settlement value vs target)",
     ),
     (
         "settlement value with no unit at all",
         EXAMPLE,
         """    ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:settlementValue "82"^^xsd:decimal .""",
-        "missing unit: https://w3id.org/wantology/examples/kxhighny-2026-08-15#Resolution-B82",
+        "missing unit: https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#Resolution-B82",
     ),
     (
         # Zero-coverage guard for the settlement-value check. Mutated in the checker
@@ -298,16 +298,16 @@ ksh:Position a owl:Class ;""",
         # to 161 and shifted every calibration statistic, while validate.py said OK.
         "a proposition carries two assessments of the current record",
         VERIFICATION,
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;""",
-        """vex:A-20260701-LE81-DUPLICATE a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:False ;
-    wtl:basedOnRecord vex:Report-20260701 ;
-    wtl:referenceTime "2026-07-02T10:59:59-04:00"^^xsd:dateTime .
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;""",
+        """vex:A-20260701-LE81-DUPLICATE a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:False ;
+    fm:basedOnRecord vex:Report-20260701 ;
+    fm:referenceTime "2026-07-02T10:59:59-04:00"^^xsd:dateTime .
 
-vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;""",
+vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;""",
         "more than one current assessment",
     ),
     (
@@ -326,17 +326,17 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # problem again: it goes stale the moment either input moves.
         "Brier score no longer matches the probability and outcome it scores",
         CORRECTION,
-        """    wtl:scoreValue "0.2704"^^xsd:decimal ;""",
-        """    wtl:scoreValue "0.1024"^^xsd:decimal ;""",
+        """    fm:scoreValue "0.2704"^^xsd:decimal ;""",
+        """    fm:scoreValue "0.1024"^^xsd:decimal ;""",
         "Brier score mismatch",
     ),
     (
         # Scoring against the settlement-era assessment measures what the exchange
-        # did, not what the record says. The whole point of wtl:scoredAgainst.
+        # did, not what the record says. The whole point of fm:scoredAgainst.
         "score points at an assessment of a superseded record",
         CORRECTION,
-        """    wtl:scoredAgainst ex:Reassessment-82-83 ;""",
-        """    wtl:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
+        """    fm:scoredAgainst ex:Reassessment-82-83 ;""",
+        """    fm:scoredAgainst ex:Assessment-82-83-at-settlement ;""",
         "score rests on a superseded record",
     ),
     (
@@ -345,11 +345,11 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # Brier score against an undetermined outcome is undefined, not zero.
         "score points at an assessment with an indeterminate truth value",
         CORRECTION,
-        """    wtl:assessesProposition ex:Prop-82-83 ;
-    wtl:assessedTruthValue wtl:False ;""",
-        """    wtl:assessesProposition ex:Prop-82-83 ;
-    wtl:assessedTruthValue wtl:Indeterminate ;""",
-        "not wtl:True or wtl:False",
+        """    fm:assessesProposition ex:Prop-82-83 ;
+    fm:assessedTruthValue fm:False ;""",
+        """    fm:assessesProposition ex:Prop-82-83 ;
+    fm:assessedTruthValue fm:Indeterminate ;""",
+        "not fm:True or fm:False",
     ),
     (
         # Zero-coverage guard for check_scores. Mutated in the checker rather than
@@ -373,24 +373,24 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
     (
         "two brackets of one mutually exclusive ladder overlap",
         BRACKETS,
-        """    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "84"^^xsd:decimal ;""",
-        """    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "83"^^xsd:decimal ;""",
+        """    fm:hasComparator fm:Between ;
+    fm:floorValue "84"^^xsd:decimal ;""",
+        """    fm:hasComparator fm:Between ;
+    fm:floorValue "83"^^xsd:decimal ;""",
         "overlapping brackets",
     ),
     (
         # interval()'s docstring promises None -- not a traceback -- for a
-        # threshold not stated; wtl:Between needs both floor and cap.
+        # threshold not stated; fm:Between needs both floor and cap.
         "a Between proposition missing its capValue",
         EXAMPLE,
-        """    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "82"^^xsd:decimal ;
-    wtl:capValue "83"^^xsd:decimal ;""",
-        """    wtl:hasSubject ex:Target-HighTemp ;
-    wtl:hasComparator wtl:Between ;
-    wtl:floorValue "82"^^xsd:decimal ;""",
+        """    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "82"^^xsd:decimal ;
+    fm:capValue "83"^^xsd:decimal ;""",
+        """    fm:hasSubject ex:Target-HighTemp ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "82"^^xsd:decimal ;""",
         "its comparator needs a threshold value that is not stated",
     ),
     (
@@ -411,9 +411,9 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         "settlement of zero recorded in Celsius against a Fahrenheit target",
         EXAMPLE,
         """    ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:settlementValue "0"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_C .""",
+    fm:hasUnit unit:DEG_C .""",
         "unit mismatch (settlement value vs target)",
     ),
     (
@@ -422,7 +422,7 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         "settlement of zero carries no unit at all",
         EXAMPLE,
         """    ksh:settlementValue "82"^^xsd:decimal ;
-    wtl:hasUnit unit:DEG_F .""",
+    fm:hasUnit unit:DEG_F .""",
         """    ksh:settlementValue "0"^^xsd:decimal .""",
         "missing unit",
     ),
@@ -431,8 +431,8 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # non-numeric score raised out of main() and every later check was lost.
         "Brier score stated as something non-numeric",
         CORRECTION,
-        """    wtl:scoreValue "0.2704"^^xsd:decimal ;""",
-        """    wtl:scoreValue "n/a" ;""",
+        """    fm:scoreValue "0.2704"^^xsd:decimal ;""",
+        """    fm:scoreValue "n/a" ;""",
         "is not numeric",
     ),
     (
@@ -459,8 +459,8 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # against its neighbours are meaningless rather than merely wrong.
         "bracket whose floor sits above its cap",
         BRACKETS,
-        """    wtl:floorValue "84"^^xsd:decimal ;""",
-        """    wtl:floorValue "88"^^xsd:decimal ;""",
+        """    fm:floorValue "84"^^xsd:decimal ;""",
+        """    fm:floorValue "88"^^xsd:decimal ;""",
         "is above cap",
     ),
     (
@@ -470,8 +470,8 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # market still matches, and a trader is still paid.
         "payout to the side the market resolved against",
         TRADING,
-        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
-        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-No-B ;",
+        "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
+        "    fm:hasInput ex:Resolution-B82 , tex:Lot-No-B ;",
         "pays the losing side",
     ),
     (
@@ -544,7 +544,7 @@ vex:A-20260701-LE81 a wtl:TruthAssessment ;
         # trading layer went unexercised for four versions in the first place.
         "a payout that names no resolution or lot at all",
         TRADING,
-        "    wtl:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
+        "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
         "",
         "trading layer is unexercised again",
     ),
@@ -556,23 +556,23 @@ COMPETENCY_CASES = [
     (
         "forecast and market probabilities no longer share a proposition",
         EXAMPLE,
-        """ex:ForecastProb-82-83 a wtl:ForecastProbability ;
+        """ex:ForecastProb-82-83 a fm:ForecastProbability ;
     rdfs:label "GEFS 06Z P(82-83F)" ;
-    wtl:assignsProbabilityTo ex:Prop-82-83 ;""",
-        """ex:Prop-decoy a wtl:Proposition ;
+    fm:assignsProbabilityTo ex:Prop-82-83 ;""",
+        """ex:Prop-decoy a fm:Proposition ;
     rdfs:label "decoy proposition" ;
-    wtl:hasSubject ex:Target-HighTemp .
+    fm:hasSubject ex:Target-HighTemp .
 
-ex:ForecastProb-82-83 a wtl:ForecastProbability ;
+ex:ForecastProb-82-83 a fm:ForecastProbability ;
     rdfs:label "GEFS 06Z P(82-83F)" ;
-    wtl:assignsProbabilityTo ex:Prop-decoy ;""",
+    fm:assignsProbabilityTo ex:Prop-decoy ;""",
         "returned 0 rows",
     ),
     (
         "a probability value silently changed",
         EXAMPLE,
-        """    wtl:probabilityValue "0.52"^^xsd:decimal ;""",
-        """    wtl:probabilityValue "0.41"^^xsd:decimal ;""",
+        """    fm:probabilityValue "0.52"^^xsd:decimal ;""",
+        """    fm:probabilityValue "0.41"^^xsd:decimal ;""",
         "differs from",
     ),
     (
@@ -602,34 +602,34 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
     (
         "corrected value changed, so the contradiction verdicts flip",
         CORRECTION,
-        """    wtl:realizedValue "84"^^xsd:decimal ;""",
-        """    wtl:realizedValue "81"^^xsd:decimal ;""",
+        """    fm:realizedValue "84"^^xsd:decimal ;""",
+        """    fm:realizedValue "81"^^xsd:decimal ;""",
         "differs from",
     ),
     (
         "an outcome flipped in the verification sample",
         VERIFICATION,
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:False ;""",
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:True ;""",
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:False ;""",
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:True ;""",
         "differs from",
     ),
     (
-        # Discriminating on purpose: an assessment that was wtl:False scores 0
-        # either way, so only a query that DROPS wtl:Indeterminate changes its
+        # Discriminating on purpose: an assessment that was fm:False scores 0
+        # either way, so only a query that DROPS fm:Indeterminate changes its
         # answer. Counting it as an observed "no" leaves every statistic intact
         # and the defect invisible.
         "an assessment becomes indeterminate rather than false",
         VERIFICATION,
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:False ;""",
-        """vex:A-20260701-LE81 a wtl:TruthAssessment ;
-    wtl:assessesProposition vex:P-20260701-LE81 ;
-    wtl:assessedTruthValue wtl:Indeterminate ;""",
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:False ;""",
+        """vex:A-20260701-LE81 a fm:TruthAssessment ;
+    fm:assessesProposition vex:P-20260701-LE81 ;
+    fm:assessedTruthValue fm:Indeterminate ;""",
         "differs from",
     ),
     (
@@ -639,7 +639,7 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
         # is still covered by the broken-join case above.
         "settlement no longer records the document it read",
         EXAMPLE,
-        """    wtl:hasInput ex:TWCRecord-2026-08-16 ;""",
+        """    fm:hasInput ex:TWCRecord-2026-08-16 ;""",
         """""",
         "differs from",
     ),
@@ -649,7 +649,7 @@ ex:ForecastProb-82-83 a wtl:ForecastProbability ;
 def run_case(name: str, rel: str, find: str, replace: str, expect: str,
              script: str = "scripts/validate.py") -> bool:
     with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / "wantology"
+        work = Path(tmp) / "fmo"
         shutil.copytree(
             ROOT, work,
             ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc"),

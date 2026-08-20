@@ -3,14 +3,14 @@
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 
-<https://w3id.org/wantology/wantology>
+<https://w3id.org/forecast-market-ontology/fmo>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/wantology/wantology/0.8.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/fmo/0.8.0> ;
     owl:imports
-        <https://w3id.org/wantology/core> ,
-        <https://w3id.org/wantology/weather> ,
-        <https://w3id.org/wantology/kalshi> ;
-    dcterms:title "Wantology" ;
+        <https://w3id.org/forecast-market-ontology/core> ,
+        <https://w3id.org/forecast-market-ontology/weather> ,
+        <https://w3id.org/forecast-market-ontology/kalshi> ;
+    dcterms:title "Forecast-Market Ontology" ;
     dcterms:description """An application ontology relating weather forecasts to prediction market
 listings on those forecasts, built on Basic Formal Ontology 2020.
 

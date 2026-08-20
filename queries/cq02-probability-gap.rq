@@ -22,20 +22,20 @@
 
 SELECT ?proposition ?forecastProb ?marketProb ?gap ?asOf ?forecastUnit ?targetUnit
 WHERE {
-    ?fp a/rdfs:subClassOf* wtl:ForecastProbability ;
-        wtl:assignsProbabilityTo ?proposition ;
-        wtl:probabilityValue ?forecastProb .
+    ?fp a/rdfs:subClassOf* fm:ForecastProbability ;
+        fm:assignsProbabilityTo ?proposition ;
+        fm:probabilityValue ?forecastProb .
 
-    ?mp a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
-        wtl:assignsProbabilityTo ?proposition ;
-        wtl:probabilityValue ?marketProb .
-    OPTIONAL { ?mp wtl:referenceTime ?asOf }
+    ?mp a/rdfs:subClassOf* fm:MarketImpliedProbability ;
+        fm:assignsProbabilityTo ?proposition ;
+        fm:probabilityValue ?marketProb .
+    OPTIONAL { ?mp fm:referenceTime ?asOf }
 
     # Carry the units through so a reader can see that the two sides are talking
     # about a target measured in one unit, not silently converted.
-    ?proposition wtl:hasSubject ?target .
-    OPTIONAL { ?proposition wtl:hasUnit ?forecastUnit }
-    OPTIONAL { ?target      wtl:hasUnit ?targetUnit }
+    ?proposition fm:hasSubject ?target .
+    OPTIONAL { ?proposition fm:hasUnit ?forecastUnit }
+    OPTIONAL { ?target      fm:hasUnit ?targetUnit }
 
     BIND((?marketProb - ?forecastProb) AS ?gap)
 }

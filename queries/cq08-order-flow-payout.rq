@@ -27,7 +27,7 @@ SELECT ?ticker ?trader ?side ?quantity ?pricePerContractCents ?impliedProbabilit
 WHERE {
     ?trade a/rdfs:subClassOf* ksh:Trade ;
            ksh:executionPriceCents ?yesPriceCents ;
-           wtl:hasOutput ?lot .
+           fm:hasOutput ?lot .
 
     ?lot a/rdfs:subClassOf* ksh:BinaryContract ;
          ksh:contractInMarket  ?market ;
@@ -47,20 +47,20 @@ WHERE {
             ksh:expressesProposition ?proposition .
 
     OPTIONAL {
-        ?assignment a/rdfs:subClassOf* wtl:MarketImpliedProbability ;
-                    wtl:assignsProbabilityTo ?proposition ;
-                    wtl:probabilityValue     ?impliedProbability ;
-                    wtl:referenceTime        ?probTime .
+        ?assignment a/rdfs:subClassOf* fm:MarketImpliedProbability ;
+                    fm:assignsProbabilityTo ?proposition ;
+                    fm:probabilityValue     ?impliedProbability ;
+                    fm:referenceTime        ?probTime .
         ?trade bfo:BFO_0000199 ?instant .
-        ?instant wtl:instantDateTime ?probTime .
+        ?instant fm:instantDateTime ?probTime .
     }
 
     # Unbound for the side that lost. ksh:Payout names both the resolution and
     # the lot it pays for; scripts/validate.py checks they agree.
     OPTIONAL {
         ?payout a/rdfs:subClassOf* ksh:Payout ;
-                wtl:hasInput ?lot ;
-                wtl:hasInput ?resolution ;
+                fm:hasInput ?lot ;
+                fm:hasInput ?resolution ;
                 ksh:payoutAmountCents ?payoutCents .
         ?resolution a/rdfs:subClassOf* ksh:Resolution ;
                     ksh:resolvesTo ?outcome .
