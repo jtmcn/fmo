@@ -81,7 +81,9 @@ make test                            # all of the above, plus the competency che
 `make diagram` writes `build/ontology.html`: every class, the subsumption
 skeleton, and the object properties that join them, on one pannable field. It is
 one self-contained file with no dependencies and no network calls, so it opens by
-double-clicking and survives being emailed to someone.
+double-clicking and survives being emailed to someone. The build drops the webfont
+links `viz/index.html` uses in development; the built file renders on the system
+stack `style.css` falls back to rather than blocking on a font server.
 
 Selecting a term shows its definition, its scope note, what it connects to, and
 the Turtle stanza it is actually declared in — the axioms, not a summary of them.
@@ -96,8 +98,10 @@ change the map, edit `viz/` and rebuild. Open `viz/index.html` directly to work
 against the last generated data without a build step.
 
 `make diagram-check` runs in `make test`. It asserts every minted class still
-resolves to a Turtle stanza and that the pivot edges above survive, because a
-viewer that silently drops half the graph still renders a convincing picture.
+resolves to a Turtle stanza, that every object property with a declared domain and
+range still draws an edge, that the pivot edges above survive, and that the built
+file fetches nothing — because a viewer that silently drops half the graph still
+renders a convincing picture.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
 `poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
