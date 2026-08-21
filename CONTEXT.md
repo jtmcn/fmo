@@ -188,7 +188,8 @@ seed. A diff there means the generator changed, never the data.
 
 - Terms with their prefix in prose: `ksh:EventGrouping`, not "EventGrouping" and not
   "event grouping" where precision matters. Bare labels are for reading aloud.
-- Prefixes are `fm:`, `wx:`, `ksh:` — never "core:". Example data uses `vex:`.
+- Prefixes are `fm:`, `wx:`, `ksh:` — never "core:". Example data uses `ex:` (worked
+  example), `tex:` (trading), `vex:` (verification).
 - Kalshi tickers verbatim and uppercase: `KXHIGHNY-26AUG15-B82.5`.
 - Files by path from the repo root: `src/weather.ttl`, `queries/cq05-*.rq`.
 - Say which side: "the forecast side" (`wx:`) and "the market side" (`ksh:`) meet at
