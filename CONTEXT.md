@@ -188,6 +188,10 @@ seed. A diff there means the generator changed, never the data.
 
 - Terms with their prefix in prose: `ksh:EventGrouping`, not "EventGrouping" and not
   "event grouping" where precision matters. Bare labels are for reading aloud.
+- A name the project **rejected** is struck through: ~~`ksh:Event`~~. `validate.py`
+  checks that every backticked term exists in `src/`, and a rejected name by definition
+  does not; strikethrough is how to spell one without failing the check, and it is the
+  only exemption.
 - Prefixes are `fm:`, `wx:`, `ksh:` — never "core:". Example data uses `ex:` (worked
   example), `tex:` (trading), `vex:` (verification).
 - Kalshi tickers verbatim and uppercase: `KXHIGHNY-26AUG15-B82.5`.
@@ -200,7 +204,7 @@ seed. A diff there means the generator changed, never the data.
 
 ## Settled naming decisions
 
-1. **event → `ksh:EventGrouping`.** The collision that matters most; see
+1. **event, ~~`ksh:Event`~~ → `ksh:EventGrouping`.** The collision that matters most; see
    `docs/design-notes.md` §"The naming collision that matters most". Everything the
    Kalshi API returns is a document; the processes are separate classes.
 2. **station → site.** The target names a site. The station is the instrument, and

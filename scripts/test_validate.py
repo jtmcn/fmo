@@ -36,6 +36,54 @@ CASES = [
         "CONTEXT.md names an undeclared term: fm:MarketImpliedProbability_renamed",
     ),
     (
+        # The escape hatch is narrow: strikethrough exempts a rejected name, plain
+        # backticks do not, or "never write bare event" could smuggle any typo through.
+        "a rejected name in CONTEXT.md written without its strikethrough",
+        "CONTEXT.md",
+        "**event, ~~`ksh:Event`~~ \u2192 `ksh:EventGrouping`.**",
+        "**event, `ksh:Event` \u2192 `ksh:EventGrouping`.**",
+        "CONTEXT.md names an undeclared term: ksh:Event",
+    ),
+    (
+        # Retirement the OWL way: declaration dropped, tombstone kept. Subject of plenty
+        # of triples still, so "mentioned somewhere in src/" read it as alive.
+        "CONTEXT.md naming a term left behind as a deprecated tombstone",
+        "src/kalshi.ttl",
+        "ksh:Payout a owl:Class ;",
+        "ksh:Payout owl:deprecated true ;",
+        "CONTEXT.md names a deprecated term: ksh:Payout",
+    ),
+    (
+        "CONTEXT.md naming an example individual that does not exist",
+        "CONTEXT.md",
+        "`tex:` (trading)",
+        "`tex:NoSuchLot` (trading)",
+        "CONTEXT.md names an undefined individual: tex:NoSuchLot",
+    ),
+    (
+        # §4 is repo mechanics end to end, so paths, make targets and check names rot
+        # the same way a renamed term does and were the half nothing watched.
+        "CONTEXT.md naming a source path that does not exist",
+        "CONTEXT.md",
+        "`src/weather.ttl`",
+        "`src/weather-side.ttl`",
+        "CONTEXT.md names a missing path: src/weather-side.ttl",
+    ),
+    (
+        "CONTEXT.md naming a make target that does not exist",
+        "CONTEXT.md",
+        "from `make diagram`",
+        "from `make diagrams`",
+        "CONTEXT.md names a missing make target: diagrams",
+    ),
+    (
+        "CONTEXT.md naming a validator check that does not exist",
+        "CONTEXT.md",
+        "`check_current_assessments`",
+        "`check_current_assessment`",
+        "CONTEXT.md names a missing check: check_current_assessment",
+    ),
+    (
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,
         """    fm:capValue "83"^^xsd:decimal ;
