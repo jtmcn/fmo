@@ -26,6 +26,16 @@ TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
     (
+        # The rename that strands the vocabulary file: nothing but validate.py reads
+        # CONTEXT.md, so a term renamed in src/ leaves its prose mention dangling and
+        # every other check stays green.
+        "CONTEXT.md naming a term that no longer exists",
+        "CONTEXT.md",
+        "`fm:MarketImpliedProbability`",
+        "`fm:MarketImpliedProbability_renamed`",
+        "CONTEXT.md names an undeclared term: fm:MarketImpliedProbability_renamed",
+    ),
+    (
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,
         """    fm:capValue "83"^^xsd:decimal ;

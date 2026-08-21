@@ -204,7 +204,9 @@ lot of contracts, in the same market, on the side that resolution determined, he
 whose obligation it realizes, for one dollar a contract — paying the losing side is the
 trading-layer form of the mistake `fm:scoredAgainst` exists to expose, arithmetically
 self-consistent and resting on the wrong determination, and paying the right amount to the wrong
-party is the same mistake about the other end of the transfer. `make
+party is the same mistake about the other end of the transfer. Every term `CONTEXT.md` names in
+backticks must still be declared, since nothing else reads that file and a rename would leave the
+vocabulary pointing at a term that no longer exists. `make
 reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
 prove the defined class actually fires.
 
