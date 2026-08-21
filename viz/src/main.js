@@ -7,7 +7,7 @@
   'use strict';
 
   var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var alpha = 1, running = true;
+  var alpha = 1, running = true, fitted = false;
 
   function select(node) {
     FMO.graph.setFocus(node);
@@ -20,7 +20,13 @@
 
     FMO.graph.build(document.getElementById('svg'), FMO, {
       select: select,
-      disturb: function () { alpha = Math.max(alpha, 0.28); running = true; }
+      // graph reports every camera move it makes on the user's behalf -- zoom, and
+      // the centring that search and the panel links ask for.
+      moved: function () { fitted = true; },
+      disturb: function () {
+        alpha = Math.max(alpha, 0.28);
+        if (!running) { running = true; requestAnimationFrame(loop); }
+      }
     });
 
     FMO.ui.init(FMO, { select: select });
@@ -50,17 +56,16 @@
   }
 
   function loop() {
-    if (running) {
-      FMO.layout.tick(alpha);
-      if (!fitted) FMO.graph.fit();
-      else FMO.graph.paint();
-      alpha *= 0.986;
-      if (alpha < 0.012) { running = false; alpha = 0.012; }
-    }
+    FMO.layout.tick(alpha);
+    if (!fitted) FMO.graph.fit();
+    else FMO.graph.paint();
+    alpha *= 0.986;
+    // Stop rather than re-arm: an idle tab should not wake every frame. disturb
+    // starts it again.
+    if (alpha < 0.012) { running = false; alpha = 0.012; return; }
     requestAnimationFrame(loop);
   }
 
-  var fitted = false;
   window.addEventListener('resize', function () {
     if (!document.getElementById('reset').hidden) return;
     FMO.graph.fit();
@@ -81,7 +86,10 @@
   }
 
   // Hand the camera back to the user once the layout has stopped moving much.
+  // One last fit to frame the settled shape -- unless they have already moved it.
   if (!calm) {
-    setTimeout(function () { fitted = true; FMO.graph.fit(); }, 2200);
+    setTimeout(function () {
+      if (!fitted) { FMO.graph.fit(); fitted = true; }
+    }, 2200);
   }
 })(window.FMO);

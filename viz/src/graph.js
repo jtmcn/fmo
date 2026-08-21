@@ -253,6 +253,7 @@
     cam.x = r.width / 2 - node.x * cam.k;
     cam.y = r.height / 2 - node.y * cam.k;
     paint();
+    if (on.moved) on.moved();
   }
 
   /* ---- input ---- */

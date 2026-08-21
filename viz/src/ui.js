@@ -11,7 +11,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
-  var byId = {}, nodes = [], props = {};
+  var byId = {}, nodes = [], props = {}, drawn = 0;
   var onSelect = function () {};
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
   var showRel = true;
@@ -24,11 +24,19 @@
     bfo: 'BFO (borrowed)'
   };
 
+  // Borrowed terms name their own source; not all of them are BFO.
+  var EXTERNAL_NAME = { bfo: 'Basic Formal Ontology', qudt: 'QUDT', owl: 'OWL' };
+
   function init(data, handlers) {
     nodes = data.nodes;
     props = data.properties;
     onSelect = handlers.select;
     nodes.forEach(function (n) { byId[n.id] = n; });
+
+    var seen = {};
+    data.edges.forEach(function (e) {
+      if (e.k === 'rel' && !seen[e.p]) { seen[e.p] = 1; drawn++; }
+    });
 
     $('version').textContent = 'v' + data.version;
     initSearch();
@@ -39,11 +47,21 @@
 
   /* ---- filters ---- */
 
+  /* Borrowed ground filters under the bfo chip whatever namespace it came from:
+     a qudt endpoint has no chip of its own, so keying on the module alone would
+     hide it with nothing left to bring it back. */
+  function chipOf(n) { return n.minted ? n.module : 'bfo'; }
+
   function applyFilters() {
-    nodes.forEach(function (n) { n.hidden = !modules[n.module]; });
+    nodes.forEach(function (n) { n.hidden = !modules[chipOf(n)]; });
     FMO.graph.setKind('rel', showRel);
     legend();
-    FMO.graph.paint();
+    // Results were filtered on visibility when they were built; rebuild them, or
+    // Enter opens a term that is no longer on the map. Rebuilding must not pop the
+    // list back open, so put its own state back.
+    var open = !$('results').hidden;
+    search($('search').value);
+    if (!open) $('results').hidden = true;
   }
 
   function initChips() {
@@ -63,7 +81,7 @@
   function legend() {
     var counts = {};
     nodes.forEach(function (n) {
-      if (!n.hidden) counts[n.module] = (counts[n.module] || 0) + 1;
+      if (!n.hidden) counts[chipOf(n)] = (counts[chipOf(n)] || 0) + 1;
     });
     var rows = '';
     ['fm', 'wx', 'ksh', 'bfo'].forEach(function (m) {
@@ -76,8 +94,10 @@
     });
     $('legend-rows').innerHTML = rows;
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
-    $('legend-note').textContent = shown + ' classes · ' +
-      Object.keys(props).length + ' object properties';
+    // Drawn, not declared: the properties left open-domain on purpose have no
+    // edge, and the legend should not claim a line for them.
+    $('legend-note').textContent = shown + ' classes · ' + drawn + ' of ' +
+      Object.keys(props).length + ' object properties drawn';
   }
 
   /* ---- search ---- */
@@ -153,6 +173,9 @@
         input.value = '';
         search('');
         input.blur();
+        // blur() lands before the event bubbles, so the document handler would
+        // read this as an Escape from outside the field and close the panel too.
+        ev.stopPropagation();
       }
     });
 
@@ -207,7 +230,7 @@
     var kicker = $('panel-kicker');
     kicker.textContent = n.minted
       ? MODULE_NAME[n.module].replace(' · the pivot', ' module')
-      : 'Basic Formal Ontology';
+      : (EXTERNAL_NAME[n.module] || n.module);
     kicker.style.color = tone;
 
     $('panel-title').textContent = n.label;
