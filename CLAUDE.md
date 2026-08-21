@@ -6,7 +6,8 @@ An OWL ontology (Turtle, hand-authored) relating weather forecasts to Kalshi pre
 markets, grounded in BFO 2020. There is no application code — `scripts/` exists only to
 check the ontology. `README.md` has the architecture and the three modelling decisions
 that shape everything; `docs/design-notes.md` has the rejected alternatives. Read both
-before changing `src/`.
+before changing `src/`. `CONTEXT.md` is the controlled vocabulary — which word to use
+for what, and which not to; consult it before naming anything in prose or in Turtle.
 
 ## Commands
 
