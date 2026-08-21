@@ -46,7 +46,10 @@ go wrong when hand-authoring a BFO application ontology:
      names. A missing protocol is invisible to the reasoner -- open-world reads it as
      unnamed rather than absent -- and a settlement source disagreeing with a target's
      protocol is the 2026-08-14 migration expressed as a modelling error.
- 11. The trading layer settles what it says it settles: a match outputs one yes lot and
+ 11. Every term CONTEXT.md names in backticks is declared in src/. The vocabulary
+     file is prose and nothing else reads it, so a rename leaves its mentions
+     pointing at nothing, exactly as a dangling IRI does in the examples.
+ 12. The trading layer settles what it says it settles: a match outputs one yes lot and
      one no lot of equal quantity, and a payout pays the side its resolution determined,
      to the holder whose obligation it realizes, at one dollar a contract.
 
@@ -64,6 +67,7 @@ Exit code is non-zero if any check fails. Run: python3 scripts/validate.py
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -91,6 +95,11 @@ OUR_NS = (
     "https://w3id.org/forecast-market-ontology/weather#",
     "https://w3id.org/forecast-market-ontology/kalshi#",
 )
+
+CONTEXT = ROOT / "CONTEXT.md"
+PREFIXES = dict(zip(("fm", "wx", "ksh"), OUR_NS))
+# Backticked only: prose says "the fm: side" and names files, and neither is a term.
+CONTEXT_TERM = re.compile(r"`(fm|wx|ksh):([A-Za-z][A-Za-z0-9_]*)`")
 
 MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl"]
 EXAMPLES = sorted((ROOT / "examples").glob("*.ttl"))
@@ -918,6 +927,28 @@ def check_trades(g: Graph) -> None:
     notes.append(f"{checked} trade(s) checked for opposite sides and equal quantity")
 
 
+def check_context_terms(g: Graph) -> None:
+    """CONTEXT.md names terms in prose, and no tool but this one reads it.
+
+    Coverage is deliberately not checked in the other direction: the file exists to
+    say which word to use, not to restate 200 definitions, so demanding an entry per
+    term would turn it into the copy of the ontology it is written not to be.
+    """
+    if not CONTEXT.exists():
+        fail("missing CONTEXT.md")
+        return
+
+    declared = {s for s in g.subjects() if is_ours(s)}
+    mentioned = {(p, local) for p, local in CONTEXT_TERM.findall(CONTEXT.read_text())}
+    if not mentioned:
+        fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
+        return
+    for prefix, local in sorted(mentioned):
+        if URIRef(PREFIXES[prefix] + local) not in declared:
+            fail(f"CONTEXT.md names an undeclared term: {prefix}:{local}")
+    notes.append(f"{len(mentioned)} term(s) named in CONTEXT.md checked against src/")
+
+
 def main() -> int:
     g = Graph()
 
@@ -1181,6 +1212,8 @@ def main() -> int:
             f"({len(expressed)} expressed by markets, {len(with_forecast)} forecast, "
             f"{len(with_market)} market-implied)"
         )
+
+    check_context_terms(g)
 
     return report()
 
