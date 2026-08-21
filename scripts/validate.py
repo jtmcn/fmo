@@ -46,9 +46,12 @@ go wrong when hand-authoring a BFO application ontology:
      names. A missing protocol is invisible to the reasoner -- open-world reads it as
      unnamed rather than absent -- and a settlement source disagreeing with a target's
      protocol is the 2026-08-14 migration expressed as a modelling error.
- 11. Every term CONTEXT.md names in backticks is declared in src/. The vocabulary
-     file is prose and nothing else reads it, so a rename leaves its mentions
-     pointing at nothing, exactly as a dangling IRI does in the examples.
+ 11. Everything CONTEXT.md names in backticks still exists: minted terms declared
+     (not merely mentioned, and not retired to an owl:deprecated tombstone), example
+     individuals defined, and the paths, make targets and check names its repo-mechanics
+     section runs on. The vocabulary file is prose and nothing else reads it, so a
+     rename leaves its mentions pointing at nothing, exactly as a dangling IRI does in
+     the examples. A name the project rejected is written struck through and skipped.
  12. The trading layer settles what it says it settles: a match outputs one yes lot and
      one no lot of equal quantity, and a payout pays the side its resolution determined,
      to the holder whose obligation it realizes, at one dollar a contract.
@@ -98,9 +101,28 @@ PREFIXES = {
 }
 OUR_NS = tuple(PREFIXES.values())
 
+# Example data lives in examples/, not src/, so it is checked against the example graph.
+EXAMPLE_PREFIXES = {
+    "ex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#",
+    "tex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#",
+    "vex": "https://w3id.org/forecast-market-ontology/examples/verification#",
+}
+CONTEXT_PREFIXES = {**PREFIXES, **EXAMPLE_PREFIXES}
+
+# A term is declared when something types it. A retirement that leaves a tombstone behind
+# -- owl:deprecated plus the old label -- is not a declaration, and CONTEXT.md must stop
+# naming it rather than keep pointing at a term the model no longer has.
+DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty, OWL.NamedIndividual)
+
 CONTEXT = ROOT / "CONTEXT.md"
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
-CONTEXT_TERM = re.compile(rf"`({'|'.join(PREFIXES)}):([A-Za-z][A-Za-z0-9_]*)`")
+# Struck through (~~`ksh:Event`~~) is exempt: that is how the file spells a name the
+# project rejected, which by construction is declared nowhere.
+CONTEXT_TERM = re.compile(rf"(?<!~)`({'|'.join(CONTEXT_PREFIXES)}):([A-Za-z][A-Za-z0-9_]*)`(?!~)")
+# Globs are patterns, not paths (`queries/cqNN-*.rq` names no file), and build/ is generated.
+CONTEXT_PATH = re.compile(r"`((?:src|scripts|queries|docs|examples)/[^`*]*)`")
+CONTEXT_MAKE = re.compile(r"`make ([a-z][a-z-]*)`")
+CONTEXT_CHECK = re.compile(r"`(check_[a-z_]+)`")
 
 MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl"]
 EXAMPLES = sorted((ROOT / "examples").glob("*.ttl"))
@@ -928,8 +950,13 @@ def check_trades(g: Graph) -> None:
     notes.append(f"{checked} trade(s) checked for opposite sides and equal quantity")
 
 
-def check_context_terms(g: Graph) -> None:
+def check_context_terms(g: Graph, ex: Graph) -> None:
     """CONTEXT.md names terms in prose, and no tool but this one reads it.
+
+    Everything backticked the repo can be asked about is checked: minted terms and
+    example individuals against the graph, source paths, make targets and check names
+    against the tree. §4 is entirely repo mechanics, so leaving those unchecked left
+    the half of the file most likely to rot as the half nothing watched.
 
     Coverage is deliberately not checked in the other direction: the file exists to
     say which word to use, not to restate 200 definitions, so demanding an entry per
@@ -938,16 +965,45 @@ def check_context_terms(g: Graph) -> None:
     if not CONTEXT.exists():
         fail("missing CONTEXT.md")
         return
+    text = CONTEXT.read_text(encoding="utf-8")
 
-    declared = {s for s in g.subjects() if is_ours(s)}
-    mentioned = {(p, local) for p, local in CONTEXT_TERM.findall(CONTEXT.read_text(encoding="utf-8"))}
+    declared = {s for cls in DECLARED_AS for s in g.subjects(RDF.type, cls) if is_ours(s)}
+    deprecated = set(g.subjects(OWL.deprecated, Literal(True)))
+    mentioned = set(CONTEXT_TERM.findall(text))
     if not mentioned:
         fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
         return
     for prefix, local in sorted(mentioned):
-        if URIRef(PREFIXES[prefix] + local) not in declared:
+        term = URIRef(CONTEXT_PREFIXES[prefix] + local)
+        if prefix in EXAMPLE_PREFIXES:
+            if (term, RDF.type, None) not in ex:
+                fail(f"CONTEXT.md names an undefined individual: {prefix}:{local}")
+        elif term in deprecated:
+            fail(f"CONTEXT.md names a deprecated term: {prefix}:{local}")
+        elif term not in declared:
             fail(f"CONTEXT.md names an undeclared term: {prefix}:{local}")
-    notes.append(f"{len(mentioned)} term(s) named in CONTEXT.md checked against src/")
+
+    paths = set(CONTEXT_PATH.findall(text))
+    for rel in sorted(paths):
+        if not (ROOT / rel).exists():
+            fail(f"CONTEXT.md names a missing path: {rel}")
+
+    targets = set(CONTEXT_MAKE.findall(text))
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    for target in sorted(targets):
+        if not re.search(rf"^{re.escape(target)}:", makefile, re.M):
+            fail(f"CONTEXT.md names a missing make target: {target}")
+
+    checks = set(CONTEXT_CHECK.findall(text))
+    source = "".join(f.read_text(encoding="utf-8") for f in sorted((ROOT / "scripts").glob("*.py")))
+    for name in sorted(checks):
+        if f"def {name}(" not in source:
+            fail(f"CONTEXT.md names a missing check: {name}")
+
+    notes.append(
+        f"CONTEXT.md: {len(mentioned)} term(s), {len(paths)} path(s), "
+        f"{len(targets)} make target(s), {len(checks)} check name(s) verified"
+    )
 
 
 def main() -> int:
@@ -1214,7 +1270,7 @@ def main() -> int:
             f"{len(with_market)} market-implied)"
         )
 
-    check_context_terms(g)
+    check_context_terms(g, ex)
 
     return report()
 
