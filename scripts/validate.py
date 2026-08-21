@@ -90,16 +90,17 @@ BRANCHES = {
     URIRef(BFO + "BFO_0000003"): "occurrent",
 }
 
-OUR_NS = (
-    "https://w3id.org/forecast-market-ontology/core#",
-    "https://w3id.org/forecast-market-ontology/weather#",
-    "https://w3id.org/forecast-market-ontology/kalshi#",
-)
+# One source of truth: a new module gets one line here, not three edits that can drift.
+PREFIXES = {
+    "fm": "https://w3id.org/forecast-market-ontology/core#",
+    "wx": "https://w3id.org/forecast-market-ontology/weather#",
+    "ksh": "https://w3id.org/forecast-market-ontology/kalshi#",
+}
+OUR_NS = tuple(PREFIXES.values())
 
 CONTEXT = ROOT / "CONTEXT.md"
-PREFIXES = dict(zip(("fm", "wx", "ksh"), OUR_NS))
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
-CONTEXT_TERM = re.compile(r"`(fm|wx|ksh):([A-Za-z][A-Za-z0-9_]*)`")
+CONTEXT_TERM = re.compile(rf"`({'|'.join(PREFIXES)}):([A-Za-z][A-Za-z0-9_]*)`")
 
 MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl"]
 EXAMPLES = sorted((ROOT / "examples").glob("*.ttl"))
@@ -939,7 +940,7 @@ def check_context_terms(g: Graph) -> None:
         return
 
     declared = {s for s in g.subjects() if is_ours(s)}
-    mentioned = {(p, local) for p, local in CONTEXT_TERM.findall(CONTEXT.read_text())}
+    mentioned = {(p, local) for p, local in CONTEXT_TERM.findall(CONTEXT.read_text(encoding="utf-8"))}
     if not mentioned:
         fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
         return
