@@ -1,5 +1,6 @@
 model	leadHours	n	sourceRows	meanForecast	baseRate	meanBrier	climatologyBrier	meanAbsError
 ex:GEFS	-4.667	1	1	0.52	0	0.27	0	0.52
+ex:GEFS	11.0	1	1	0.45	1	0.303	0	0.55
 vex:ModelCalibrated	24	160	160	0.25	0.25	0.134	0.188	0.245
 vex:ModelCalibrated	72	160	160	0.25	0.25	0.159	0.188	0.314
 vex:ModelOverconfident	24	160	160	0.25	0.25	0.154	0.188	0.234

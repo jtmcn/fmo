@@ -1,5 +1,6 @@
 model	leadHours	bin	n	sourceRows	meanForecast	observedFreq	calibrationGap	meanBrier
 ex:GEFS	-4.667	3: 0.4-0.6	1	1	0.52	0	0.52	0.27
+ex:GEFS	11.0	3: 0.4-0.6	1	1	0.45	1	-0.55	0.303
 vex:ModelCalibrated	24	1: 0.0-0.2	82	82	0.04	0.073	-0.033	0.057
 vex:ModelCalibrated	24	2: 0.2-0.4	37	37	0.29	0.351	-0.061	0.24
 vex:ModelCalibrated	24	3: 0.4-0.6	23	23	0.453	0.261	0.192	0.239

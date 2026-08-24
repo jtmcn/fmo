@@ -1,0 +1,250 @@
+# Worked example: the daily NYC rain market, settled, followed through to
+# assessment. The second worked example, and the first outside temperature.
+#
+# It exists to answer a question the ontology had never been asked: whether the
+# precipitation vocabulary can express a real listed market, or is only minted.
+# Through 0.9.0 eighteen classes in weather.ttl had no instance, no query and no
+# check -- the condition the trading layer was in through 0.7.1, where unused
+# turned out to mean unusable.
+#
+# The market decides one thing the model had left to prose. Kalshi settles
+# "will it rain" as strike_type: greater, floor_strike: 0 -- a threshold on a
+# QUALITY, precipitation depth, not the occurrence of a process. So the
+# proposition's subject is the depth target, exactly as the exchange settles it,
+# and the rainfall process appears where it belongs: in the record of what
+# happened, not in the claim about what would.
+#
+# Market values are from the Kalshi API on 2026-08-23 (result yes, expiration
+# value 0.27 inches). The forecast probability is illustrative -- Kalshi
+# publishes no forecast -- as in the temperature example.
+
+@prefix rex:  <https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+
+<https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15>
+    a owl:Ontology ;
+    owl:imports <https://w3id.org/forecast-market-ontology/fmo> ;
+    rdfs:label "Worked example: KXRAINNYC-26JUL15" .
+
+################################################################
+# 1. Time
+#
+# Same climatological day rule as the temperature example: local STANDARD time
+# midnight to midnight all year. 15 July 2026 is inside daylight saving time,
+# so the interval runs 01:00 EDT on the 15th to 00:59:59 EDT on the 16th.
+#
+# The site is ex:CentralParkSite, defined in the temperature example. The market
+# rules name it directly: "the number of inches of precipitation recorded at
+# Central Park, New York". Re-using it rather than minting a second site is the
+# point of the site/station split -- one persistent place of record, many
+# variables measured there.
+################################################################
+
+rex:ClimDay-2026-07-15 a wx:ClimatologicalDay ;
+    rdfs:label "climatological day 2026-07-15 at Central Park" ;
+    bfo:BFO_0000222 rex:Instant-Start ;     # has first instant
+    bfo:BFO_0000224 rex:Instant-End .       # has last instant
+
+rex:Instant-Start a bfo:BFO_0000203 ; fm:instantDateTime "2026-07-15T01:00:00-04:00"^^xsd:dateTime .
+rex:Instant-End   a bfo:BFO_0000203 ; fm:instantDateTime "2026-07-16T00:59:59-04:00"^^xsd:dateTime .
+
+################################################################
+# 2. What is being measured
+#
+# A separate protocol from ex:NWSDailyClimateProtocol, though both are the NWS
+# CLI product for NYC. The reporting increment differs -- hundredths of an inch
+# against whole degrees -- and the increment is a property of the protocol. Two
+# targets differing in protocol are different targets; the rule does not bend
+# because the publisher happens to be the same.
+#
+# The trace case is where this protocol earns its keep. The CLI product reports
+# "T" for a measurable-but-unquantifiable trace, and Kalshi's rules resolve Yes
+# on T when the threshold is 0. T is not a number, so a datum reporting it could
+# not carry fm:realizedValue at all. This example settles on 0.27 inches and does
+# not exercise that path; it is named here so the next reader does not assume it
+# was handled.
+################################################################
+
+rex:NWSDailyPrecipProtocol a wx:MeasurementProtocol ;
+    rdfs:label "NWS daily precipitation protocol for CLINYC" ;
+    fm:statedAs "Total liquid-equivalent precipitation recorded at the New York City station of record over the climatological day, in hundredths of an inch, as published in the NWS CLI product for NYC. A trace is reported as T and is not a numeric value." ;
+    fm:issuedBy ex:NWS .
+
+rex:Target-Precip a wx:WeatherObservationTarget ;
+    rdfs:label "total precipitation, Central Park, climatological day 2026-07-15" ;
+    wx:targetVariable wx:TotalPrecipitation ;
+    wx:atSite ex:CentralParkSite ;
+    fm:overTemporalInterval rex:ClimDay-2026-07-15 ;
+    wx:underProtocol rex:NWSDailyPrecipProtocol ;
+    fm:hasUnit unit:IN .
+
+################################################################
+# 3. The proposition -- the pivot
+#
+# fm:GreaterThan, floor 0, no cap. The API returns cap_strike 0 alongside
+# floor_strike 0 for a greater-strike market; it is not a cap and is not
+# recorded as one. Writing fm:capValue 0 here would make the proposition say
+# "exactly 0", which is the opposite of what it settles.
+################################################################
+
+rex:Prop-Rain a fm:Proposition ;
+    rdfs:label "more than 0 inches of precipitation" ;
+    fm:hasSubject rex:Target-Precip ;
+    fm:hasComparator fm:GreaterThan ;
+    fm:floorValue "0"^^xsd:decimal ;
+    fm:hasUnit unit:IN ;
+    fm:statedAs "The total precipitation recorded at the Central Park station of record over the climatological day of 15 July 2026, as published in the NWS CLI product for NYC, is strictly greater than 0 inches." .
+
+################################################################
+# 4. The market side
+#
+# No ksh:mutuallyExclusive on the grouping. This event lists one market, and one
+# market partitions nothing -- the complement of Yes is the No side of the same
+# contract, not a sibling market. Asserting exclusivity would be trivially true
+# and would teach the next reader the wrong thing about what the flag means.
+################################################################
+
+rex:NWSPrecipSettlementSource a ksh:SettlementSource ;
+    rdfs:label "NWS climatological report for NYC, precipitation" ;
+    ksh:sourceProtocol rex:NWSDailyPrecipProtocol ;
+    fm:issuedBy ex:NWS .
+
+rex:KXRAINNYC a ksh:Series ;
+    rdfs:label "Kalshi: rain in NYC, daily" ;
+    ksh:seriesTicker "KXRAINNYC" ;
+    ksh:settlementSource rex:NWSPrecipSettlementSource ;
+    fm:issuedBy ksh:Kalshi .
+
+rex:KXRAINNYC-26JUL15 a ksh:EventGrouping ;
+    rdfs:label "Kalshi: rain in NYC on 2026-07-15" ;
+    ksh:eventTicker "KXRAINNYC-26JUL15" ;
+    ksh:inSeries rex:KXRAINNYC ;
+    ksh:coversTarget rex:Target-Precip .
+
+rex:Market-Rain-T0 a ksh:WeatherMarket ;
+    rdfs:label "KXRAINNYC-26JUL15-T0" ;
+    ksh:marketTicker "KXRAINNYC-26JUL15-T0" ;
+    ksh:inEventGrouping rex:KXRAINNYC-26JUL15 ;
+    ksh:expressesProposition rex:Prop-Rain ;
+    ksh:hasStatus ksh:Finalized ;
+    ksh:closeTime "2026-07-16T03:59:00Z"^^xsd:dateTime ;
+    ksh:expectedExpirationTime "2026-07-16T14:00:00Z"^^xsd:dateTime ;
+    ksh:latestExpirationTime   "2026-07-22T14:00:00Z"^^xsd:dateTime .
+
+rex:Quote-Prior a ksh:Quote ;
+    rdfs:label "quote for KXRAINNYC-26JUL15-T0 before the day began" ;
+    ksh:quoteForMarket rex:Market-Rain-T0 ;
+    fm:referenceTime "2026-07-14T20:00:00Z"^^xsd:dateTime ;
+    ksh:yesBidCents 7 ;
+    ksh:yesAskCents 28 ;
+    ksh:lastPriceCents 24 .
+
+rex:MarketProb-Prior a fm:MarketImpliedProbability ;
+    rdfs:label "market implied P(rain) before the day began" ;
+    fm:assignsProbabilityTo rex:Prop-Rain ;
+    fm:probabilityValue "0.24"^^xsd:decimal ;
+    fm:referenceTime "2026-07-14T20:00:00Z"^^xsd:dateTime ;
+    ksh:derivedFromQuote rex:Quote-Prior ;
+    fm:statedAs "Last traded price of 24 cents divided by 100. Ignores spread, fees, and carry. The 21-cent spread here is much wider than the temperature example's 4 cents, which is what the placeholder derivation cannot see." .
+
+rex:Derivation-Prior a ksh:PriceToProbabilityDerivation ;
+    fm:hasInput rex:Quote-Prior ;
+    fm:hasOutput rex:MarketProb-Prior .
+
+################################################################
+# 5. The forecast side -- same proposition, different agent
+################################################################
+
+rex:Forecast-Rain a wx:ProbabilisticForecast ;
+    rdfs:label "probability-of-precipitation forecast for Central Park, 2026-07-15" ;
+    wx:forecastFor rex:Target-Precip ;
+    wx:producedByModel ex:GEFS ;
+    wx:issuanceTime "2026-07-14T18:00:00Z"^^xsd:dateTime ;
+    wx:leadTimeHours "11.0"^^xsd:decimal ;
+    bfo:BFO_0000178 rex:ForecastProb-Rain .     # has continuant part
+
+rex:ForecastProb-Rain a fm:ForecastProbability ;
+    rdfs:label "P(measurable precipitation) for 2026-07-15" ;
+    fm:assignsProbabilityTo rex:Prop-Rain ;
+    fm:probabilityValue "0.45"^^xsd:decimal ;
+    fm:referenceTime "2026-07-14T18:00:00Z"^^xsd:dateTime .
+
+# 21 points between the forecast and the market, against 8 in the temperature
+# example, on the second proposition to carry both. The join is now demonstrated
+# on more than one individual, which is what makes it a join rather than a
+# coincidence.
+
+################################################################
+# 6. What actually happened
+#
+# The occurrent, at last. It rained; the rainfall process has as output a
+# portion of precipitate; that portion bears a precipitation depth; the CLI
+# report records the depth. The proposition points at none of this -- its
+# subject is the target, which specifies what WOULD be measured. That is
+# modelling decision 2 holding under a market that reads as being about a
+# process.
+################################################################
+
+rex:Rainfall-2026-07-15 a wx:Rainfall ;
+    rdfs:label "rainfall at Central Park on the climatological day 2026-07-15" ;
+    bfo:BFO_0000199 rex:ClimDay-2026-07-15 ;    # occupies temporal region
+    fm:hasOutput rex:Precipitate .
+
+rex:Precipitate a wx:PortionOfPrecipitate ;
+    rdfs:label "the water that fell at Central Park on 2026-07-15" ;
+    bfo:BFO_0000171 ex:CentralParkSite .        # located in
+
+rex:Depth-2026-07-15 a wx:PrecipitationDepth ;
+    rdfs:label "the depth that portion of precipitate occupied" ;
+    bfo:BFO_0000197 rex:Precipitate .           # inheres in
+
+rex:Observation-Precip a wx:WeatherObservation ;
+    rdfs:label "determination of the daily precipitation total at KNYC" ;
+    bfo:BFO_0000057 ex:KNYC ;                   # has participant
+    bfo:BFO_0000199 rex:ClimDay-2026-07-15 ;    # occupies temporal region
+    fm:hasOutput rex:Datum-Precip .
+
+rex:Datum-Precip a wx:WeatherObservationDatum ;
+    rdfs:label "precipitation 0.27 inches" ;
+    wx:reportsValueFor rex:Target-Precip ;
+    fm:realizedValue "0.27"^^xsd:decimal ;
+    fm:hasUnit unit:IN .
+
+rex:CLINYC-2026-07-16 a wx:DailyClimatologicalReport ;
+    rdfs:label "NWS CLINYC issued 2026-07-16" ;
+    fm:issuedBy ex:NWS ;
+    fm:overTemporalInterval rex:ClimDay-2026-07-15 ;
+    wx:issuanceTime "2026-07-16T10:00:00Z"^^xsd:dateTime ;
+    bfo:BFO_0000178 rex:Datum-Precip .          # has continuant part
+
+################################################################
+# 7. Settlement
+################################################################
+
+rex:Settlement-Rain a ksh:MarketSettlement ;
+    rdfs:label "settlement of KXRAINNYC-26JUL15-T0" ;
+    fm:hasAgent ksh:Kalshi ;
+    fm:hasInput rex:CLINYC-2026-07-16 ;
+    fm:hasOutput rex:Resolution-Rain .
+
+rex:Resolution-Rain a ksh:Resolution ;
+    rdfs:label "KXRAINNYC-26JUL15-T0 resolved yes" ;
+    ksh:resolutionOf rex:Market-Rain-T0 ;
+    ksh:resolvesTo ksh:ResolvedYes ;
+    ksh:settlementValue "0.27"^^xsd:decimal ;
+    fm:hasUnit unit:IN .
+
+rex:Assessment-Rain-at-settlement a fm:TruthAssessment ;
+    rdfs:label "assessment of Prop-Rain at settlement" ;
+    fm:assessesProposition rex:Prop-Rain ;
+    fm:assessedTruthValue fm:True ;
+    fm:basedOnRecord rex:CLINYC-2026-07-16 ;
+    fm:referenceTime "2026-07-16T12:00:00Z"^^xsd:dateTime .

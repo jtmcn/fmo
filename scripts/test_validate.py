@@ -217,10 +217,16 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "not grounded in BFO",
     ),
     (
-        "the only forecast probability downgraded, breaking the join",
-        EXAMPLE,
-        """ex:ForecastProb-82-83 a fm:ForecastProbability ;""",
-        """ex:ForecastProb-82-83 a fm:ProbabilityAssignment ;""",
+        # Was reachable by downgrading the temperature example's only forecast
+        # probability. The rain example adds a second, independent join, so that
+        # mutation now leaves one proposition joined rather than zero. Mutated in
+        # the checker instead, like the zero-coverage guard above: renaming the
+        # class the join check looks for empties with_forecast regardless of how
+        # many examples contribute.
+        "the join check no longer finds any forecast probability",
+        "scripts/validate.py",
+        """        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability"))""",
+        """        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability_renamed"))""",
         "the forecast/market join is not demonstrated",
     ),
     (
@@ -623,6 +629,12 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
 # Defects that must break a competency question rather than quietly changing its answer.
 COMPETENCY_CASES = [
     (
+        # Was "returned 0 rows" when the temperature example was cq02's only
+        # joined proposition. The rain example adds a second, independent join,
+        # so severing the temperature one leaves one row rather than zero, and
+        # the failure mode is a differing result. The empty-result path for
+        # cq02-shaped queries is exercised elsewhere (see the cq-update case
+        # below, and the settlement case further down).
         "forecast and market probabilities no longer share a proposition",
         EXAMPLE,
         """ex:ForecastProb-82-83 a fm:ForecastProbability ;
@@ -635,7 +647,7 @@ COMPETENCY_CASES = [
 ex:ForecastProb-82-83 a fm:ForecastProbability ;
     rdfs:label "GEFS 06Z P(82-83F)" ;
     fm:assignsProbabilityTo ex:Prop-decoy ;""",
-        "returned 0 rows",
+        "differs from",
     ),
     (
         "a probability value silently changed",
@@ -775,9 +787,19 @@ def main() -> int:
     # --update used to return 0 unconditionally. A query that errors or returns
     # nothing skips its write, so the stale .expected survives and `make cq-update`
     # reported success with no diff for exactly the query that was broken.
+    # Deliberately not COMPETENCY_CASES[0]. That mutation breaks the temperature
+    # example's forecast/market join, which emptied cq02 back when the temperature
+    # example was the only one joining a forecast to a market. The rain example is
+    # a second, so breaking one leaves the other and the result is short, not
+    # empty. cq08 is single-sourced by the trading example, which no other example
+    # feeds, so removing the execution price still empties it -- and emptiness is
+    # the whole point of this case.
     print("\n  -- cq-update --")
     results.append(run_case(
-        *COMPETENCY_CASES[0][:4],
+        "cq-update reporting success on a query that returned nothing",
+        TRADING,
+        "    ksh:executionPriceCents 60 ;\n",
+        "",
         "returned 0 rows",
         script="scripts/run_competency.py --update",
     ))
