@@ -26,12 +26,9 @@ from pathlib import Path
 from pyshacl import validate
 from rdflib import Graph
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-MODULES = [
-    "imports/bfo-core.ttl", "imports/qudt-subset.ttl",
-    "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl",
-]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from validate import MODULES, ROOT, SRC  # noqa: E402  -- one MODULES list, not three
+
 DEFAULT_SHAPES = ROOT / "shapes" / "thermaledge-export.ttl"
 
 

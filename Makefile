@@ -46,19 +46,33 @@ validate-negative:
 ## alone reports absences that are not real. Pure Python, no Java.
 shapes:
 	$(PY) scripts/validate_shapes.py --examples
-	$(PY) scripts/validate_shapes.py $(EXPORT_FIXTURES)
+	@test -n "$(EXPORT_FIXTURES)" || { echo "FAIL: no export fixtures found"; exit 1; }
+	@for f in $(EXPORT_FIXTURES); do \
+		$(PY) scripts/validate_shapes.py $$f || exit 1; \
+	done
 
-## Production CQ mode, both directions. The export fixture must pass and the
-## target-mismatch fixture must fail: a mode that cannot fail is not a check,
-## and this is the acceptance criterion examples/negative/ was written for.
+## Production CQ mode, both directions. Every export fixture must pass, and the
+## target-mismatch fixture must fail ON CQ2 specifically.
+##
+## Asserting on the reason, not just a non-zero exit: `cmd || true` treated every
+## failure as proof, so a deleted fixture, a Turtle syntax error or a typo in the
+## script name all read as "correctly rejected" -- the checker-nobody-watched-fail
+## trap, in the target written to prevent it. The mismatch fixture also fails cq04
+## (it carries no settlement chain), so a bare exit code cannot tell a lost cq02
+## floor from a fixture that broke some other way.
 export-check:
-	@$(PY) scripts/run_competency.py --data $(EXPORT_FIXTURES)
-	@$(PY) scripts/run_competency.py --data examples/negative/thermaledge-target-mismatch.ttl \
-		>/dev/null 2>&1 && { \
-		echo "FAIL: the target-mismatch fixture passed production mode;"; \
-		echo "      cq02's min_rows floor is not being enforced."; \
-		exit 1; } || true
-	@echo "OK: production mode passes the export fixture and rejects the mismatch fixture"
+	@test -n "$(EXPORT_FIXTURES)" || { echo "FAIL: no export fixtures found"; exit 1; }
+	@for f in $(EXPORT_FIXTURES); do \
+		echo "== $$f"; \
+		$(PY) scripts/run_competency.py --data $$f || exit 1; \
+	done
+	@out=$$($(PY) scripts/run_competency.py --data examples/negative/thermaledge-target-mismatch.ttl 2>&1); \
+	echo "$$out" | grep -q 'FAIL \[cq02-probability-gap.rq\]' || { \
+		echo "FAIL: the target-mismatch fixture did not fail on cq02."; \
+		echo "      Either cq02's min_rows floor is gone, or the run never happened."; \
+		echo "$$out" | tail -3; \
+		exit 1; }
+	@echo "OK: every export fixture passes production mode; the mismatch fixture fails on cq02"
 
 ## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
 ##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt

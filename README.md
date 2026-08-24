@@ -248,10 +248,16 @@ is a fixture-mode question rather than a production one.
 
 The shapes run over the examples as one graph, because the example files import each other
 — checked alone, the correction and bracketset files report a target with no protocol and
-propositions whose subjects have no type, none of which is real. Three negative tests in
+propositions whose subjects have no type, none of which is real. Five negative tests in
 `scripts/test_validate.py` prove the shapes reject a stripped protocol, an out-of-range
-probability, and a market with two propositions. They exist because a shape that matches
-no focus node *conforms*, so a mistargeted `sh:targetClass` looks exactly like a clean run.
+probability, a market with two propositions, a stripped protocol on export-shaped data,
+and a market typed `ksh:Market` carrying no proposition at all.
+
+That last one is the reason the rest exist. **A shape that matches no focus node conforms.**
+`teh:MarketShape` originally targeted `ksh:WeatherMarket`; rdfs inference types a weather
+market as a market but not the reverse, so an export typing its markets as plain
+`ksh:Market` matched nothing and passed with no proposition and no ticker. It targets
+`ksh:Market` now, and the test above fails if that regresses.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.

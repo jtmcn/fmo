@@ -8,8 +8,12 @@
 # CQ4 need: the export omits sites, stations, day boundaries, model runs and
 # quotes, and these shapes must not demand them back.
 
+# Targets ksh:Market, not ksh:WeatherMarket. rdfs inference types a weather
+# market as a market but not the reverse, so targeting the subclass let an export
+# whose markets are typed ksh:Market match no focus node at all -- and a shape
+# with no focus nodes CONFORMS. A market with no proposition and no ticker passed.
 teh:MarketShape a sh:NodeShape ;
-    sh:targetClass ksh:WeatherMarket ;
+    sh:targetClass ksh:Market ;
     sh:property [
         sh:path ksh:expressesProposition ;
         sh:minCount 1 ; sh:maxCount 1 ;
