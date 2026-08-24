@@ -52,6 +52,8 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
+| `shapes/thermaledge-export.ttl` | SHACL shapes: what a valid ThermalEdge export must contain |
+| `scripts/validate_shapes.py` | runs the shapes over a data file, or the examples union |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
 | `scripts/generate_verification_data.py` | regenerates the synthetic calibration dataset (deterministic) |
@@ -72,6 +74,7 @@ make setup                           # poetry install, plus robot.jar if it is m
 make validate                        # structure, BFO grounding, unit coherence, docs
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
+make shapes                          # SHACL: does the data satisfy the export contract?
 make reason                          # HermiT consistency (needs robot.jar)
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
@@ -216,6 +219,21 @@ prove the defined class actually fires.
 competency check looks like a passing one, and that rule caught CQ1 on its first run (SPARQL
 does no subclass reasoning, so `?m a ksh:Market` missed an individual typed `ksh:WeatherMarket`;
 the queries now use `a/rdfs:subClassOf*`).
+
+`make shapes` asks a different question from `make validate`. The validator checks the
+ontology's own integrity and takes no data; the shapes check whether a *dataset* satisfies
+the contract a downstream consumer relies on — every market expressing exactly one
+proposition, every target naming a protocol, every probability inside 0..1. OWL cannot
+do this job: `ksh:Market` asserts `owl:cardinality 1` on `ksh:expressesProposition`, but
+under the open-world assumption a second value is not a violation, it is an inference that
+the two are the same individual. SHACL closes the world and rejects it.
+
+The shapes run over the examples as one graph, because the example files import each other
+— checked alone, the correction and bracketset files report a target with no protocol and
+propositions whose subjects have no type, none of which is real. Three negative tests in
+`scripts/test_validate.py` prove the shapes reject a stripped protocol, an out-of-range
+probability, and a market with two propositions. They exist because a shape that matches
+no focus node *conforms*, so a mistargeted `sh:targetClass` looks exactly like a clean run.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.

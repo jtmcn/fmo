@@ -626,6 +626,44 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
 ]
 
 
+# Defects the SHACL shapes must reject. Run against the examples union, like
+# `make shapes`: a shape checked on one file alone fires on absences that are not
+# real, because the correction and bracketset files reference a target and
+# propositions the base file defines.
+#
+# Without these the shapes were a checker nobody had watched fail -- and a shape
+# that matches no focus node conforms, so a mistargeted sh:targetClass would have
+# looked exactly like a clean run.
+SHAPES_CASES = [
+    (
+        # The rule the whole ontology turns on: the target carries the protocol.
+        "a target stripped of its measurement protocol",
+        EXAMPLE,
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
+        """""",
+        "a target without a protocol is not identified",
+    ),
+    (
+        # sh:minInclusive/sh:maxInclusive on the probability, which nothing else
+        # checks: validate.py reads probabilities but never bounds them.
+        "a probability outside 0..1",
+        EXAMPLE,
+        """fm:probabilityValue "0.52"^^xsd:decimal""",
+        """fm:probabilityValue "1.52"^^xsd:decimal""",
+        "Value is not <=",
+    ),
+    (
+        # ksh:Market asserts owl:cardinality 1 on expressesProposition, but OWL
+        # cardinality under the open-world assumption does not reject a second
+        # value -- it infers the two are the same individual. SHACL closes it.
+        "a market expressing two propositions",
+        EXAMPLE,
+        """    ksh:expressesProposition ex:Prop-82-83 ;""",
+        """    ksh:expressesProposition ex:Prop-82-83 , ex:Prop-82-83-NWS ;""",
+        "every market expresses exactly one proposition",
+    ),
+]
+
 # Defects that must break a competency question rather than quietly changing its answer.
 COMPETENCY_CASES = [
     (
@@ -780,6 +818,12 @@ def main() -> int:
 
     print("\n  -- validator --")
     results = [run_case(*case) for case in CASES]
+    print("\n  -- shapes --")
+    results += [
+        run_case(*case, script="scripts/validate_shapes.py --examples")
+        for case in SHAPES_CASES
+    ]
+
     print("\n  -- competency questions --")
     results += [
         run_case(*case, script="scripts/run_competency.py")

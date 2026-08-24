@@ -20,7 +20,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative shapes cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -39,6 +39,12 @@ validate:
 ## Negative tests: prove the validator actually fails on each defect it claims to catch.
 validate-negative:
 	$(PY) scripts/test_validate.py
+
+## SHACL conformance: does the data satisfy the ThermalEdge export contract?
+## Runs the examples as ONE graph -- they import each other, so a file checked
+## alone reports absences that are not real. Pure Python, no Java.
+shapes:
+	$(PY) scripts/validate_shapes.py --examples
 
 ## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
 ##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt
@@ -146,7 +152,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative verification-data-check diagram-check cq reason reason-negative competency
+test: validate validate-negative shapes verification-data-check diagram-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)
