@@ -27,7 +27,7 @@ from pyshacl import validate
 from rdflib import Graph
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import MODULES, ROOT, SRC, SHAPES, examples  # noqa: E402
+from registry import MODULES, ROOT, SRC, SHAPES, examples, exports  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
@@ -39,6 +39,20 @@ def main(argv: list[str]) -> int:
             return 2
         shapes_path = Path(argv[i + 1])
         argv = argv[:i] + argv[i + 2:]
+
+    if "--exports" in argv:
+        rest = [a for a in argv if a != "--exports"]
+        if rest:
+            print(f"--exports takes no other files; got {' '.join(rest)}", file=sys.stderr)
+            return 2
+        paths = exports()
+        if not paths:
+            print("--exports matched no files", file=sys.stderr)
+            return 2
+        worst = 0
+        for path in paths:
+            worst = max(worst, main([str(path), "--shapes", str(shapes_path)]))
+        return worst
 
     if "--examples" in argv:
         rest = [a for a in argv if a != "--examples"]

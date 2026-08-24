@@ -248,9 +248,9 @@ is a fixture-mode question rather than a production one.
 
 The shapes run over the examples as one graph, because the example files import each other
 — checked alone, the correction and bracketset files report a target with no protocol and
-propositions whose subjects have no type, none of which is real. Seven negative tests in
+propositions whose subjects have no type, none of which is real. Negative tests in
 `scripts/test_validate.py` prove the shapes reject a stripped protocol, an out-of-range
-probability, a market with two propositions, and four defects on export-shaped data.
+probability, a market with two propositions, and several defects on export-shaped data.
 
 Two rules came out of writing them, and both cost a shape that could not fail:
 
