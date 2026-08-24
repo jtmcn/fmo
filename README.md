@@ -4,10 +4,11 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.9.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.10.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
-were checked against the live API on 2026-08-17. Term coverage is deliberately shallow in places; see
-[Open questions](#open-questions).
+were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23.
+Two worked examples: a temperature bracket and a settled rain market. Term coverage is
+deliberately shallow in places; see [Open questions](#open-questions).
 
 ## What it is for
 
@@ -272,6 +273,22 @@ Flagged rather than silently decided:
   visible. It prints two figures: the direct count is the one that tracks this gap,
   since a class nothing can instantiate stays in it; the subclass-closure count is
   higher only because abstract parents are exercised through their children.
+- **Nested ladders are modelled as if they partitioned.** `KXRAINNYCM` lists "Above
+  8 inches", "Above 9", "Above 10" — each bracket entails the next, so the ladder is
+  monotone rather than a partition. `check_grouping_coherence` refuses overlapping
+  brackets in a grouping asserted mutually exclusive, and CQ5 prices a ladder as a
+  set that should cost a dollar. Neither is right for a monotone ladder, where the
+  invariant is non-increasing prices and the correct arbitrage test is a price
+  inversion between adjacent rungs. The grouping model assumes partition semantics
+  and nothing says so. `examples/kxrainnyc-2026-07-15.ttl` sidesteps it by listing
+  one market and asserting no exclusivity.
+- **Wind, storms and atmospheric state have no market to model.** Checked against the
+  live Kalshi API on 2026-08-23: of 354 series in Climate and Weather, none is a wind
+  market. `wx:WindSpeed`, `wx:WindDirection` and `wx:AirMotion` are therefore minted
+  against nothing listable, and `wx:Storm`, `wx:Thunderstorm` and `wx:TropicalCyclone`
+  remain contested on their own terms (`docs/design-notes.md`). Sixteen of the
+  eighteen classes that had no instance at 0.9.0 still have none; the rain example
+  closed two of them, plus two parents. Whether the rest earn their place is open.
 - **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
   grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
   KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is
