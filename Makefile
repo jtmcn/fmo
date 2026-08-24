@@ -10,6 +10,8 @@ CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
 EXPORT_FIXTURES := $(wildcard examples/export/*.ttl)
+NEGATIVE_FIXTURES := $(wildcard examples/negative/*.ttl)
+MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 
 PY      := poetry run python3
 
@@ -66,13 +68,22 @@ export-check:
 		echo "== $$f"; \
 		$(PY) scripts/run_competency.py --data $$f || exit 1; \
 	done
-	@out=$$($(PY) scripts/run_competency.py --data examples/negative/thermaledge-target-mismatch.ttl 2>&1); \
+	@test -n "$(NEGATIVE_FIXTURES)" || { echo "FAIL: no negative fixtures found"; exit 1; }
+	@for f in $(NEGATIVE_FIXTURES); do \
+		out=$$($(PY) scripts/run_competency.py --data $$f 2>&1); \
+		echo "$$out" | grep -q 'FAIL \[cq' || { \
+			echo "FAIL: $$f did not make production mode reject a query."; \
+			echo "      A negative fixture nothing rejects is not a negative fixture."; \
+			echo "$$out" | tail -3; \
+			exit 1; }; \
+	done
+	@out=$$($(PY) scripts/run_competency.py --data $(MISMATCH) 2>&1); \
 	echo "$$out" | grep -q 'FAIL \[cq02-probability-gap.rq\]' || { \
-		echo "FAIL: the target-mismatch fixture did not fail on cq02."; \
-		echo "      Either cq02's min_rows floor is gone, or the run never happened."; \
+		echo "FAIL: $(MISMATCH) did not fail on cq02 specifically."; \
+		echo "      It also fails cq04, so a generic rejection would hide a lost cq02 floor."; \
 		echo "$$out" | tail -3; \
 		exit 1; }
-	@echo "OK: every export fixture passes production mode; the mismatch fixture fails on cq02"
+	@echo "OK: every export fixture passes; every negative fixture is rejected; the mismatch fails on cq02"
 
 ## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
 ##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt

@@ -248,16 +248,24 @@ is a fixture-mode question rather than a production one.
 
 The shapes run over the examples as one graph, because the example files import each other
 — checked alone, the correction and bracketset files report a target with no protocol and
-propositions whose subjects have no type, none of which is real. Five negative tests in
+propositions whose subjects have no type, none of which is real. Seven negative tests in
 `scripts/test_validate.py` prove the shapes reject a stripped protocol, an out-of-range
-probability, a market with two propositions, a stripped protocol on export-shaped data,
-and a market typed `ksh:Market` carrying no proposition at all.
+probability, a market with two propositions, and four defects on export-shaped data.
 
-That last one is the reason the rest exist. **A shape that matches no focus node conforms.**
-`teh:MarketShape` originally targeted `ksh:WeatherMarket`; rdfs inference types a weather
-market as a market but not the reverse, so an export typing its markets as plain
-`ksh:Market` matched nothing and passed with no proposition and no ticker. It targets
-`ksh:Market` now, and the test above fails if that regresses.
+Two rules came out of writing them, and both cost a shape that could not fail:
+
+**A shape that matches no focus node conforms.** `teh:MarketShape` targeted
+`ksh:WeatherMarket` and `teh:ProbabilityShape` targeted `fm:ForecastProbability` and
+`fm:MarketImpliedProbability`. rdfs inference types a subclass instance as its parent,
+never the reverse — so an export typing markets as plain `ksh:Market`, or probabilities
+as `fm:ProbabilityAssignment`, matched nothing and conformed: a market with no
+proposition and no ticker, and a probability of 7.41. Both now target the parent class.
+
+**`sh:class C` is dead on a property whose `rdfs:range` is already `C`.** The shapes run
+with `inference="rdfs"`, so range entailment types the object before SHACL looks. The
+class constraints on `wx:underProtocol` and `fm:assignsProbabilityTo` could never fire,
+and a dangling protocol IRI conformed. A bad protocol is caught instead by requiring
+`fm:statedAs` — a literal that entailment cannot fabricate.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.

@@ -106,7 +106,10 @@ def main() -> int:
     update = "--update" in sys.argv
     data = None
     if "--data" in sys.argv:
-        data = Path(sys.argv[sys.argv.index("--data") + 1])
+        i = sys.argv.index("--data")
+        if i + 1 >= len(sys.argv):
+            sys.exit("--data needs a file")
+        data = Path(sys.argv[i + 1])
         if update:
             print("--update and --data are mutually exclusive", file=sys.stderr)
             return 1
@@ -143,15 +146,24 @@ def main() -> int:
                 failures += 1
                 continue
             # A malformed entry is a failure, not a crash and not a silent pass.
-            # Carrying both keys used to drop the floor silently; carrying neither
-            # raised KeyError below instead of printing a FAIL line.
-            if ("may_be_empty" in rule) == ("min_rows" in rule):
-                print(f"  FAIL [{qf.name}]: expectation entry must set exactly one of "
-                      f"may_be_empty or min_rows")
-                failures += 1
-                continue
-            if not rule.get("why"):
-                print(f"  FAIL [{qf.name}]: expectation entry has no 'why'")
+            # Checking key PRESENCE was not enough: {"may_be_empty": false} has the
+            # key, passes an XOR on presence, then falls through to rule["min_rows"]
+            # and raises KeyError mid-run with the remaining queries never executed.
+            # A string "1" got a TypeError the same way. Check the values.
+            exempt = rule.get("may_be_empty")
+            floor = rule.get("min_rows")
+            if exempt is not None and not isinstance(exempt, bool):
+                bad = f"may_be_empty must be true or false, got {exempt!r}"
+            elif floor is not None and not isinstance(floor, int) or isinstance(floor, bool):
+                bad = f"min_rows must be an integer, got {floor!r}"
+            elif bool(exempt) == (floor is not None):
+                bad = "entry must set exactly one of may_be_empty: true or min_rows"
+            elif not rule.get("why"):
+                bad = "entry has no 'why'"
+            else:
+                bad = ""
+            if bad:
+                print(f"  FAIL [{qf.name}]: {bad}")
                 failures += 1
                 continue
             if rule.get("may_be_empty"):

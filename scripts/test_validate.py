@@ -692,6 +692,30 @@ SHAPES_CASES = [
     fm:statedAs "typed as a plain market, with no proposition and no ticker" .""",
         "every market expresses exactly one proposition",
     ),
+    (
+        # The same mistargeting trap as the case above, on the probability side.
+        # ProbabilityShape targeted the two leaf classes, so retyping to their
+        # parent matched no focus node and a probability of 7.41 conformed.
+        "an export probability retyped to its parent class, with a value of 7.41",
+        EXPORT,
+        """    a fm:ForecastProbability ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> ;
+    fm:probabilityValue "0.41"^^xsd:decimal .""",
+        """    a fm:ProbabilityAssignment ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> ;
+    fm:probabilityValue "7.41"^^xsd:decimal .""",
+        "Value is not <=",
+    ),
+    (
+        # A dangling protocol IRI. sh:class wx:MeasurementProtocol could not catch
+        # this -- rdfs range entailment types the object before SHACL looks -- so
+        # the check is a literal the entailment cannot fabricate.
+        "an export target pointing at a protocol IRI that carries no rules",
+        EXPORT,
+        """    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> ;""",
+        """    wx:underProtocol <https://ex.test/dangling-protocol> ;""",
+        "a protocol must state its rules",
+    ),
 ]
 
 # Defects that must break a competency question rather than quietly changing its answer.

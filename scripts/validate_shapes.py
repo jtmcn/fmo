@@ -36,10 +36,19 @@ def main(argv: list[str]) -> int:
     shapes_path = DEFAULT_SHAPES
     if "--shapes" in argv:
         i = argv.index("--shapes")
+        if i + 1 >= len(argv):
+            print("--shapes needs a file", file=sys.stderr)
+            return 2
         shapes_path = Path(argv[i + 1])
         argv = argv[:i] + argv[i + 2:]
 
     if "--examples" in argv:
+        rest = [a for a in argv if a != "--examples"]
+        if rest:
+            # Silently dropping them printed "6 file(s) conform" while the file the
+            # caller named was never loaded -- a pass report for an unread file.
+            print(f"--examples takes no other files; got {' '.join(rest)}", file=sys.stderr)
+            return 2
         data_paths = sorted((ROOT / "examples").glob("*.ttl"))
         if not data_paths:
             print("--examples matched no files", file=sys.stderr)

@@ -44,17 +44,35 @@ teh:TargetShape a sh:NodeShape ;
     sh:property [
         sh:path wx:underProtocol ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:class wx:MeasurementProtocol ;
         sh:message "a target without a protocol is not identified: the same site and day under two protocols are two quantities" ;
     ] .
 
+# No sh:class here, and none on fm:assignsProbabilityTo below. THE RULE: sh:class C
+# on a property whose rdfs:range is already C is dead code, because validate_shapes.py
+# runs with inference="rdfs" and range entailment types the object BEFORE SHACL looks.
+# Both constraints existed and neither could ever fire -- a dangling protocol IRI was
+# entailed into wx:MeasurementProtocol and conformed. Catch a bad protocol by requiring
+# something inference cannot fabricate: a literal.
+teh:ProtocolShape a sh:NodeShape ;
+    sh:targetClass wx:MeasurementProtocol ;
+    sh:property [
+        sh:path fm:statedAs ;
+        sh:minCount 1 ;
+        sh:message "a protocol must state its rules; an IRI entailed into the class by rdfs:range carries none" ;
+    ] .
+
+# Targets the PARENT, fm:ProbabilityAssignment, for the same reason MarketShape
+# targets ksh:Market: rdfs types a subclass instance as the parent, never the
+# reverse. Targeting the two leaves let an export typing its probabilities as
+# fm:ProbabilityAssignment -- or leaving them untyped, since the domain of
+# fm:probabilityValue supplies the parent and nothing else -- match no focus node
+# and conform with a probability of 7.41.
 teh:ProbabilityShape a sh:NodeShape ;
-    sh:targetClass fm:ForecastProbability, fm:MarketImpliedProbability ;
+    sh:targetClass fm:ProbabilityAssignment ;
     sh:property [
         sh:path fm:assignsProbabilityTo ;
         sh:minCount 1 ; sh:maxCount 1 ;
-        sh:class fm:Proposition ;
-        sh:message "a probability must assign to a proposition present in the graph" ;
+        sh:message "a probability must assign to exactly one proposition" ;
     ] ;
     sh:property [
         sh:path fm:probabilityValue ;
