@@ -193,7 +193,7 @@ seed. A diff there means the generator changed, never the data.
   does not; strikethrough is how to spell one without failing the check, and it is the
   only exemption.
 - Prefixes are `fm:`, `wx:`, `ksh:` — never "core:". Example data uses `ex:` (worked
-  example), `tex:` (trading), `vex:` (verification).
+  example), `tex:` (trading), `vex:` (verification), `rex:` (rain).
 - Kalshi tickers verbatim and uppercase: `KXHIGHNY-26AUG15-B82.5`.
 - Files by path from the repo root: `src/weather.ttl`, `queries/cq05-*.rq`.
 - Say which side: "the forecast side" (`wx:`) and "the market side" (`ksh:`) meet at

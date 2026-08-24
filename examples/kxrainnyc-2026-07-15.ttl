@@ -135,6 +135,9 @@ rex:Market-Rain-T0 a ksh:WeatherMarket ;
     ksh:inEventGrouping rex:KXRAINNYC-26JUL15 ;
     ksh:expressesProposition rex:Prop-Rain ;
     ksh:hasStatus ksh:Finalized ;
+    # An hour before rex:Instant-End, not a typo: the climatological day runs on
+    # local standard time through DST, so trading closes ahead of the measurement
+    # window it is on.
     ksh:closeTime "2026-07-16T03:59:00Z"^^xsd:dateTime ;
     ksh:expectedExpirationTime "2026-07-16T14:00:00Z"^^xsd:dateTime ;
     ksh:latestExpirationTime   "2026-07-22T14:00:00Z"^^xsd:dateTime .
@@ -216,7 +219,11 @@ rex:Datum-Precip a wx:WeatherObservationDatum ;
     rdfs:label "precipitation 0.27 inches" ;
     wx:reportsValueFor rex:Target-Precip ;
     fm:realizedValue "0.27"^^xsd:decimal ;
-    fm:hasUnit unit:IN .
+    fm:hasUnit unit:IN ;
+    # fm:isAbout commits to the relatum existing, which is why a proposition never
+    # carries it -- Prop-Rain points at the target, not this. The rain already fell,
+    # so the datum can point at the quality it reports. First instance anywhere.
+    fm:isAbout rex:Depth-2026-07-15 .
 
 rex:CLINYC-2026-07-16 a wx:DailyClimatologicalReport ;
     rdfs:label "NWS CLINYC issued 2026-07-16" ;
