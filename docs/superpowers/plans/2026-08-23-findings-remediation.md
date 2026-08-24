@@ -722,6 +722,50 @@ Review the diff before staging. Expected: `cq01` gains the rain market row, `cq0
 
 If any expectation shrinks or empties, stop. An empty result set fails by design.
 
+- [ ] **Step 7b: Re-point the cq-update negative test (controller Ruling 2)**
+
+`scripts/test_validate.py` reuses `COMPETENCY_CASES[0]` — the mutation that breaks the temperature example's forecast/market join — for its `--update` case, expecting the output substring `returned 0 rows`. That works today only because cq02 has exactly one joined proposition. This example adds a second, so breaking the temperature join now leaves 1 row, not 0, and the case fails for a reason unrelated to what it tests.
+
+The case exists to prove `make cq-update` does not report success when a query returns nothing. Point it at a query the rain example does not touch. In `scripts/test_validate.py`, find:
+
+```python
+    print("\n  -- cq-update --")
+    results.append(run_case(
+        *COMPETENCY_CASES[0][:4],
+        "returned 0 rows",
+        script="scripts/run_competency.py --update",
+    ))
+```
+
+Replace with:
+
+```python
+    # Deliberately not COMPETENCY_CASES[0]. That mutation breaks the temperature
+    # example's forecast/market join, which emptied cq02 back when the temperature
+    # example was the only one joining a forecast to a market. The rain example is
+    # a second, so breaking one leaves the other and the result is short, not
+    # empty. cq08 is single-sourced by the trading example, which no other example
+    # feeds, so removing the execution price still empties it -- and emptiness is
+    # the whole point of this case.
+    print("\n  -- cq-update --")
+    results.append(run_case(
+        "cq-update reporting success on a query that returned nothing",
+        TRADING,
+        "    ksh:executionPriceCents 60 ;\n",
+        "",
+        "returned 0 rows",
+        script="scripts/run_competency.py --update",
+    ))
+```
+
+- [ ] **Step 7c: Watch the re-pointed case fail for the right reason**
+
+Run: `poetry run python3 scripts/test_validate.py 2>&1 | tail -6`
+
+Expected: all cases pass, including `ok   [cq-update reporting success on a query that returned nothing]`.
+
+Then prove it is real: temporarily change the anchor string to `"    ksh:executionPriceCents 61 ;\n"` (a value that does not exist), re-run, and confirm it reports `SETUP FAIL` rather than passing silently. Restore the correct anchor. A case whose anchor has drifted reports success while testing nothing, which is the failure mode this whole file exists to prevent.
+
 - [ ] **Step 8: Correct the scope note the exchange contradicts**
 
 In `src/weather.ttl`, in `wx:PrecipitationProcess`, find:
