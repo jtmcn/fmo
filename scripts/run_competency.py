@@ -30,7 +30,7 @@ from pathlib import Path
 from rdflib import Graph, Literal, URIRef
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import IRI_TO_PREFIX, MODULES, QUERIES, ROOT, SRC, examples  # noqa: E402
+from registry import IRI_TO_PREFIX, MODULES, QUERIES, ROOT, SRC, examples, exports, negatives  # noqa: E402
 
 
 def shorten(term) -> str:
@@ -207,4 +207,41 @@ def _diff(expected: str, actual: str) -> list[str]:
 
 
 if __name__ == "__main__":
+    # Every negative fixture must make production mode reject SOMETHING. A fixture
+    # nothing rejects is not a negative fixture, and one added but silently never
+    # run is how examples/negative/ went unexercised for a release. WHICH query
+    # must fail is asserted in the Makefile, since a generic rejection would hide
+    # a lost cq02 floor behind the mismatch fixture's unrelated cq04 failure.
+    if "--exports" in sys.argv or "--negatives" in sys.argv:
+        import io
+        from contextlib import redirect_stdout
+        want_pass = "--exports" in sys.argv
+        fixtures = exports() if want_pass else negatives()
+        if not fixtures:
+            raise SystemExit("no fixtures matched")
+        worst = 0
+        for path in fixtures:
+            print(f"== {path.name}")
+            sys.argv = [sys.argv[0], "--data", str(path)]
+            # A non-zero exit is not proof of rejection: "no queries found", an
+            # unreadable fixture or a renamed script all exit non-zero too. The
+            # Makefile target this replaces greps for a FAIL [cq line for exactly
+            # that reason, and dropping to an exit code would weaken it.
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                code = main()
+            out = buf.getvalue()
+            print(out, end="")
+            if not want_pass and "FAIL [cq" not in out:
+                print(f"  FAIL [{path.name}]: exited {code} but no query reported a failure")
+                worst = 1
+                continue
+            if want_pass:
+                worst = max(worst, code)
+            elif code == 0:
+                print(f"  FAIL [{path.name}]: production mode accepted a negative fixture")
+                worst = 1
+            else:
+                print(f"  ok   [{path.name}]: rejected")
+        raise SystemExit(worst)
     raise SystemExit(main())

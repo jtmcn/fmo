@@ -9,8 +9,6 @@ BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
-EXPORT_FIXTURES := $(wildcard examples/export/*.ttl)
-NEGATIVE_FIXTURES := $(wildcard examples/negative/*.ttl)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 
 PY      := poetry run python3
@@ -48,42 +46,21 @@ validate-negative:
 ## alone reports absences that are not real. Pure Python, no Java.
 shapes:
 	$(PY) scripts/validate_shapes.py --examples
-	@test -n "$(EXPORT_FIXTURES)" || { echo "FAIL: no export fixtures found"; exit 1; }
-	@for f in $(EXPORT_FIXTURES); do \
-		$(PY) scripts/validate_shapes.py $$f || exit 1; \
-	done
+	$(PY) scripts/validate_shapes.py --exports
 
-## Production CQ mode, both directions. Every export fixture must pass, and the
-## target-mismatch fixture must fail ON CQ2 specifically.
-##
-## Asserting on the reason, not just a non-zero exit: `cmd || true` treated every
-## failure as proof, so a deleted fixture, a Turtle syntax error or a typo in the
-## script name all read as "correctly rejected" -- the checker-nobody-watched-fail
-## trap, in the target written to prevent it. The mismatch fixture also fails cq04
-## (it carries no settlement chain), so a bare exit code cannot tell a lost cq02
-## floor from a fixture that broke some other way.
+## Production CQ mode, both directions. Every export fixture must pass, every
+## negative fixture must be rejected, and the target-mismatch fixture must fail
+## on CQ2 specifically -- it also fails cq04, so a generic rejection would hide a
+## lost cq02 floor.
 export-check:
-	@test -n "$(EXPORT_FIXTURES)" || { echo "FAIL: no export fixtures found"; exit 1; }
-	@for f in $(EXPORT_FIXTURES); do \
-		echo "== $$f"; \
-		$(PY) scripts/run_competency.py --data $$f || exit 1; \
-	done
-	@test -n "$(NEGATIVE_FIXTURES)" || { echo "FAIL: no negative fixtures found"; exit 1; }
-	@for f in $(NEGATIVE_FIXTURES); do \
-		out=$$($(PY) scripts/run_competency.py --data $$f 2>&1); \
-		echo "$$out" | grep -q 'FAIL \[cq' || { \
-			echo "FAIL: $$f did not make production mode reject a query."; \
-			echo "      A negative fixture nothing rejects is not a negative fixture."; \
-			echo "$$out" | tail -3; \
-			exit 1; }; \
-	done
+	$(PY) scripts/run_competency.py --exports
+	$(PY) scripts/run_competency.py --negatives
 	@out=$$($(PY) scripts/run_competency.py --data $(MISMATCH) 2>&1); \
 	echo "$$out" | grep -q 'FAIL \[cq02-probability-gap.rq\]' || { \
-		echo "FAIL: $(MISMATCH) did not fail on cq02 specifically."; \
-		echo "      It also fails cq04, so a generic rejection would hide a lost cq02 floor."; \
+		echo "FAIL: the mismatch fixture did not fail on cq02 specifically."; \
 		echo "$$out" | tail -3; \
 		exit 1; }
-	@echo "OK: every export fixture passes; every negative fixture is rejected; the mismatch fails on cq02"
+	@echo "OK: exports pass, negatives are rejected, the mismatch fails on cq02"
 
 ## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
 ##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt
