@@ -2,7 +2,6 @@
 @prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
 @prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix te:   <https://thermal-edge.dev/id/> .
 
 # NEGATIVE FIXTURE — this file is meant to FAIL.
 #
