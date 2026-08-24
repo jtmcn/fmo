@@ -626,6 +626,8 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
 ]
 
 
+EXPORT = "examples/export/thermaledge-kxhighaus-2026-08-22.ttl"
+
 # Defects the SHACL shapes must reject. Run against the examples union, like
 # `make shapes`: a shape checked on one file alone fires on absences that are not
 # real, because the correction and bracketset files reference a target and
@@ -661,6 +663,19 @@ SHAPES_CASES = [
         """    ksh:expressesProposition ex:Prop-82-83 ;""",
         """    ksh:expressesProposition ex:Prop-82-83 , ex:Prop-82-83-NWS ;""",
         "every market expresses exactly one proposition",
+    ),
+    (
+        # The same rule, on export-shaped data rather than the worked examples.
+        # The examples are a superset of any export -- they carry sites, day
+        # boundaries and model runs the export omits -- so conformance there did
+        # not show the shapes were satisfiable by the thing they describe, only
+        # by something richer. This case fails if the shapes stop biting on the
+        # shape of data ThermalEdge actually sends.
+        "an export target stripped of its measurement protocol",
+        EXPORT,
+        """    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> ;""",
+        """""",
+        "a target without a protocol is not identified",
     ),
 ]
 
@@ -820,7 +835,9 @@ def main() -> int:
     results = [run_case(*case) for case in CASES]
     print("\n  -- shapes --")
     results += [
-        run_case(*case, script="scripts/validate_shapes.py --examples")
+        run_case(*case, script=(
+            f"scripts/validate_shapes.py {EXPORT}" if case[1] == EXPORT
+            else "scripts/validate_shapes.py --examples"))
         for case in SHAPES_CASES
     ]
 

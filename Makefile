@@ -9,6 +9,7 @@ BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
+EXPORT_FIXTURES := $(wildcard examples/export/*.ttl)
 
 PY      := poetry run python3
 
@@ -20,7 +21,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative shapes cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative shapes export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -45,6 +46,19 @@ validate-negative:
 ## alone reports absences that are not real. Pure Python, no Java.
 shapes:
 	$(PY) scripts/validate_shapes.py --examples
+	$(PY) scripts/validate_shapes.py $(EXPORT_FIXTURES)
+
+## Production CQ mode, both directions. The export fixture must pass and the
+## target-mismatch fixture must fail: a mode that cannot fail is not a check,
+## and this is the acceptance criterion examples/negative/ was written for.
+export-check:
+	@$(PY) scripts/run_competency.py --data $(EXPORT_FIXTURES)
+	@$(PY) scripts/run_competency.py --data examples/negative/thermaledge-target-mismatch.ttl \
+		>/dev/null 2>&1 && { \
+		echo "FAIL: the target-mismatch fixture passed production mode;"; \
+		echo "      cq02's min_rows floor is not being enforced."; \
+		exit 1; } || true
+	@echo "OK: production mode passes the export fixture and rejects the mismatch fixture"
 
 ## Regenerate the vendored QUDT subset. Needs a qudt-public-repo checkout:
 ##   git clone --depth 1 https://github.com/qudt/qudt-public-repo.git /tmp/qudt
@@ -152,7 +166,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative shapes verification-data-check diagram-check cq reason reason-negative competency
+test: validate validate-negative shapes export-check verification-data-check diagram-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)

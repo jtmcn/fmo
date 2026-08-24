@@ -1,5 +1,10 @@
 {
-  "_comment": "Per-query expectations for --data (production) mode. Fixture mode still compares .expected exactly and still fails on zero rows. A query with NO entry here fails in production mode: that keeps 'empty is a failure' the default and makes every exemption a visible edit.",
+  "_comment": "Per-query expectations for --data (production) mode. Fixture mode still compares .expected exactly and still fails on zero rows. A query with NO entry here fails in production mode: that keeps 'empty is a failure' the default and makes every exemption a visible edit. An exemption is may_be_empty with a reason, never a min_rows of 0 -- the distinction between 'this export has none' and 'we stopped checking' is the whole point.",
+
+  "cq01-market-proposition": {
+    "may_be_empty": true,
+    "why": "Requires wx:atSite and the climatological day's boundary instants, both of which an export omits by design. cq01 is a fixture-mode question: it describes a market fully, and a full description is not what an export carries. cq02 and cq04 are the production floors."
+  },
   "cq02-probability-gap": {
     "min_rows": 1,
     "why": "The forecast side and the market side must both point at at least one shared proposition. Empty means the join broke, which is the failure this phase exists to catch."
@@ -7,5 +12,26 @@
   "cq04-settlement-provenance": {
     "min_rows": 1,
     "why": "The export is built for a day that has a daily_settlements row, so a settlement chain is always expected. Empty means the chain did not serialize."
+  },
+
+  "cq05-bracket-coherence": {
+    "may_be_empty": true,
+    "why": "Needs a grouping asserted mutually exclusive. An export carrying one market of a ladder has no grouping to check, and exporting the whole ladder is not required."
+  },
+  "cq06a-calibration-reliability": {
+    "may_be_empty": true,
+    "why": "Calibration needs scored history across many days. A single-day export has one assignment at most, and omits the model runs cq06 groups by."
+  },
+  "cq06b-skill-by-leadtime": {
+    "may_be_empty": true,
+    "why": "Same as cq06a: skill by lead time needs a model run and a history, both of which the export omits by design."
+  },
+  "cq07-correction-contradiction": {
+    "may_be_empty": true,
+    "why": "Only populated when the settlement source issued a correction. Most days have none, and a day that has one is the interesting case, not the required one."
+  },
+  "cq08-order-flow-payout": {
+    "may_be_empty": true,
+    "why": "The export omits the trading layer entirely -- no orders, trades, lots or payouts. Empty here is the export being what it says it is."
   }
 }
