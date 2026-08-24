@@ -29,6 +29,11 @@
 # time and is a different animal from an ahead-of-time forecast. It gets its own
 # row rather than being folded in or silently dropped. Expect small ?n there.
 #
+# GROUPING IS BY MODEL AND LEAD TIME ONLY, NOT BY VARIABLE. A model that forecasts
+# more than one variable pools all of them into the same row: ex:GEFS carries both
+# a temperature and a precipitation assignment. Comparing rows across variables is
+# a category error the query does not guard against.
+#
 # THE OUTCOME MUST COME FROM THE CURRENT RECORD. Where a settlement source issued a
 # correction, a proposition carries two assessments with opposite values. Scoring
 # against the superseded one silently measures the wrong thing, so the filter below

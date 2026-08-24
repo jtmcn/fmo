@@ -212,8 +212,9 @@ and the README, together.
 - `make test` green, including `reason` and `reason-negative` with Java present.
 - The new negative test fails when reverted, watched failing before it is trusted.
 - The coverage note prints three numbers.
-- `wx:Rainfall`, `wx:PrecipitationProcess`, `wx:PortionOfPrecipitate` and
-  `wx:PrecipitationDepth` have instances.
+- `wx:Rainfall`, `wx:PortionOfPrecipitate` and `wx:PrecipitationDepth` have direct
+  instances; `wx:PrecipitationProcess` is reached via subclass closure through
+  `wx:Rainfall`.
 - The forecast/market join is demonstrated on two propositions.
 - `README.md` Open questions records that no wind market exists to model, and
   that the monthly rain ladder is nested rather than a partition — see below.
@@ -228,9 +229,10 @@ non-increasing prices. The grouping model assumes partition semantics and nothin
 says so. This is a real gap and it gets its own cycle; it is recorded in README's
 Open questions now.
 
-**Wind, storms, atmospheric state.** Sixteen of the eighteen still dark after
-this work: the example gives instances to `wx:Rainfall` and
-`wx:PortionOfPrecipitate` directly, and to `wx:PrecipitationProcess` and
-`wx:PrecipitationDepth` as their parents.
+**Wind, storms, atmospheric state.** 30 weather-module classes had no direct
+instance at 0.9.0. The rain example directly instantiates three of them —
+`wx:Rainfall`, `wx:PortionOfPrecipitate`, `wx:PrecipitationDepth` — and reaches
+`wx:PrecipitationProcess` only through `wx:Rainfall`'s subclass closure. 27
+still have no direct instance, 23 of them not reached even through a subclass.
 No wind market exists to model. Storms and tropical cyclones are already flagged
 as contested in `docs/design-notes.md`. Recorded, not resolved.
