@@ -48,7 +48,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/imports/bfo-core.ttl` | vendored BFO 2020 core, unmodified |
 | `src/imports/qudt-subset.ttl` | 16 units + 10 quantity kinds extracted from QUDT (generated) |
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
-| `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, 40 synthetic days |
+| `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |

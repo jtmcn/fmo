@@ -154,7 +154,7 @@ wx:PrecipitationProcess a owl:Class ;
     rdfs:subClassOf wx:MeteorologicalProcess ;
     rdfs:label "precipitation process" ;
     skos:definition "A meteorological process in which condensed water falls from the atmosphere to a surface, having as output a portion of precipitate." ;
-    skos:scopeNote "\"Rain\" is ambiguous between this process and the portion of precipitate it produces. The ambiguity does not survive contact with a settlement rule: Kalshi lists \"will it rain\" as a threshold of strictly greater than zero inches, so both that market and an inches market are about a quality of the output, and neither is about this process. The process is what the observational record reports on -- see examples/kxrainnyc-2026-07-15.ttl, where it bears the depth the report carries and the proposition points at the target instead." .
+    skos:scopeNote "\"Rain\" is ambiguous between this process and the portion of precipitate it produces. The ambiguity does not survive contact with a settlement rule: Kalshi lists \"will it rain\" as a threshold of strictly greater than zero inches, so both that market and an inches market are about a quality of the output, and neither is about this process. See examples/kxrainnyc-2026-07-15.ttl: the process has as output a portion of precipitate, the depth inheres in that portion, and the observation datum is fm:isAbout the depth -- the proposition still points at the target, not any of this." .
 
 wx:Rainfall a owl:Class ; rdfs:subClassOf wx:PrecipitationProcess ; rdfs:label "rainfall" ;
     skos:definition "A precipitation process in which the condensed water reaching the surface is liquid." .
