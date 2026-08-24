@@ -13,7 +13,7 @@
 
 <https://w3id.org/forecast-market-ontology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.9.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.10.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> ;
     dcterms:title "FMO Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -21,7 +21,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.9.0" .
+    owl:versionInfo "0.10.0" .
 
 ################################################################
 # Material entities
