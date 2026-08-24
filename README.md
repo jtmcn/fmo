@@ -53,6 +53,9 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `shapes/thermaledge-export.ttl` | SHACL shapes: what a valid ThermalEdge export must contain |
+| `examples/export/` | a conformant export fixture: what the shapes were written for |
+| `examples/negative/` | fixtures that must FAIL, so the checks are known to bite |
+| `queries/production-expectations.json` | per-query floors and exemptions for production mode |
 | `scripts/validate_shapes.py` | runs the shapes over a data file, or the examples union |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
@@ -75,6 +78,7 @@ make validate                        # structure, BFO grounding, unit coherence,
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make shapes                          # SHACL: does the data satisfy the export contract?
+make export-check                    # production CQ mode: export passes, mismatch fails
 make reason                          # HermiT consistency (needs robot.jar)
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
@@ -227,6 +231,20 @@ proposition, every target naming a protocol, every probability inside 0..1. OWL 
 do this job: `ksh:Market` asserts `owl:cardinality 1` on `ksh:expressesProposition`, but
 under the open-world assumption a second value is not a violation, it is an inference that
 the two are the same individual. SHACL closes the world and rejects it.
+
+`examples/export/` holds a conformant export and `examples/negative/` one that must fail.
+Both sit outside the `examples/*.ttl` glob, so `validate.py` and fixture-mode `make cq`
+never load them: they are data under test, not worked data. The positive fixture matters
+because the repo's own examples are a *superset* of any export — they carry the sites, day
+boundaries and model runs an export omits — so conformance there showed only that the
+shapes were satisfiable by something richer than the thing they describe.
+
+`make export-check` runs production CQ mode both ways: the export fixture must pass and the
+target-mismatch fixture must fail. In production mode a query with no entry in
+`queries/production-expectations.json` fails, which keeps "empty is a failure" the default
+and makes every exemption a visible edit with a stated reason. Only CQ2 and CQ4 are floors:
+CQ1 needs `wx:atSite` and the day's boundary instants, which an export does not carry, so it
+is a fixture-mode question rather than a production one.
 
 The shapes run over the examples as one graph, because the example files import each other
 — checked alone, the correction and bracketset files report a target with no protocol and

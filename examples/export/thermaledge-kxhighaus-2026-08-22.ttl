@@ -1,0 +1,95 @@
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix unit: <http://qudt.org/vocab/unit/> .
+
+# POSITIVE FIXTURE -- what a valid ThermalEdge export looks like.
+#
+# The shapes in shapes/thermaledge-export.ttl describe an export, but until this
+# file existed they were only ever run against examples/*.ttl, which are much
+# richer than any export. Passing there did not show the shapes were satisfiable
+# by the thing they were written for; it showed they were satisfiable by a
+# superset of it. This file is the actual subject.
+#
+# What an export deliberately OMITS, and the shapes must not demand back:
+# observing sites, weather stations, climatological day boundaries, model runs,
+# ensemble members, quotes, and the whole trading layer. One day, one market,
+# the chain from forecast to settlement and nothing else.
+#
+# Identifiers are full IRIs, not prefixed names, and mirror the real exporter's
+# path-shaped ids. Turtle's PN_LOCAL grammar does not allow an unescaped "/" in
+# a prefixed local name, which is why examples/negative/ does the same.
+#
+# Kept outside the examples/*.ttl glob so validate.py and fixture-mode
+# run_competency.py never load it: it is data under test, not worked data.
+
+<https://thermal-edge.dev/id/protocol/weather_co> a wx:MeasurementProtocol ;
+    fm:statedAs "Maximum temperature for the Austin station of record over the climatological day, in whole degrees Fahrenheit, as published by The Weather Company." .
+
+<https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/weather_co>
+    a wx:WeatherObservationTarget ;
+    wx:targetVariable wx:MaximumAirTemperature ;
+    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> ;
+    fm:hasUnit unit:DEG_F .
+
+<https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88>
+    a fm:Proposition ;
+    fm:hasSubject <https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/weather_co> ;
+    fm:hasComparator fm:Between ;
+    fm:floorValue "88"^^xsd:decimal ;
+    fm:capValue "89"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
+
+<https://thermal-edge.dev/id/market/KXHIGHAUS-26AUG22-B88>
+    a ksh:WeatherMarket ;
+    ksh:marketTicker "KXHIGHAUS-26AUG22-B88" ;
+    ksh:expressesProposition <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> .
+
+# The two sides of the gap. Both point at the one proposition above, which is the
+# whole reason the export is shaped this way: CQ2 joins on the proposition alone.
+<https://thermal-edge.dev/id/forecastprob/KXHIGHAUS-26AUG22-B88>
+    a fm:ForecastProbability ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> ;
+    fm:probabilityValue "0.41"^^xsd:decimal .
+
+<https://thermal-edge.dev/id/marketprob/KXHIGHAUS-26AUG22-B88>
+    a fm:MarketImpliedProbability ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> ;
+    fm:probabilityValue "0.55"^^xsd:decimal ;
+    fm:statedAs "Last traded price divided by 100. Ignores spread, fees, and carry." .
+
+# Settlement provenance: CQ4 walks settlement -> document -> datum, and needs the
+# datum tied to this market's target by wx:reportsValueFor. A CLI product carries
+# max, min and precipitation, so without that link the walk reports whichever
+# datum it reaches first.
+<https://thermal-edge.dev/id/report/weather_co/2026-08-23>
+    a wx:DailyClimatologicalReport ;
+    wx:issuanceTime "2026-08-23T10:00:00Z"^^xsd:dateTime .
+
+<https://thermal-edge.dev/id/datum/KXHIGHAUS/2026-08-22/max>
+    a wx:WeatherObservationDatum ;
+    wx:reportsValueFor <https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/weather_co> ;
+    fm:realizedValue "88"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
+
+<https://thermal-edge.dev/id/report/weather_co/2026-08-23>
+    <http://purl.obolibrary.org/obo/BFO_0000178> <https://thermal-edge.dev/id/datum/KXHIGHAUS/2026-08-22/max> .
+
+<https://thermal-edge.dev/id/settlement/KXHIGHAUS-26AUG22-B88>
+    a ksh:MarketSettlement ;
+    fm:hasInput  <https://thermal-edge.dev/id/report/weather_co/2026-08-23> ;
+    fm:hasOutput <https://thermal-edge.dev/id/resolution/KXHIGHAUS-26AUG22-B88> .
+
+<https://thermal-edge.dev/id/resolution/KXHIGHAUS-26AUG22-B88>
+    a ksh:Resolution ;
+    ksh:resolutionOf <https://thermal-edge.dev/id/market/KXHIGHAUS-26AUG22-B88> ;
+    ksh:resolvesTo ksh:ResolvedYes ;
+    ksh:settlementValue "88"^^xsd:decimal ;
+    fm:hasUnit unit:DEG_F .
+
+<https://thermal-edge.dev/id/assessment/KXHIGHAUS-26AUG22-B88>
+    a fm:TruthAssessment ;
+    fm:assessesProposition <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> ;
+    fm:assessedTruthValue fm:True ;
+    fm:basedOnRecord <https://thermal-edge.dev/id/report/weather_co/2026-08-23> .
