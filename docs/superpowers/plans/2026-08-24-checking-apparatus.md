@@ -184,7 +184,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from registry import IRI_TO_PREFIX, MODULES, QUERIES, ROOT, SRC, examples  # noqa: E402
 ```
 
-Then replace every use of the old local `PREFIXES` in `shorten()` with `IRI_TO_PREFIX`, and every `sorted((ROOT / "examples").glob("*.ttl"))` with `examples()`.
+Then replace every use of the old local `PREFIXES` in `shorten()` with `IRI_TO_PREFIX`.
+
+**Do not blind-substitute the glob.** `run_competency.py:81` is `examples = sorted((ROOT / "examples").glob("*.ttl"))` *inside* `load_graph`, and `examples = examples()` binds `examples` as a local for the whole function — an `UnboundLocalError` on the call itself. Rename the local instead, updating its two uses at lines 82 and 85:
+
+```python
+    paths = examples()
+    if not paths:
+        print("no example files found; competency questions need instance data", file=sys.stderr)
+        raise SystemExit(1)
+    for path in paths:
+        g.parse(path, format="turtle")
+    return g
+```
 
 - [ ] **Step 4: Point the other two scripts at the registry**
 
@@ -202,7 +214,9 @@ from registry import MODULES, ROOT, SRC, examples  # noqa: E402
 
 and replace its `sorted((ROOT / "examples").glob("*.ttl"))` with `examples()`.
 
-In `scripts/generate_diagram.py`, replace `from validate import MODULES, ROOT, SRC` with `from registry import MODULES, ROOT, SRC`.
+In `scripts/generate_diagram.py`, replace `from validate import MODULES, ROOT, SRC` with `from registry import MODULES, ROOT, SRC`, and update the comment above it that says validate.py owns the list — it does not any more.
+
+In `scripts/validate_shapes.py`, also delete its local `DEFAULT_SHAPES = ROOT / "shapes" / "thermaledge-export.ttl"` and import `SHAPES` from the registry instead, using it wherever `DEFAULT_SHAPES` was used. Leaving both is the duplication this task exists to remove.
 
 - [ ] **Step 5: Prove there is one definition left**
 
@@ -217,10 +231,15 @@ Expected: exactly one line, `scripts/registry.py:1`. Any other hit is a copy tha
 Run:
 
 ```bash
-grep -rn 'w3id.org/forecast-market-ontology/examples' scripts/ | grep -v registry.py
+grep -n 'w3id.org/forecast-market-ontology/examples' scripts/validate.py scripts/run_competency.py
 ```
 
-Expected: no output. Every example namespace literal now lives in the registry.
+Expected: one hit only — `validate.py`'s `in_scope` tuple, which is a prefix used for a startswith test, not a namespace map.
+
+Scoped to those two files on purpose. A repo-wide grep also matches
+`generate_verification_data.py` (a Turtle template) and `test_validate.py`
+(an expected failure message), neither of which is a namespace map, so
+"expected: no output" would be wrong and the step would look broken.
 
 - [ ] **Step 6: Run the full suite**
 
@@ -296,6 +315,8 @@ if __name__ == "__main__":
     # must fail is asserted in the Makefile, since a generic rejection would hide
     # a lost cq02 floor behind the mismatch fixture's unrelated cq04 failure.
     if "--exports" in sys.argv or "--negatives" in sys.argv:
+        import io
+        from contextlib import redirect_stdout
         want_pass = "--exports" in sys.argv
         fixtures = exports() if want_pass else negatives()
         if not fixtures:
@@ -304,7 +325,19 @@ if __name__ == "__main__":
         for path in fixtures:
             print(f"== {path.name}")
             sys.argv = [sys.argv[0], "--data", str(path)]
-            code = main()
+            # A non-zero exit is not proof of rejection: "no queries found", an
+            # unreadable fixture or a renamed script all exit non-zero too. The
+            # Makefile target this replaces greps for a FAIL [cq line for exactly
+            # that reason, and dropping to an exit code would weaken it.
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                code = main()
+            out = buf.getvalue()
+            print(out, end="")
+            if not want_pass and "FAIL [cq" not in out:
+                print(f"  FAIL [{path.name}]: exited {code} but no query reported a failure")
+                worst = 1
+                continue
             if want_pass:
                 worst = max(worst, code)
             elif code == 0:
@@ -334,7 +367,7 @@ shapes:
 export-check:
 	$(PY) scripts/run_competency.py --exports
 	$(PY) scripts/run_competency.py --negatives
-	@out=$$($(PY) scripts/run_competency.py --data examples/negative/thermaledge-target-mismatch.ttl 2>&1); \
+	@out=$$($(PY) scripts/run_competency.py --data $(MISMATCH) 2>&1); \
 	echo "$$out" | grep -q 'FAIL \[cq02-probability-gap.rq\]' || { \
 		echo "FAIL: the mismatch fixture did not fail on cq02 specifically."; \
 		echo "$$out" | tail -3; \
@@ -365,7 +398,7 @@ propositions whose subjects have no type, none of which is real. Negative tests 
 probability, a market with two propositions, and several defects on export-shaped data.
 ```
 
-Then search `README.md` and `CLAUDE.md` for any remaining count of test cases, negative tests, or checked files (`grep -nE '\b(three|four|five|six|seven|eight|nine|ten|[0-9]+) (negative tests|cases|checks|file\(s\))' README.md CLAUDE.md`) and reword each the same way. Leave every ontology-state figure alone.
+Then search `README.md` and `CLAUDE.md` for any remaining count of test cases, negative tests, or checked files (`grep -niE '\b(three|four|five|six|seven|eight|nine|ten|[0-9]+) (negative tests|cases|checks|file\(s\))' README.md CLAUDE.md` — case-insensitive, or it misses the capitalised "Seven" it is looking for) and reword each the same way. Leave every ontology-state figure alone.
 
 - [ ] **Step 5: Run the full suite**
 
@@ -395,6 +428,8 @@ counting test cases, which change every PR and caused four review findings."
 **Interfaces:**
 - Consumes: nothing new.
 - Produces: `run_check(fn, *args) -> None`, which records `FAIL [<name>]: raised <Type>: <msg>` instead of propagating.
+
+**On the spec's other half.** The spec asks for the same wrapping around "each query in `run_competency.py`", citing `KeyError: 'min_rows'`. That case is already handled: `run_competency.py:153-168` validates the expectation entry's value types and prints a FAIL, and the query call itself is already inside a `try/except` that prints `FAIL [<file>]: query error`. No work is needed there, and this note exists so the gap is recorded as closed rather than missed.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -547,16 +582,22 @@ In `scripts/validate.py`, next to `fail()`:
 coverage_log: list[tuple[str, int]] = []
 
 
-def coverage(name: str, count: int, detail: str) -> None:
+def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
     """Record a check's traversal count, and fail when it is zero.
 
     Every check prints how much it looked at. Printing is not checking: six
     "traverses nothing" guards were written by hand and the seventh, for lead
     times, was missed, so the count could read 0 and the run stayed green.
+
+    on_empty carries the diagnostic the hand-written guard used to print --
+    which chain is broken, not merely that something is. A new check that
+    passes nothing still gets the guard; it just gets a blunter message until
+    someone writes a sharper one.
     """
     coverage_log.append((name, count))
     if count == 0 and EXAMPLES:
-        fail(f"{name}: nothing to check, so this check proved nothing")
+        fail(f"{name}: nothing to check, so this check proved nothing"
+             + (f" -- {on_empty}" if on_empty else ""))
         return
     notes.append(f"{name}: {count} {detail}")
 ```
@@ -585,7 +626,31 @@ Near line 1295, replace the forecast-target traversal note with:
     coverage("forecast targets", scored, "forecast probability/proposition pair(s) checked for target agreement")
 ```
 
-and delete the hand-written `if EXAMPLES and not scored: fail(...)` guard immediately above it — `coverage()` now does that job, and leaving both would report the same defect twice.
+**Then fold the seven hand-written zero-coverage guards into their `coverage()` call.** Each tests the same variable its new call counts, so leaving both reports one defect twice — but each also carries a diagnostic naming the broken chain, which a generic message would throw away. Move the diagnostic into `on_empty` and delete the guard:
+
+| Guard | `on_empty` argument to add |
+|---|---|
+| 488 | `"the assessesProposition chain is broken"` |
+| 557 | `"the usesScoringRule or scoresAssignment chain is broken"` |
+| 595 | `"the wx:WeatherObservationTarget typing is broken"` |
+| 652 | `"the settlementSource or sourceProtocol chain is broken"` |
+| 772 | `"the inEventGrouping or expressesProposition chain is broken"` |
+| 958 | `"the trading layer is unexercised again"` |
+| 1289 | `"the has-part or assignsProbabilityTo chain is broken"` |
+
+So line 493's call becomes:
+
+```python
+    coverage("current assessments", len(by_proposition),
+             "proposition(s) checked for a single current assessment",
+             "the assessesProposition chain is broken")
+```
+
+and the `if EXAMPLES and not by_proposition:` guard above it, with its `fail(...)` body, is deleted. Repeat for the other six.
+
+**Leave `validate.py:364` and `validate.py:902` alone.** Those guard `settlement_compared` and `reached` — different variables from the ones their `coverage()` calls count, so they are not duplicates and deleting them would remove real coverage.
+
+**The six existing "traverses nothing" negative tests must still pass unchanged.** Their expected substrings assert on the diagnostics above, which `on_empty` preserves. If one fails, the diagnostic was transcribed wrongly — fix the transcription, never the expectation.
 
 - [ ] **Step 5: Run the test and watch it pass**
 
@@ -662,6 +727,14 @@ def schema_only() -> Graph:
     return g
 
 
+# The one check that reads no graph. It walks PROSE_FILES and compares what they
+# name against the schema, so "nothing to check" is not a state it can be in.
+# Exempting it by name, in code, beats exempting it by judgement at review time.
+NOT_DATA_DEPENDENT = {
+    "check_context_terms": "reads PROSE_FILES, not the example graph",
+}
+
+
 def check_names() -> list[str]:
     return sorted(n for n in dir(V) if n.startswith("check_"))
 
@@ -679,8 +752,11 @@ def main() -> int:
         V.failures.clear()
         V.notes.clear()
         V.coverage_log.clear()
+        if name in NOT_DATA_DEPENDENT:
+            print(f"  --   [{name}] exempt: {NOT_DATA_DEPENDENT[name]}")
+            continue
         try:
-            fn(g, g) if name == "check_context_terms" else fn(g)
+            fn(g)
         except Exception as exc:  # noqa: BLE001
             failures.append(f"{name} raised {type(exc).__name__}: {exc} on an empty graph")
             continue
@@ -718,11 +794,31 @@ if __name__ == "__main__":
 
 Run: `poetry run python3 scripts/test_meta.py`
 
-Expected: one `ok` line per check and `OK`. `check_context_terms` reads prose files rather than the graph, so it does not fail on an empty graph — if it is reported as a failure, exempt it explicitly with a comment saying it is not data-dependent, rather than weakening the rule for everything.
+Expected: one `ok` line per data-dependent check, one `--` line for the exempt `check_context_terms`, and `OK`.
+
+This step only passes **after Task 4**, which is why Task 5 follows it: until `coverage()` lands, `check_lead_times` passes with nothing to check and this test correctly reports it. If you are running Task 5 before Task 4 is committed, that failure is the expected one.
 
 - [ ] **Step 3: Prove it catches the real bug**
 
 Temporarily revert `check_lead_times`' coverage call to a plain `notes.append`, run `poetry run python3 scripts/test_meta.py`, and confirm it reports `check_lead_times passed with nothing to check`. Restore, and confirm it passes again.
+
+- [ ] **Step 3b: Give the two unnamed checks a mention**
+
+The smoke alarm requires every `check_*` name to appear in `scripts/test_validate.py`. Three do not today: `check_trades` (Task 3 adds it), `check_dimensions`, and `check_context_terms`. Both remaining ones DO have negative cases — the cases simply never name the function they exercise, which is the gap the alarm is meant to expose.
+
+Add the function name to the comment above each. For the Celsius/Fahrenheit unit case, extend its comment with:
+
+```python
+        # Exercises check_dimensions.
+```
+
+and for the first CONTEXT.md case:
+
+```python
+        # Exercises check_context_terms.
+```
+
+Do not invent new cases — the coverage exists; only the naming was missing.
 
 - [ ] **Step 4: Wire it in**
 
@@ -921,7 +1017,14 @@ def main() -> int:
                 for triple in data:
                     mutant.add(triple)
                 for node in focus:
-                    mutant.remove((node, RDF.type, cls))
+                    # Every asserted type in the target's subclass closure, not just
+                    # the target itself. The fixture types its market ksh:WeatherMarket
+                    # while the shape targets ksh:Market, so removing only `cls`
+                    # removed a triple that was never there: the node kept its subclass
+                    # type, the shape still fired, and the mutant proved nothing. A
+                    # test for shapes that cannot fail, that could not fail.
+                    for asserted in subclasses_of(schema, cls):
+                        mutant.remove((node, RDF.type, asserted))
                     mutant.add((node, RDF.type, parent))
                 pname = str(parent).split("#")[-1]
                 if conforms(mutant, shapes):
@@ -967,7 +1070,13 @@ cp /tmp/s.bak shapes/thermaledge-export.ttl
 
 Expected while reverted: a failure naming `MarketShape` and the retype to `Market`. Then restore and confirm `OK` again.
 
-Repeat for `teh:ProbabilityShape`, reverting `fm:ProbabilityAssignment` to `fm:ForecastProbability`, and confirm it is caught the same way.
+Repeat for `teh:ProbabilityShape`, reverting `sh:targetClass fm:ProbabilityAssignment` to the two leaf classes it originally targeted:
+
+```bash
+sed -i '' 's|    sh:targetClass fm:ProbabilityAssignment ;|    sh:targetClass fm:ForecastProbability, fm:MarketImpliedProbability ;|' shapes/thermaledge-export.ttl
+```
+
+and confirm it is caught the same way, then restore.
 
 - [ ] **Step 4: Prove the dead-constraint lint fires**
 
