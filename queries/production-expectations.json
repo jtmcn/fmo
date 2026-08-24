@@ -1,0 +1,11 @@
+{
+  "_comment": "Per-query expectations for --data (production) mode. Fixture mode still compares .expected exactly and still fails on zero rows. A query with NO entry here fails in production mode: that keeps 'empty is a failure' the default and makes every exemption a visible edit.",
+  "cq02-probability-gap": {
+    "min_rows": 1,
+    "why": "The forecast side and the market side must both point at at least one shared proposition. Empty means the join broke, which is the failure this phase exists to catch."
+  },
+  "cq04-settlement-provenance": {
+    "min_rows": 1,
+    "why": "The export is built for a day that has a daily_settlements row, so a settlement chain is always expected. Empty means the chain did not serialize."
+  }
+}

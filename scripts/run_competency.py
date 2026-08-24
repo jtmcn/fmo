@@ -14,12 +14,16 @@ Two rules that keep this honest:
     expectation, visibly, in a diff.
 
 Usage:
-    python3 scripts/run_competency.py            # check
+    python3 scripts/run_competency.py            # check against examples/
     python3 scripts/run_competency.py --update   # regenerate .expected files
+    python3 scripts/run_competency.py --data <file.ttl>  # production mode: check
+        one export against queries/production-expectations.json instead of
+        examples/ + .expected
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -66,10 +70,14 @@ def shorten(term) -> str:
     return str(term)
 
 
-def load_graph() -> Graph:
+def load_graph(data: Path | None = None) -> Graph:
+    """Modules plus instance data: the checked-in examples, or one export."""
     g = Graph()
     for rel in MODULES:
         g.parse(SRC / rel, format="turtle")
+    if data is not None:
+        g.parse(data, format="turtle")
+        return g
     examples = sorted((ROOT / "examples").glob("*.ttl"))
     if not examples:
         print("no example files found; competency questions need instance data", file=sys.stderr)
@@ -77,6 +85,12 @@ def load_graph() -> Graph:
     for path in examples:
         g.parse(path, format="turtle")
     return g
+
+
+def load_production_expectations() -> dict:
+    path = QUERIES / "production-expectations.json"
+    with path.open() as handle:
+        return {k: v for k, v in json.load(handle).items() if not k.startswith("_")}
 
 
 def render(results) -> str:
@@ -90,8 +104,16 @@ def render(results) -> str:
 
 def main() -> int:
     update = "--update" in sys.argv
+    data = None
+    if "--data" in sys.argv:
+        data = Path(sys.argv[sys.argv.index("--data") + 1])
+        if update:
+            print("--update and --data are mutually exclusive", file=sys.stderr)
+            return 1
+
     prefixes = (QUERIES / "prefixes.txt").read_text()
-    graph = load_graph()
+    graph = load_graph(data)
+    expectations = load_production_expectations() if data else {}
 
     query_files = sorted(QUERIES.glob("cq*.rq"))
     if not query_files:
@@ -110,6 +132,26 @@ def main() -> int:
 
         actual = render(results)
         row_count = len(actual.strip().splitlines()) - 1
+
+        if data is not None:
+            rule = expectations.get(qf.stem)
+            if rule is None:
+                # No declared expectation is a failure, not a skip. Relaxing
+                # this globally is how the check stops working while still
+                # appearing to run.
+                print(f"  FAIL [{qf.name}]: no entry in production-expectations.json")
+                failures += 1
+                continue
+            if rule.get("may_be_empty"):
+                print(f"  ok   [{qf.name}]: {row_count} row(s), may be empty ({rule['why']})")
+                continue
+            minimum = rule["min_rows"]
+            if row_count < minimum:
+                print(f"  FAIL [{qf.name}]: {row_count} row(s), expected at least {minimum} — {rule['why']}")
+                failures += 1
+                continue
+            print(f"  ok   [{qf.name}]: {row_count} row(s)")
+            continue
 
         # An empty result is a failure, not a pass. This is the trap that makes
         # unverified competency claims look fine.

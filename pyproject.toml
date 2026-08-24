@@ -3,7 +3,7 @@ name = "forecast-market-ontology"
 version = "0.1.0"
 description = "BFO-grounded ontology for weather forecasts and Kalshi markets"
 requires-python = ">=3.12"
-dependencies = ["rdflib>=7.1"]
+dependencies = ["rdflib>=7.1", "pyshacl>=0.26"]
 
 [tool.poetry]
 # Scripts only, nothing importable to install.
