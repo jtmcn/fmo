@@ -1162,10 +1162,33 @@ def main() -> int:
     # as the mechanism that keeps the trading-layer gap visible.
     schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
     instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
-    covered = sum(1 for c in our_classes if c in instantiated)
+    direct = sum(1 for c in our_classes if c in instantiated)
+
+    # Counting direct rdf:type alone conflates two different things. An abstract
+    # parent -- ksh:Market, wx:Forecast, fm:Document -- is exercised through a
+    # child and can never gain a direct instance no matter how much data arrives,
+    # so it sat in the uncovered count permanently, next to classes nothing can
+    # instantiate because the vocabulary does not work. That second group is the
+    # one README cites this figure to keep visible, and one number cannot separate
+    # them. Report both: direct is the figure that tracks the gap, closure is the
+    # figure that says how much of the tree the examples reach.
+    descendants: dict[URIRef, set] = {}
+    for cls in our_classes:
+        seen: set = set()
+        stack = [cls]
+        while stack:
+            node = stack.pop()
+            for sub in g.subjects(RDFS.subClassOf, node):
+                if sub not in seen:
+                    seen.add(sub)
+                    stack.append(sub)
+        descendants[cls] = seen
+    closure = sum(
+        1 for c in our_classes if c in instantiated or (descendants[c] & instantiated)
+    )
     notes.append(
-        f"{covered}/{len(our_classes)} minted classes "
-        f"have an instance in the examples"
+        f"{direct} direct / {closure} via subclass / {len(our_classes)} "
+        f"minted classes have an instance in the examples"
     )
 
     if tally:
