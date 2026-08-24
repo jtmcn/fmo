@@ -77,9 +77,6 @@ from pathlib import Path
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
 from rdflib.namespace import SKOS
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-
 BFO = "http://purl.obolibrary.org/obo/"
 ENTITY = URIRef(BFO + "BFO_0000001")
 CONTINUANT = URIRef(BFO + "BFO_0000002")
@@ -93,22 +90,11 @@ BRANCHES = {
     URIRef(BFO + "BFO_0000003"): "occurrent",
 }
 
-# One source of truth: a new module gets one line here, not three edits that can drift.
-PREFIXES = {
-    "fm": "https://w3id.org/forecast-market-ontology/core#",
-    "wx": "https://w3id.org/forecast-market-ontology/weather#",
-    "ksh": "https://w3id.org/forecast-market-ontology/kalshi#",
-}
-OUR_NS = tuple(PREFIXES.values())
-
-# Example data lives in examples/, not src/, so it is checked against the example graph.
-EXAMPLE_PREFIXES = {
-    "ex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#",
-    "tex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#",
-    "vex": "https://w3id.org/forecast-market-ontology/examples/verification#",
-    "rex": "https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#",
-}
-CONTEXT_PREFIXES = {**PREFIXES, **EXAMPLE_PREFIXES}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from registry import (  # noqa: E402
+    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, OUR_NS, ONTOLOGY_PREFIXES as PREFIXES,
+    PROSE_FILES, ROOT, SRC, examples,
+)
 
 # A term is declared when something types it. A retirement that leaves a tombstone behind
 # -- owl:deprecated plus the old label -- is not a declaration, and CONTEXT.md must stop
@@ -116,18 +102,6 @@ CONTEXT_PREFIXES = {**PREFIXES, **EXAMPLE_PREFIXES}
 DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty, OWL.NamedIndividual)
 
 CONTEXT = ROOT / "CONTEXT.md"
-# Every prose file that names minted terms and would rot from a rename. The test is
-# whether the file describes the CURRENT graph: a plan, a spec (docs/superpowers/**),
-# or a note pinned to an old version (docs/fmo-in-thermaledge.md, "written against FMO
-# 0.7.0") describes a state the graph does not have, so checking it fails on correct
-# content and the only fixes are to falsify the record or drop it from this list.
-# The path, make-target and check-name assertions stay scoped to CONTEXT.md, whose
-# section 4 is repo mechanics and is why those assertions exist at all.
-PROSE_FILES = [
-    ROOT / "CONTEXT.md",
-    ROOT / "README.md",
-    ROOT / "docs" / "design-notes.md",
-]
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
 # Struck through (~~`ksh:Event`~~) is exempt: that is how the file spells a name the
 # project rejected, which by construction is declared nowhere.
@@ -137,8 +111,7 @@ CONTEXT_PATH = re.compile(r"`((?:src|scripts|queries|docs|examples)/[^`*]*)`")
 CONTEXT_MAKE = re.compile(r"`make ([a-z][a-z-]*)`")
 CONTEXT_CHECK = re.compile(r"`(check_[a-z_]+)`")
 
-MODULES = ["imports/bfo-core.ttl", "imports/qudt-subset.ttl", "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl"]
-EXAMPLES = sorted((ROOT / "examples").glob("*.ttl"))
+EXAMPLES = examples()
 
 failures: list[str] = []
 notes: list[str] = []

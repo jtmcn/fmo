@@ -29,28 +29,8 @@ from pathlib import Path
 
 from rdflib import Graph, Literal, URIRef
 
-ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / "src"
-QUERIES = ROOT / "queries"
-
-MODULES = [
-    "imports/bfo-core.ttl", "imports/qudt-subset.ttl",
-    "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl",
-]
-
-PREFIXES = {
-    "https://w3id.org/forecast-market-ontology/core#": "fm:",
-    "https://w3id.org/forecast-market-ontology/weather#": "wx:",
-    "https://w3id.org/forecast-market-ontology/kalshi#": "ksh:",
-    "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#": "ex:",
-    "https://w3id.org/forecast-market-ontology/examples/verification#": "vex:",
-    "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#": "tex:",
-    "https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#": "rex:",
-    "http://purl.obolibrary.org/obo/": "bfo:",
-    "http://qudt.org/vocab/unit/": "unit:",
-    "http://qudt.org/vocab/quantitykind/": "quantitykind:",
-    "http://qudt.org/schema/qudt/": "qudt:",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from registry import IRI_TO_PREFIX, MODULES, QUERIES, ROOT, SRC, examples  # noqa: E402
 
 
 def shorten(term) -> str:
@@ -59,7 +39,7 @@ def shorten(term) -> str:
         return "-"
     if isinstance(term, URIRef):
         s = str(term)
-        for full, short in PREFIXES.items():
+        for full, short in IRI_TO_PREFIX.items():
             if s.startswith(full):
                 return short + s[len(full):]
         return f"<{s}>"
@@ -78,11 +58,11 @@ def load_graph(data: Path | None = None) -> Graph:
     if data is not None:
         g.parse(data, format="turtle")
         return g
-    examples = sorted((ROOT / "examples").glob("*.ttl"))
-    if not examples:
+    paths = examples()
+    if not paths:
         print("no example files found; competency questions need instance data", file=sys.stderr)
         raise SystemExit(1)
-    for path in examples:
+    for path in paths:
         g.parse(path, format="turtle")
     return g
 
