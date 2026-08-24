@@ -3,4 +3,4 @@ KXHIGHNY-26AUG15-B82.5	ksh:ResolvedYes	82	ex:TWCRecord-2026-08-16	ex:TWC	82	fm:T
 KXHIGHNY-26AUG15-B84.5	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	fm:False
 KXHIGHNY-26AUG15-T81	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	fm:False
 KXHIGHNY-26AUG15-T86	ksh:ResolvedNo	82	ex:TWCRecord-2026-08-16	ex:TWC	82	fm:False
-KXRAINNYC-26JUL15-T0	ksh:ResolvedYes	0.27	<https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#CLINYC-2026-07-16>	ex:NWS	0.27	fm:True
+KXRAINNYC-26JUL15-T0	ksh:ResolvedYes	0.27	rex:CLINYC-2026-07-16	ex:NWS	0.27	fm:True

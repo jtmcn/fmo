@@ -29,10 +29,11 @@
 # time and is a different animal from an ahead-of-time forecast. It gets its own
 # row rather than being folded in or silently dropped. Expect small ?n there.
 #
-# GROUPING IS BY MODEL AND LEAD TIME ONLY, NOT BY VARIABLE. A model that forecasts
-# more than one variable pools all of them into the same row: ex:GEFS carries both
-# a temperature and a precipitation assignment. Comparing rows across variables is
-# a category error the query does not guard against.
+# GROUPING INCLUDES THE VARIABLE. A model that forecasts more than one variable --
+# ex:GEFS carries both a temperature and a precipitation assignment -- gets a row per
+# variable rather than one row averaging a Brier score in degrees with one in inches.
+# Grouping by model and lead time alone happened to keep those two apart only because
+# their lead times differed; a third forecast could have collided with either.
 #
 # THE OUTCOME MUST COME FROM THE CURRENT RECORD. Where a settlement source issued a
 # correction, a proposition carries two assessments with opposite values. Scoring
@@ -45,10 +46,10 @@
 # picked -- the same failure CQ5 collapses for, and the reason validate.py now
 # refuses two live assessments of one proposition.
 
-SELECT ?model ?leadHours ?bin ?n ?sourceRows ?meanForecast ?observedFreq ?calibrationGap ?meanBrier
+SELECT ?model ?variable ?leadHours ?bin ?n ?sourceRows ?meanForecast ?observedFreq ?calibrationGap ?meanBrier
 WHERE {
     {
-        SELECT ?model ?leadHours ?bin
+        SELECT ?model ?variable ?leadHours ?bin
                (COUNT(*)      AS ?n)
                (SUM(?rows)    AS ?sourceRows)
                (ROUND(AVG(?p)  * 1000) / 1000 AS ?meanForecast)
@@ -61,7 +62,7 @@ WHERE {
                 # twice and inflate n while every statistic quietly shifted.
                 # MAX rather than SAMPLE so a duplicate gives the same answer on
                 # every run; ?rows carries the fact that it happened.
-                SELECT ?model ?leadHours ?fp
+                SELECT ?model ?variable ?leadHours ?fp
                        (MAX(?pv) AS ?p) (MAX(?ov) AS ?o) (COUNT(*) AS ?rows)
                 WHERE {
                     ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
@@ -73,6 +74,14 @@ WHERE {
                         fm:assignsProbabilityTo ?proposition ;
                         fm:probabilityValue ?pv .
 
+                    # Grouping keys include the variable: without it a temperature
+                    # and a precipitation assignment at the same model and lead time
+                    # merge into one row, averaging a Brier score in degrees with one
+                    # in inches. Every forecast probability reaches a target variable,
+                    # so this drops nothing.
+                    ?proposition fm:hasSubject ?target .
+                    ?target wx:targetVariable ?variable .
+
                     ?assessment fm:assessesProposition ?proposition ;
                                 fm:basedOnRecord ?record ;
                                 fm:assessedTruthValue ?tv .
@@ -83,7 +92,7 @@ WHERE {
                     FILTER(?tv IN (fm:True, fm:False))
                     BIND(IF(?tv = fm:True, 1, 0) AS ?ov)
                 }
-                GROUP BY ?model ?leadHours ?fp
+                GROUP BY ?model ?variable ?leadHours ?fp
             }
 
             BIND((?p - ?o) * (?p - ?o) AS ?sq)
@@ -95,8 +104,8 @@ WHERE {
                  IF(?p < 0.8, "4: 0.6-0.8",
                               "5: 0.8-1.0")))) AS ?bin)
         }
-        GROUP BY ?model ?leadHours ?bin
+        GROUP BY ?model ?variable ?leadHours ?bin
     }
     BIND(ROUND((?meanForecast - ?observedFreq) * 1000) / 1000 AS ?calibrationGap)
 }
-ORDER BY ?model ?leadHours ?bin
+ORDER BY ?model ?variable ?leadHours ?bin

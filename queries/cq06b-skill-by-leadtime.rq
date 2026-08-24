@@ -30,16 +30,17 @@
 #
 # Negative lead times appear as their own rows, unpooled. See cq06a.
 #
-# GROUPING IS BY MODEL AND LEAD TIME ONLY, NOT BY VARIABLE. A model that forecasts
-# more than one variable pools all of them into the same row: ex:GEFS carries both
-# a temperature and a precipitation assignment. Comparing a worse score at one lead
-# against a better one at another says nothing about skill degrading with lead time
-# when the rows being compared score different variables.
+# GROUPING INCLUDES THE VARIABLE. A model that forecasts more than one variable --
+# ex:GEFS carries both a temperature and a precipitation assignment -- gets a row per
+# variable rather than one row averaging a Brier score in degrees with one in inches.
+# Grouping by model and lead time alone happened to keep those two apart only because
+# their lead times differed; a third forecast could have collided with either.
+# Read skill degradation DOWN a variable's rows, never across two variables' rows.
 
-SELECT ?model ?leadHours ?n ?sourceRows ?meanForecast ?baseRate ?meanBrier ?climatologyBrier ?meanAbsError
+SELECT ?model ?variable ?leadHours ?n ?sourceRows ?meanForecast ?baseRate ?meanBrier ?climatologyBrier ?meanAbsError
 WHERE {
     {
-        SELECT ?model ?leadHours
+        SELECT ?model ?leadHours ?variable
                (COUNT(*)   AS ?n)
                (SUM(?rows) AS ?sourceRows)
                (ROUND(AVG(?p)      * 1000) / 1000 AS ?meanForecast)
@@ -48,7 +49,7 @@ WHERE {
                (ROUND(AVG(?absErr) * 1000) / 1000 AS ?meanAbsError)
         WHERE {
             {
-                SELECT ?model ?leadHours ?fp
+                SELECT ?model ?leadHours ?variable ?fp
                        (MAX(?pv) AS ?p) (MAX(?ov) AS ?o) (COUNT(*) AS ?rows)
                 WHERE {
                     ?forecast a/rdfs:subClassOf* wx:ProbabilisticForecast ;
@@ -59,6 +60,14 @@ WHERE {
                     ?fp a/rdfs:subClassOf* fm:ForecastProbability ;
                         fm:assignsProbabilityTo ?proposition ;
                         fm:probabilityValue ?pv .
+
+                    # Grouping keys include the variable: without it a temperature
+                    # and a precipitation assignment at the same model and lead time
+                    # merge into one row, averaging a Brier score in degrees with one
+                    # in inches. Every forecast probability reaches a target variable,
+                    # so this drops nothing.
+                    ?proposition fm:hasSubject ?target .
+                    ?target wx:targetVariable ?variable .
 
                     # Only the assessment resting on a record nothing supersedes.
                     ?assessment fm:assessesProposition ?proposition ;
@@ -71,14 +80,14 @@ WHERE {
                     FILTER(?tv IN (fm:True, fm:False))
                     BIND(IF(?tv = fm:True, 1, 0) AS ?ov)
                 }
-                GROUP BY ?model ?leadHours ?fp
+                GROUP BY ?model ?leadHours ?variable ?fp
             }
 
             BIND((?p - ?o) * (?p - ?o) AS ?sq)
             BIND(IF(?p > ?o, ?p - ?o, ?o - ?p) AS ?absErr)
         }
-        GROUP BY ?model ?leadHours
+        GROUP BY ?model ?leadHours ?variable
     }
     BIND(ROUND(?baseRate * (1 - ?baseRate) * 1000) / 1000 AS ?climatologyBrier)
 }
-ORDER BY ?model ?leadHours
+ORDER BY ?model ?variable ?leadHours

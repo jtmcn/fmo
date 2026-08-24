@@ -632,9 +632,10 @@ COMPETENCY_CASES = [
         # Was "returned 0 rows" when the temperature example was cq02's only
         # joined proposition. The rain example adds a second, independent join,
         # so severing the temperature one leaves one row rather than zero, and
-        # the failure mode is a differing result. The empty-result path for
-        # cq02-shaped queries is exercised elsewhere (see the cq-update case
-        # below, and the settlement case further down).
+        # the failure mode is a differing result. Empty-result coverage lives in
+        # the correction case below and in the cq-update case at the bottom of
+        # this file -- NOT in the settlement case, which also expects a differing
+        # result now.
         "forecast and market probabilities no longer share a proposition",
         EXAMPLE,
         """ex:ForecastProb-82-83 a fm:ForecastProbability ;
@@ -716,8 +717,9 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
     (
         # Was "returned 0 rows" when the example held a single settlement. With the
         # full ladder there are four, so dropping one leaves three and the failure
-        # mode is a differing result rather than an empty one. The empty-result path
-        # is still covered by the broken-join case above.
+        # mode is a differing result rather than an empty one. Empty-result coverage
+        # is the correction case above and the cq-update case at the bottom of this
+        # file; the broken-join case no longer provides it.
         "settlement no longer records the document it read",
         EXAMPLE,
         """    fm:hasInput ex:TWCRecord-2026-08-16 ;""",
