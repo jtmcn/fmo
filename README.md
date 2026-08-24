@@ -7,7 +7,7 @@ them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-
 Status: **0.10.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23.
-Two worked examples: a temperature bracket and a settled rain market. Term coverage is
+Worked markets: a temperature bracket ladder and a settled rain market. Term coverage is
 deliberately shallow in places; see [Open questions](#open-questions).
 
 ## What it is for
@@ -286,9 +286,13 @@ Flagged rather than silently decided:
   live Kalshi API on 2026-08-23: of 354 series in Climate and Weather, none is a wind
   market. `wx:WindSpeed`, `wx:WindDirection` and `wx:AirMotion` are therefore minted
   against nothing listable, and `wx:Storm`, `wx:Thunderstorm` and `wx:TropicalCyclone`
-  remain contested on their own terms (`docs/design-notes.md`). Sixteen of the
-  eighteen classes that had no instance at 0.9.0 still have none; the rain example
-  closed two of them, plus two parents. Whether the rest earn their place is open.
+  remain contested on their own terms (`docs/design-notes.md`). Of the weather
+  module's classes, 30 had no direct instance at 0.9.0. The rain example directly
+  instantiates three of them — `wx:Rainfall`, `wx:PortionOfPrecipitate`,
+  `wx:PrecipitationDepth` — and reaches `wx:PrecipitationProcess` only through
+  `wx:Rainfall`'s subclass closure, not directly. 27 weather-module classes still
+  have no direct instance, and 23 of those aren't reached even through a subclass.
+  Whether the rest earn their place is open.
 - **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
   grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
   KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is

@@ -1,5 +1,5 @@
 # Worked example: the daily NYC rain market, settled, followed through to
-# assessment. The second worked example, and the first outside temperature.
+# assessment. The first worked market outside temperature.
 #
 # It exists to answer a question the ontology had never been asked: whether the
 # precipitation vocabulary can express a real listed market, or is only minted.
@@ -106,7 +106,7 @@ rex:Prop-Rain a fm:Proposition ;
 ################################################################
 # 4. The market side
 #
-# No ksh:mutuallyExclusive on the grouping. This event lists one market, and one
+# No ksh:mutuallyExclusive on the grouping. This grouping lists one market, and one
 # market partitions nothing -- the complement of Yes is the No side of the same
 # contract, not a sibling market. Asserting exclusivity would be trivially true
 # and would teach the next reader the wrong thing about what the flag means.
@@ -180,10 +180,11 @@ rex:ForecastProb-Rain a fm:ForecastProbability ;
     fm:probabilityValue "0.45"^^xsd:decimal ;
     fm:referenceTime "2026-07-14T18:00:00Z"^^xsd:dateTime .
 
-# 21 points between the forecast and the market, against 8 in the temperature
-# example, on the second proposition to carry both. The join is now demonstrated
-# on more than one individual, which is what makes it a join rather than a
-# coincidence.
+# 21 points between the forecast and the market, against the 8-point gap at 12:00Z
+# in the temperature example (kxhighny-2026-08-15.ttl; the bracketset file's later
+# snapshot widens to 16), on the second proposition to carry both. The join is now
+# demonstrated on more than one individual, which is what makes it a join rather
+# than a coincidence.
 
 ################################################################
 # 6. What actually happened

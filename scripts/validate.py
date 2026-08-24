@@ -978,9 +978,6 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
         if not path.exists():
             fail(f"missing prose file: {path.name}")
             return
-    if not CONTEXT.exists():
-        fail("missing CONTEXT.md")
-        return
     text = CONTEXT.read_text(encoding="utf-8")
 
     declared = {s for cls in DECLARED_AS for s in g.subjects(RDF.type, cls) if is_ours(s)}
@@ -1186,14 +1183,8 @@ def main() -> int:
     instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
     direct = sum(1 for c in our_classes if c in instantiated)
 
-    # Counting direct rdf:type alone conflates two different things. An abstract
-    # parent -- ksh:Market, wx:Forecast, fm:Document -- is exercised through a
-    # child and can never gain a direct instance no matter how much data arrives,
-    # so it sat in the uncovered count permanently, next to classes nothing can
-    # instantiate because the vocabulary does not work. That second group is the
-    # one README cites this figure to keep visible, and one number cannot separate
-    # them. Report both: direct is the figure that tracks the gap, closure is the
-    # figure that says how much of the tree the examples reach.
+    # Direct rdf:type alone conflates an abstract parent (only ever exercised via a
+    # child) with a class the vocabulary genuinely cannot express, so both counts are reported.
     descendants: dict[URIRef, set] = {}
     for cls in our_classes:
         seen: set = set()
