@@ -268,7 +268,10 @@ Flagged rather than silently decided:
   properties, one worked match with both counterparties, CQ8, and a validator check that a
   payout pays the winning side what it owes. What is still unproven is breadth: one market,
   one match, no partial fills, no cancellations, no multi-trade position. `validate.py`
-  reports the instantiated-class count on every run so the gap stays visible.
+  reports the instantiated-class count on every run so the gap stays
+  visible. It prints two figures: the direct count is the one that tracks this gap,
+  since a class nothing can instantiate stays in it; the subclass-closure count is
+  higher only because abstract parents are exercised through their children.
 - **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
   grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
   KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is
