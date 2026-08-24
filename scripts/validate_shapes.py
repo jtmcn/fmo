@@ -27,13 +27,11 @@ from pyshacl import validate
 from rdflib import Graph
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate import MODULES, ROOT, SRC  # noqa: E402  -- one MODULES list, not three
-
-DEFAULT_SHAPES = ROOT / "shapes" / "thermaledge-export.ttl"
+from registry import MODULES, ROOT, SRC, SHAPES, examples  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
-    shapes_path = DEFAULT_SHAPES
+    shapes_path = SHAPES
     if "--shapes" in argv:
         i = argv.index("--shapes")
         if i + 1 >= len(argv):
@@ -49,7 +47,7 @@ def main(argv: list[str]) -> int:
             # caller named was never loaded -- a pass report for an unread file.
             print(f"--examples takes no other files; got {' '.join(rest)}", file=sys.stderr)
             return 2
-        data_paths = sorted((ROOT / "examples").glob("*.ttl"))
+        data_paths = examples()
         if not data_paths:
             print("--examples matched no files", file=sys.stderr)
             return 2

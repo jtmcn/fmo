@@ -23,9 +23,8 @@ from pathlib import Path
 from rdflib import Graph, OWL, RDF, RDFS, URIRef
 from rdflib.namespace import SKOS
 
-# One source of truth for the module list; validate.py already owns it.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate import MODULES, ROOT, SRC  # noqa: E402
+from registry import MODULES, ROOT, SRC  # noqa: E402
 
 VIZ = ROOT / "viz"
 BUILD = ROOT / "build"
