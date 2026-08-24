@@ -1,0 +1,59 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix teh:  <https://w3id.org/forecast-market-ontology/shapes/thermaledge#> .
+
+# What a valid ThermalEdge export looks like. Deliberately the minimum CQ2 and
+# CQ4 need: the export omits sites, stations, day boundaries, model runs and
+# quotes, and these shapes must not demand them back.
+
+teh:MarketShape a sh:NodeShape ;
+    sh:targetClass ksh:WeatherMarket ;
+    sh:property [
+        sh:path ksh:expressesProposition ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "every market expresses exactly one proposition" ;
+    ] ;
+    sh:property [
+        sh:path ksh:marketTicker ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype <http://www.w3.org/2001/XMLSchema#string> ;
+    ] .
+
+teh:PropositionShape a sh:NodeShape ;
+    sh:targetClass fm:Proposition ;
+    sh:property [
+        sh:path fm:hasSubject ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class wx:WeatherObservationTarget ;
+        sh:message "a proposition's subject must be a weather observation target" ;
+    ] ;
+    sh:property [
+        sh:path fm:hasComparator ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+    ] .
+
+teh:TargetShape a sh:NodeShape ;
+    sh:targetClass wx:WeatherObservationTarget ;
+    sh:property [
+        sh:path wx:underProtocol ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class wx:MeasurementProtocol ;
+        sh:message "a target without a protocol is not identified: the same site and day under two protocols are two quantities" ;
+    ] .
+
+teh:ProbabilityShape a sh:NodeShape ;
+    sh:targetClass fm:ForecastProbability, fm:MarketImpliedProbability ;
+    sh:property [
+        sh:path fm:assignsProbabilityTo ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:class fm:Proposition ;
+        sh:message "a probability must assign to a proposition present in the graph" ;
+    ] ;
+    sh:property [
+        sh:path fm:probabilityValue ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:minInclusive 0 ; sh:maxInclusive 1 ;
+    ] .

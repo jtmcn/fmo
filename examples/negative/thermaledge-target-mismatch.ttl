@@ -1,0 +1,46 @@
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix te:   <https://thermal-edge.dev/id/> .
+
+# NEGATIVE FIXTURE — this file is meant to FAIL.
+#
+# The forecast probability assigns to Prop-A (subject: the weather_co target).
+# The market expresses Prop-B (subject: a DIFFERENT target). CQ2 joins the two
+# probability sides on one proposition, so it returns nothing, and production
+# mode fails on cq02's min_rows floor. That is the Phase 3 acceptance criterion.
+#
+# Kept outside examples/*.ttl's glob so the positive run never loads it.
+#
+# Identifiers use full IRIs rather than te: prefixed names: Turtle's PN_LOCAL
+# grammar does not allow an unescaped "/" in a prefixed local name, and these
+# ids (mirroring the real exporter's) are path-shaped.
+
+<https://thermal-edge.dev/id/protocol/weather_co> a wx:MeasurementProtocol .
+
+<https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/weather_co> a wx:WeatherObservationTarget ;
+    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> .
+
+<https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/drifted> a wx:WeatherObservationTarget ;
+    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> .
+
+<https://thermal-edge.dev/id/prop/A> a fm:Proposition ;
+    fm:hasSubject <https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/weather_co> ;
+    fm:hasComparator fm:Between .
+
+<https://thermal-edge.dev/id/prop/B> a fm:Proposition ;
+    fm:hasSubject <https://thermal-edge.dev/id/target/KXHIGHAUS/2026-08-22/drifted> ;
+    fm:hasComparator fm:Between .
+
+<https://thermal-edge.dev/id/market/KXHIGHAUS-26AUG22-B88> a ksh:WeatherMarket ;
+    ksh:marketTicker "KXHIGHAUS-26AUG22-B88" ;
+    ksh:expressesProposition <https://thermal-edge.dev/id/prop/B> .
+
+<https://thermal-edge.dev/id/forecastprob/x> a fm:ForecastProbability ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/A> ;
+    fm:probabilityValue "0.44"^^xsd:decimal .
+
+<https://thermal-edge.dev/id/marketprob/x> a fm:MarketImpliedProbability ;
+    fm:assignsProbabilityTo <https://thermal-edge.dev/id/prop/B> ;
+    fm:probabilityValue "0.31"^^xsd:decimal .
