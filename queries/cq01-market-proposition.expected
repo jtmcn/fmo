@@ -3,4 +3,4 @@ KXHIGHNY-26AUG15-B82.5	fm:Between	82	83	unit:DEG_F	wx:MaximumAirTemperature	ex:C
 KXHIGHNY-26AUG15-B84.5	fm:Between	84	85	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:TWCDailyTempProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
 KXHIGHNY-26AUG15-T81	fm:LessThanOrEqual	-	81	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:TWCDailyTempProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
 KXHIGHNY-26AUG15-T86	fm:GreaterThanOrEqual	86	-	unit:DEG_F	wx:MaximumAirTemperature	ex:CentralParkSite	ex:TWCDailyTempProtocol	2026-08-15T01:00:00-04:00	2026-08-16T00:59:59-04:00
-KXRAINNYC-26JUL15-T0	fm:GreaterThan	0	-	unit:IN	wx:TotalPrecipitation	ex:CentralParkSite	<https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#NWSDailyPrecipProtocol>	2026-07-15T01:00:00-04:00	2026-07-16T00:59:59-04:00
+KXRAINNYC-26JUL15-T0	fm:GreaterThan	0	-	unit:IN	wx:TotalPrecipitation	ex:CentralParkSite	rex:NWSDailyPrecipProtocol	2026-07-15T01:00:00-04:00	2026-07-16T00:59:59-04:00

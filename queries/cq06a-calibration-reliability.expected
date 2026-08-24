@@ -1,23 +1,23 @@
-model	leadHours	bin	n	sourceRows	meanForecast	observedFreq	calibrationGap	meanBrier
-ex:GEFS	-4.667	3: 0.4-0.6	1	1	0.52	0	0.52	0.27
-ex:GEFS	11.0	3: 0.4-0.6	1	1	0.45	1	-0.55	0.303
-vex:ModelCalibrated	24	1: 0.0-0.2	82	82	0.04	0.073	-0.033	0.057
-vex:ModelCalibrated	24	2: 0.2-0.4	37	37	0.29	0.351	-0.061	0.24
-vex:ModelCalibrated	24	3: 0.4-0.6	23	23	0.453	0.261	0.192	0.239
-vex:ModelCalibrated	24	4: 0.6-0.8	6	6	0.681	0.667	0.014	0.258
-vex:ModelCalibrated	24	5: 0.8-1.0	12	12	0.96	0.917	0.043	0.067
-vex:ModelCalibrated	72	1: 0.0-0.2	66	66	0.097	0.106	-0.009	0.089
-vex:ModelCalibrated	72	2: 0.2-0.4	72	72	0.285	0.306	-0.021	0.211
-vex:ModelCalibrated	72	3: 0.4-0.6	14	14	0.488	0.357	0.131	0.229
-vex:ModelCalibrated	72	4: 0.6-0.8	4	4	0.695	0.5	0.195	0.264
-vex:ModelCalibrated	72	5: 0.8-1.0	4	4	0.855	1	-0.145	0.024
-vex:ModelOverconfident	24	1: 0.0-0.2	99	99	0.026	0.121	-0.095	0.105
-vex:ModelOverconfident	24	2: 0.2-0.4	17	17	0.292	0.353	-0.061	0.21
-vex:ModelOverconfident	24	3: 0.4-0.6	12	12	0.52	0.25	0.27	0.268
-vex:ModelOverconfident	24	4: 0.6-0.8	17	17	0.688	0.412	0.276	0.295
-vex:ModelOverconfident	24	5: 0.8-1.0	15	15	0.966	0.8	0.166	0.168
-vex:ModelOverconfident	72	1: 0.0-0.2	85	85	0.053	0.118	-0.065	0.104
-vex:ModelOverconfident	72	2: 0.2-0.4	26	26	0.308	0.385	-0.077	0.245
-vex:ModelOverconfident	72	3: 0.4-0.6	40	40	0.491	0.325	0.166	0.246
-vex:ModelOverconfident	72	4: 0.6-0.8	2	2	0.693	0.5	0.193	0.312
-vex:ModelOverconfident	72	5: 0.8-1.0	7	7	0.917	0.857	0.06	0.11
+model	variable	leadHours	bin	n	sourceRows	meanForecast	observedFreq	calibrationGap	meanBrier
+ex:GEFS	wx:MaximumAirTemperature	-4.667	3: 0.4-0.6	1	1	0.52	0	0.52	0.27
+ex:GEFS	wx:TotalPrecipitation	11.0	3: 0.4-0.6	1	1	0.45	1	-0.55	0.303
+vex:ModelCalibrated	wx:MaximumAirTemperature	24	1: 0.0-0.2	82	82	0.04	0.073	-0.033	0.057
+vex:ModelCalibrated	wx:MaximumAirTemperature	24	2: 0.2-0.4	37	37	0.29	0.351	-0.061	0.24
+vex:ModelCalibrated	wx:MaximumAirTemperature	24	3: 0.4-0.6	23	23	0.453	0.261	0.192	0.239
+vex:ModelCalibrated	wx:MaximumAirTemperature	24	4: 0.6-0.8	6	6	0.681	0.667	0.014	0.258
+vex:ModelCalibrated	wx:MaximumAirTemperature	24	5: 0.8-1.0	12	12	0.96	0.917	0.043	0.067
+vex:ModelCalibrated	wx:MaximumAirTemperature	72	1: 0.0-0.2	66	66	0.097	0.106	-0.009	0.089
+vex:ModelCalibrated	wx:MaximumAirTemperature	72	2: 0.2-0.4	72	72	0.285	0.306	-0.021	0.211
+vex:ModelCalibrated	wx:MaximumAirTemperature	72	3: 0.4-0.6	14	14	0.488	0.357	0.131	0.229
+vex:ModelCalibrated	wx:MaximumAirTemperature	72	4: 0.6-0.8	4	4	0.695	0.5	0.195	0.264
+vex:ModelCalibrated	wx:MaximumAirTemperature	72	5: 0.8-1.0	4	4	0.855	1	-0.145	0.024
+vex:ModelOverconfident	wx:MaximumAirTemperature	24	1: 0.0-0.2	99	99	0.026	0.121	-0.095	0.105
+vex:ModelOverconfident	wx:MaximumAirTemperature	24	2: 0.2-0.4	17	17	0.292	0.353	-0.061	0.21
+vex:ModelOverconfident	wx:MaximumAirTemperature	24	3: 0.4-0.6	12	12	0.52	0.25	0.27	0.268
+vex:ModelOverconfident	wx:MaximumAirTemperature	24	4: 0.6-0.8	17	17	0.688	0.412	0.276	0.295
+vex:ModelOverconfident	wx:MaximumAirTemperature	24	5: 0.8-1.0	15	15	0.966	0.8	0.166	0.168
+vex:ModelOverconfident	wx:MaximumAirTemperature	72	1: 0.0-0.2	85	85	0.053	0.118	-0.065	0.104
+vex:ModelOverconfident	wx:MaximumAirTemperature	72	2: 0.2-0.4	26	26	0.308	0.385	-0.077	0.245
+vex:ModelOverconfident	wx:MaximumAirTemperature	72	3: 0.4-0.6	40	40	0.491	0.325	0.166	0.246
+vex:ModelOverconfident	wx:MaximumAirTemperature	72	4: 0.6-0.8	2	2	0.693	0.5	0.193	0.312
+vex:ModelOverconfident	wx:MaximumAirTemperature	72	5: 0.8-1.0	7	7	0.917	0.857	0.06	0.11

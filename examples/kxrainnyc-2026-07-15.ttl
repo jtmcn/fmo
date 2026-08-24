@@ -3,9 +3,10 @@
 #
 # It exists to answer a question the ontology had never been asked: whether the
 # precipitation vocabulary can express a real listed market, or is only minted.
-# Through 0.9.0 eighteen classes in weather.ttl had no instance, no query and no
-# check -- the condition the trading layer was in through 0.7.1, where unused
-# turned out to mean unusable.
+# Through 0.9.0 thirty classes in weather.ttl had no direct instance, and most had
+# no query and no check either -- the condition the trading layer was in through
+# 0.7.1, where unused turned out to mean unusable. This file gives three of them a
+# first instance: wx:Rainfall, wx:PortionOfPrecipitate and wx:PrecipitationDepth.
 #
 # The market decides one thing the model had left to prose. Kalshi settles
 # "will it rain" as strike_type: greater, floor_strike: 0 -- a threshold on a

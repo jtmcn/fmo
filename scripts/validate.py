@@ -116,16 +116,17 @@ CONTEXT_PREFIXES = {**PREFIXES, **EXAMPLE_PREFIXES}
 DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty, OWL.NamedIndividual)
 
 CONTEXT = ROOT / "CONTEXT.md"
-# Every prose file that names minted terms and would rot from a rename. Not
-# docs/superpowers/**: a plan or a spec describes a state the graph does not have
-# yet, so checking one against the current graph fails on correct content. The
-# path, make-target and check-name assertions stay scoped to CONTEXT.md, whose
+# Every prose file that names minted terms and would rot from a rename. The test is
+# whether the file describes the CURRENT graph: a plan, a spec (docs/superpowers/**),
+# or a note pinned to an old version (docs/fmo-in-thermaledge.md, "written against FMO
+# 0.7.0") describes a state the graph does not have, so checking it fails on correct
+# content and the only fixes are to falsify the record or drop it from this list.
+# The path, make-target and check-name assertions stay scoped to CONTEXT.md, whose
 # section 4 is repo mechanics and is why those assertions exist at all.
 PROSE_FILES = [
     ROOT / "CONTEXT.md",
     ROOT / "README.md",
     ROOT / "docs" / "design-notes.md",
-    ROOT / "docs" / "fmo-in-thermaledge.md",
 ]
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
 # Struck through (~~`ksh:Event`~~) is exempt: that is how the file spells a name the
@@ -983,14 +984,14 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     declared = {s for cls in DECLARED_AS for s in g.subjects(RDF.type, cls) if is_ours(s)}
     deprecated = set(g.subjects(OWL.deprecated, Literal(True)))
 
-    total_mentioned = 0
+    all_mentioned: set = set()
     for path in PROSE_FILES:
         prose = path.read_text(encoding="utf-8")
         mentioned = set(CONTEXT_TERM.findall(prose))
         if path == CONTEXT and not mentioned:
             fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
             return
-        total_mentioned += len(mentioned)
+        all_mentioned |= mentioned
         for prefix, local in sorted(mentioned):
             term = URIRef(CONTEXT_PREFIXES[prefix] + local)
             if prefix in EXAMPLE_PREFIXES:
@@ -1019,7 +1020,7 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
             fail(f"CONTEXT.md names a missing check: {name}")
 
     notes.append(
-        f"prose: {total_mentioned} term(s) across {len(PROSE_FILES)} file(s), "
+        f"prose: {len(all_mentioned)} distinct term(s) across {len(PROSE_FILES)} file(s), "
         f"{len(paths)} path(s), {len(targets)} make target(s), "
         f"{len(checks)} check name(s) verified"
     )
@@ -1200,8 +1201,8 @@ def main() -> int:
         1 for c in our_classes if c in instantiated or (descendants[c] & instantiated)
     )
     notes.append(
-        f"{direct} direct / {closure} via subclass / {len(our_classes)} "
-        f"minted classes have an instance in the examples"
+        f"{direct} of {len(our_classes)} minted classes have an instance in the "
+        f"examples directly, {closure} counting subclass closure"
     )
 
     if tally:
