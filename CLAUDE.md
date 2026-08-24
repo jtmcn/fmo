@@ -15,6 +15,8 @@ for what, and which not to; consult it before naming anything in prose or in Tur
 make setup              # poetry install + fetch robot.jar if missing
 make validate           # structure, BFO grounding, disjointness, units, docs (no Java)
 make validate-negative  # negative tests: prove the validator fails when it should
+make shapes             # SHACL conformance: examples union, then each export fixture
+make export-check       # production CQ mode: exports pass, the mismatch fixture fails on CQ2
 make cq                 # SPARQL competency questions vs checked-in .expected
 make cq-update          # regenerate .expected — review the diff before committing
 make reason             # HermiT consistency (skips with a notice if ROBOT/Java absent)
@@ -38,6 +40,10 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   `owl:Thing` and the check exists because of it.
 - **Adding a source file means updating the `MODULES` list** in both `scripts/validate.py`
   and `scripts/run_competency.py`, plus `src/fmo.ttl` and `src/catalog-v001.xml`.
+  `validate_shapes.py` and `generate_diagram.py` import `MODULES` from `validate.py`
+  rather than copying it; keep it that way. A stale copy there fails silently — the
+  shapes run against a smaller ontology, `sh:class` matches fewer nodes, and fewer
+  matched nodes means *conformance*, not an error.
 - **Version bumps touch all four modules** — `owl:versionIRI` and `owl:versionInfo` in
   `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status line in
   `README.md`.

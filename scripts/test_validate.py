@@ -677,6 +677,21 @@ SHAPES_CASES = [
         """""",
         "a target without a protocol is not identified",
     ),
+    (
+        # The mistargeted-sh:targetClass trap, made into a test. A shape whose
+        # targetClass matches NO focus node conforms -- so when MarketShape
+        # targeted ksh:WeatherMarket, an export typing its markets as plain
+        # ksh:Market was checked for nothing at all and passed with no
+        # proposition and no ticker. Retyping here must still be rejected.
+        "an export market typed as a plain market, with no proposition",
+        EXPORT,
+        """    a ksh:WeatherMarket ;
+    ksh:marketTicker "KXHIGHAUS-26AUG22-B88" ;
+    ksh:expressesProposition <https://thermal-edge.dev/id/prop/KXHIGHAUS-26AUG22-B88> .""",
+        """    a ksh:Market ;
+    fm:statedAs "typed as a plain market, with no proposition and no ticker" .""",
+        "every market expresses exactly one proposition",
+    ),
 ]
 
 # Defects that must break a competency question rather than quietly changing its answer.
@@ -818,9 +833,13 @@ def main() -> int:
     # Baseline: the unmodified tree must pass both checkers, or the negative
     # results below mean nothing.
     baseline_ok = True
-    for script in ("scripts/validate.py", "scripts/run_competency.py"):
+    # validate_shapes.py is a third checker with its own negative cases below. Without
+    # it in the baseline, a shapes edit that makes the CLEAN tree violate TargetShape
+    # would let those cases "pass": non-zero exit, right message, wrong reason.
+    for script in ("scripts/validate.py", "scripts/run_competency.py",
+                   "scripts/validate_shapes.py --examples"):
         proc = subprocess.run(
-            [sys.executable, script], cwd=ROOT, capture_output=True, text=True,
+            [sys.executable, *script.split()], cwd=ROOT, capture_output=True, text=True,
         )
         if proc.returncode != 0:
             print(f"BASELINE FAIL: {script} does not pass on the unmodified tree")
@@ -867,7 +886,7 @@ def main() -> int:
         script="scripts/run_competency.py --update",
     ))
 
-    passed, total = sum(results) + 2, len(results) + 2
+    passed, total = sum(results) + 3, len(results) + 3
     print(f"\n{passed}/{total} checks passed")
     return 0 if all(results) else 1
 

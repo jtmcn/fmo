@@ -142,6 +142,18 @@ def main() -> int:
                 print(f"  FAIL [{qf.name}]: no entry in production-expectations.json")
                 failures += 1
                 continue
+            # A malformed entry is a failure, not a crash and not a silent pass.
+            # Carrying both keys used to drop the floor silently; carrying neither
+            # raised KeyError below instead of printing a FAIL line.
+            if ("may_be_empty" in rule) == ("min_rows" in rule):
+                print(f"  FAIL [{qf.name}]: expectation entry must set exactly one of "
+                      f"may_be_empty or min_rows")
+                failures += 1
+                continue
+            if not rule.get("why"):
+                print(f"  FAIL [{qf.name}]: expectation entry has no 'why'")
+                failures += 1
+                continue
             if rule.get("may_be_empty"):
                 print(f"  ok   [{qf.name}]: {row_count} row(s), may be empty ({rule['why']})")
                 continue
