@@ -26,7 +26,7 @@ for a benefit nobody is collecting. Revisit if the ontology is ever published fo
 
 Kalshi's API tier is called `event`. BFO's `occurrent` branch is where events live. They are not
 the same thing and the collision is actively dangerous, because a modeller who files
-`ksh:Event` under `bfo:process` gets an ontology that parses, reasons, and is wrong.
+~~`ksh:Event`~~ under `bfo:process` gets an ontology that parses, reasons, and is wrong.
 
 A Kalshi event is a **listing**: a document published by an exchange, grouping the markets that
 partition the possible values of one observation target. It is a generically dependent

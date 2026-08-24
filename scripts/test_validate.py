@@ -606,6 +606,17 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
         "",
         "trading layer is unexercised again",
     ),
+    (
+        # CONTEXT.md was guarded and README was not, though README backticks 22
+        # minted terms and rots from a rename in exactly the same way. The guard
+        # was written for one file because that is the file that had just been
+        # added, not because the others were safe.
+        "README.md naming a term that no longer exists",
+        "README.md",
+        "`wx:conventionalUnit` is deliberately\n**not** a sub-property of `fm:hasUnit`",
+        "`wx:conventionalUnit_renamed` is deliberately\n**not** a sub-property of `fm:hasUnit`",
+        "README.md names an undeclared term: wx:conventionalUnit_renamed",
+    ),
 ]
 
 

@@ -115,6 +115,17 @@ CONTEXT_PREFIXES = {**PREFIXES, **EXAMPLE_PREFIXES}
 DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty, OWL.NamedIndividual)
 
 CONTEXT = ROOT / "CONTEXT.md"
+# Every prose file that names minted terms and would rot from a rename. Not
+# docs/superpowers/**: a plan or a spec describes a state the graph does not have
+# yet, so checking one against the current graph fails on correct content. The
+# path, make-target and check-name assertions stay scoped to CONTEXT.md, whose
+# section 4 is repo mechanics and is why those assertions exist at all.
+PROSE_FILES = [
+    ROOT / "CONTEXT.md",
+    ROOT / "README.md",
+    ROOT / "docs" / "design-notes.md",
+    ROOT / "docs" / "fmo-in-thermaledge.md",
+]
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
 # Struck through (~~`ksh:Event`~~) is exempt: that is how the file spells a name the
 # project rejected, which by construction is declared nowhere.
@@ -951,7 +962,7 @@ def check_trades(g: Graph) -> None:
 
 
 def check_context_terms(g: Graph, ex: Graph) -> None:
-    """CONTEXT.md names terms in prose, and no tool but this one reads it.
+    """The prose files name terms, and no tool but this one reads them.
 
     Everything backticked the repo can be asked about is checked: minted terms and
     example individuals against the graph, source paths, make targets and check names
@@ -962,6 +973,10 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     say which word to use, not to restate 200 definitions, so demanding an entry per
     term would turn it into the copy of the ontology it is written not to be.
     """
+    for path in PROSE_FILES:
+        if not path.exists():
+            fail(f"missing prose file: {path.name}")
+            return
     if not CONTEXT.exists():
         fail("missing CONTEXT.md")
         return
@@ -969,19 +984,24 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
 
     declared = {s for cls in DECLARED_AS for s in g.subjects(RDF.type, cls) if is_ours(s)}
     deprecated = set(g.subjects(OWL.deprecated, Literal(True)))
-    mentioned = set(CONTEXT_TERM.findall(text))
-    if not mentioned:
-        fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
-        return
-    for prefix, local in sorted(mentioned):
-        term = URIRef(CONTEXT_PREFIXES[prefix] + local)
-        if prefix in EXAMPLE_PREFIXES:
-            if (term, RDF.type, None) not in ex:
-                fail(f"CONTEXT.md names an undefined individual: {prefix}:{local}")
-        elif term in deprecated:
-            fail(f"CONTEXT.md names a deprecated term: {prefix}:{local}")
-        elif term not in declared:
-            fail(f"CONTEXT.md names an undeclared term: {prefix}:{local}")
+
+    total_mentioned = 0
+    for path in PROSE_FILES:
+        prose = path.read_text(encoding="utf-8")
+        mentioned = set(CONTEXT_TERM.findall(prose))
+        if path == CONTEXT and not mentioned:
+            fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
+            return
+        total_mentioned += len(mentioned)
+        for prefix, local in sorted(mentioned):
+            term = URIRef(CONTEXT_PREFIXES[prefix] + local)
+            if prefix in EXAMPLE_PREFIXES:
+                if (term, RDF.type, None) not in ex:
+                    fail(f"{path.name} names an undefined individual: {prefix}:{local}")
+            elif term in deprecated:
+                fail(f"{path.name} names a deprecated term: {prefix}:{local}")
+            elif term not in declared:
+                fail(f"{path.name} names an undeclared term: {prefix}:{local}")
 
     paths = set(CONTEXT_PATH.findall(text))
     for rel in sorted(paths):
@@ -1001,8 +1021,9 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
             fail(f"CONTEXT.md names a missing check: {name}")
 
     notes.append(
-        f"CONTEXT.md: {len(mentioned)} term(s), {len(paths)} path(s), "
-        f"{len(targets)} make target(s), {len(checks)} check name(s) verified"
+        f"prose: {total_mentioned} term(s) across {len(PROSE_FILES)} file(s), "
+        f"{len(paths)} path(s), {len(targets)} make target(s), "
+        f"{len(checks)} check name(s) verified"
     )
 
 
