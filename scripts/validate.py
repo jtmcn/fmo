@@ -1004,6 +1004,47 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     )
 
 
+def check_designation_disjointness(g: Graph) -> None:
+    """Every subclass of fm:Designation is in an owl:AllDisjointClasses block.
+
+    The blocks are hand-written enumerations, and the vocabularies they cover keep
+    arriving: fm:ScoringRule was left out of the first version and nothing noticed,
+    because the defect a missing member allows -- one individual typed into two
+    controlled vocabularies at once -- is legal OWL that every other check reads as
+    fine. This is the drift the MODULES list has the same shape as, and the same
+    answer: derive the expected set instead of trusting the enumeration.
+
+    Membership is checked, not the geometry. Whether the pairs are asserted in one
+    block or several is a placement question -- core.ttl restates its own so that
+    importing core without kalshi still gets them -- and either satisfies this.
+    """
+    designations = {c for c in g.subjects(RDFS.subClassOf, URIRef(FM + "Designation"))}
+    if not designations:
+        fail(
+            "no subclasses of fm:Designation found, so this check verified nothing -- "
+            "the class was renamed, or the module carrying it was not loaded"
+        )
+        return
+
+    covered: set = set()
+    for block in g.subjects(RDF.type, OWL.AllDisjointClasses):
+        for members in g.objects(block, OWL.members):
+            covered |= set(g.items(members))
+
+    missing = sorted(str(c) for c in designations - covered)
+    for iri in missing:
+        fail(
+            f"designation vocabulary in no owl:AllDisjointClasses block: {iri} -- "
+            f"one of its individuals could also be typed into another vocabulary, "
+            f"and every functional-property guard would still pass"
+        )
+
+    notes.append(
+        f"designations: {len(designations)} subclass(es) of fm:Designation, "
+        f"{len(designations & covered)} covered by a disjointness block"
+    )
+
+
 def check_forecast_market_join(g: Graph) -> None:
     """The join the ontology exists for: one proposition, both probabilities.
 
@@ -1298,6 +1339,9 @@ def main() -> int:
         run_check(check, ex)
 
     run_check(check_context_terms, g, ex)
+    # Schema-only, so it takes g rather than ex: whether a vocabulary is covered is
+    # a property of the modules, and no example data can change the answer.
+    run_check(check_designation_disjointness, g)
 
     return report()
 

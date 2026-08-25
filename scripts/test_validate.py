@@ -318,6 +318,19 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "no skos:definition: https://w3id.org/forecast-market-ontology/weather#WindDirection",
     ),
     (
+        # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
+        # was missing from the first one. A vocabulary outside them lets one
+        # individual be typed into two at once, which is legal OWL that every other
+        # check reads as fine.
+        # Exercises check_designation_disjointness.
+        "a designation vocabulary left out of every disjointness block",
+        "src/kalshi.ttl",
+        "                 ksh:MarketStatus ) .",
+        "                 ) .",
+        "designation vocabulary in no owl:AllDisjointClasses block: "
+        "https://w3id.org/forecast-market-ontology/kalshi#MarketStatus",
+    ),
+    (
         # Check 2b hard-coded two QUDT IRIs, so the third class the generator adds
         # floated under owl:Thing -- the exact defect 2b exists to catch.
         "a bridged QUDT class left unrooted",

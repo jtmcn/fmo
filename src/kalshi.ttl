@@ -127,10 +127,12 @@ ksh:BinaryContract a owl:Class ;
         owl:onProperty ksh:contractInMarket ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
         [ a owl:Class ; owl:unionOf ( ksh:YesContract ksh:NoContract ) ] ;
     skos:scopeNote """The union is the exhaustiveness half of a partition; ksh:YesContract owl:disjointWith
-ksh:NoContract is the exclusivity half. Disjointness alone leaves a third contract side
-expressible, and a binary market has exactly two. A scalar market settles to a number rather
-than to a side, so it is not a third side under this class -- see the open question in
-README.md.""" .
+ksh:NoContract is the exclusivity half. Read it precisely: it does not refuse a third subclass,
+it forces one into ksh:YesContract or ksh:NoContract, so minting an undecorated third side stays
+consistent and correctly so. What it refuses is a side that is genuinely a third -- disjoint
+from both -- and what it buys is the inference that a binary contract known not to be one side
+is the other. A scalar market settles to a number rather than to a side and is not this case;
+see the open question in README.md.""" .
 
 ksh:YesContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "yes contract" ;

@@ -128,10 +128,18 @@ the two blocks is deliberate.
 
 **`ksh:BinaryContract` is a partition, not just a disjoint pair.** `ksh:YesContract
 owl:disjointWith ksh:NoContract` is the exclusivity half and was all that was asserted through
-0.11.0; disjointness on its own leaves a third side expressible, and a binary market has
-exactly two. The union axiom supplies exhaustiveness. Note this is the class-level construct
-only — it says nothing about whether a *bracket ladder* tiles the line, which is a claim about
-numeric coverage by individuals and remains open (see README).
+0.11.0. The union axiom supplies exhaustiveness.
+
+Worth stating exactly what that buys, because the loose version is wrong. The union does not
+refuse a third subclass: it forces one into `ksh:YesContract ⊔ ksh:NoContract`, so minting
+`ksh:ScalarContract ⊑ ksh:BinaryContract` and nothing else is consistent, and correctly so —
+it says every such contract is a yes or a no, which is a claim about its instances rather than
+about the name. What the union refuses is a side that is genuinely a third, declared disjoint
+from both; that class is unsatisfiable. What it gains positively is the inference that a binary
+contract known not to be one side is the other.
+
+This is the class-level construct only. It says nothing about whether a *bracket ladder* tiles
+the line, which is a claim about numeric coverage by individuals and remains open (see README).
 
 ## Units
 

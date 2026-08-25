@@ -40,6 +40,7 @@ def schema_only() -> Graph:
 # Exempting it by name, in code, beats exempting it by judgement at review time.
 NOT_DATA_DEPENDENT = {
     "check_context_terms": "reads PROSE_FILES, not the example graph",
+    "check_designation_disjointness": "reads the modules; example data cannot change the answer",
 }
 
 
