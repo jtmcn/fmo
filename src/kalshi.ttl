@@ -11,7 +11,7 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.11.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.12.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -19,7 +19,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.11.0" ;
+    owl:versionInfo "0.12.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -123,7 +123,13 @@ ksh:BinaryContract a owl:Class ;
     rdfs:label "binary contract" ;
     skos:definition "An information content entity specifying an agreement to pay a fixed sum to its holder if the proposition of its market is true at settlement, and nothing otherwise." ;
     rdfs:subClassOf [ a owl:Restriction ;
-        owl:onProperty ksh:contractInMarket ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
+        owl:onProperty ksh:contractInMarket ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
+        [ a owl:Class ; owl:unionOf ( ksh:YesContract ksh:NoContract ) ] ;
+    skos:scopeNote """The union is the exhaustiveness half of a partition; ksh:YesContract owl:disjointWith
+ksh:NoContract is the exclusivity half. Disjointness alone leaves a third contract side
+expressible, and a binary market has exactly two. A scalar market settles to a number rather
+than to a side, so it is not a third side under this class -- see the open question in
+README.md.""" .
 
 ksh:YesContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "yes contract" ;
@@ -304,6 +310,19 @@ ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized"
 [] a owl:AllDifferent ;
    owl:distinctMembers ( ksh:Initialized ksh:Active ksh:Inactive ksh:Closed
                          ksh:Determined ksh:Disputed ksh:Amended ksh:Finalized ) .
+
+################################################################
+# The designation vocabularies are pairwise disjoint
+#
+# The AllDifferent blocks separate each vocabulary's individuals from each other,
+# not the vocabularies from one another: without this, ksh:ResolvedYes could double
+# as fm:True and every functional-property guard would still pass. Here rather than
+# in core.ttl because this is the only module where all six classes resolve.
+################################################################
+
+[] a owl:AllDisjointClasses ;
+   owl:members ( fm:TruthValue fm:Comparator ksh:ContractSide
+                 ksh:OrderAction ksh:ResolutionOutcome ksh:MarketStatus ) .
 
 ################################################################
 # Pricing and implied probability

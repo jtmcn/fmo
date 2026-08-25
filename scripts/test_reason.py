@@ -2,11 +2,18 @@
 """Negative tests for the axioms that only a reasoner enforces.
 
 scripts/validate.py is deliberately Java-free, so the guards whose whole job is to
-turn a mistake into a HermiT inconsistency have no coverage there: the
-owl:AllDifferent blocks in core.ttl -- over the units and over the truth values --
-the irreflexivity of wx:alternativeDeterminationOf, and the disjointness of the two
-contract sides in kalshi.ttl. Each case here injects the mistake the guard exists for
-and asserts ROBOT reports the ontology inconsistent.
+turn a mistake into a HermiT rejection have no coverage there: the owl:AllDifferent
+blocks in core.ttl -- over the units and over the truth values -- the irreflexivity of
+wx:alternativeDeterminationOf, the disjointness of the two contract sides in kalshi.ttl,
+the facet on fm:probabilityValue, and the pairwise disjointness of the designation
+vocabularies. Each case here injects the mistake the guard exists for and asserts ROBOT
+rejects the result.
+
+A guard can be violated in two shapes and the reasoner reports them differently. Bad data
+makes the ontology *inconsistent*; a bad class definition with no individuals leaves it
+consistent and makes that class *unsatisfiable*, which is how the InformationBearingEntity
+bug arrived. Each case therefore names which report it expects, so a guard cannot be
+credited with an unrelated failure.
 
 Skips with a notice when ROBOT or Java is absent, like `make reason`.
 
@@ -26,7 +33,8 @@ ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 
-# (name, path-to-mutate, find, replace)
+# (name, path-to-mutate, find, replace) and optionally the report expected,
+# which defaults to "inconsistent" -- the shape a data mistake takes.
 CASES = [
     (
         # The trap README and core.ttl both warn about: fm:hasUnit is functional,
@@ -77,6 +85,41 @@ CASES = [
         "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A ;",
         "    fm:hasInput ex:Resolution-B82 , tex:Lot-Yes-A , tex:Lot-No-B ;",
     ),
+    (
+        # fm:probabilityValue ranges over xsd:decimal narrowed by minInclusive and
+        # maxInclusive facets. SHACL rejects an out-of-range probability too, and it
+        # was the only side of this watched failing; the facet is what makes the
+        # ontology itself refuse the value, so it needs its own case.
+        "a probability outside the closed interval from 0 to 1",
+        EXAMPLE,
+        '    fm:probabilityValue "0.60"^^xsd:decimal ;',
+        '    fm:probabilityValue "7.41"^^xsd:decimal ;',
+    ),
+    (
+        # The AllDisjointClasses block over the designation vocabularies. Typing the
+        # exchange's outcome as the proposition's truth value is the slip it exists
+        # for: both are functional-property values, so nothing else would object.
+        "a resolution outcome also typed as a truth value",
+        "src/kalshi.ttl",
+        'ksh:ResolvedYes  a ksh:ResolutionOutcome, owl:NamedIndividual ;',
+        'ksh:ResolvedYes  a ksh:ResolutionOutcome, fm:TruthValue, owl:NamedIndividual ;',
+    ),
+    (
+        # The partition on ksh:BinaryContract. A third side is a class-level mistake
+        # that no data has to exercise, so the reasoner leaves the ontology consistent
+        # and reports the class unsatisfiable instead.
+        "a third contract side minted under the binary partition",
+        "src/kalshi.ttl",
+        "ksh:TraderRole a owl:Class ;",
+        """ksh:ScalarContract a owl:Class ;
+    rdfs:subClassOf ksh:BinaryContract ;
+    owl:disjointWith ksh:YesContract , ksh:NoContract ;
+    rdfs:label "scalar contract" ;
+    skos:definition "A third side, injected by scripts/test_reason.py." .
+
+ksh:TraderRole a owl:Class ;""",
+        "unsatisfiable",
+    ),
 ]
 
 
@@ -93,7 +136,8 @@ def robot_command() -> list[str] | None:
     return [found] if found else None
 
 
-def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> bool:
+def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
+             expect: str = "inconsistent") -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "fmo"
         shutil.copytree(
@@ -121,8 +165,8 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str) -> 
         if proc.returncode == 0:
             print(f"  FAIL [{name}]: the reasoner accepted the ontology")
             return False
-        if "inconsistent" not in output.lower():
-            print(f"  FAIL [{name}]: non-zero exit but not an inconsistency report")
+        if expect not in output.lower():
+            print(f"  FAIL [{name}]: non-zero exit but no {expect} report")
             print("        " + output.strip().splitlines()[-1])
             return False
         print(f"  ok   [{name}]")
