@@ -34,6 +34,10 @@
 
   function color(n) { return COLOR[n.module] || COLOR.bfo; }
 
+  /* In the profile view at all: a shape names this class, or an edge a shape walks
+     lands on it. The panel draws the distinction; the picture only needs the union. */
+  function inProfile(n) { return !!(n.profile || n.reached); }
+
   function build(root, data, handlers) {
     svg = root;
     on = handlers || {};
@@ -109,7 +113,7 @@
       // A relation is in the profile when the shapes walk that path; a subClassOf
       // is in it when both ends are, which is what makes the hierarchy still read.
       var inProf = !profileOnly ||
-        (e.k === 'rel' ? !!e.profile : !!(a.profile && b.profile));
+        (e.k === 'rel' ? !!e.profile : inProfile(a) && inProfile(b));
       var isLit = inProf && focus && (a.id === focus.id || b.id === focus.id);
       e.el.classList.toggle('is-lit', !!isLit);
       e.el.classList.toggle('is-dim', (!!focus && !isLit) || !inProf);
@@ -143,7 +147,7 @@
       n.el.setAttribute('cy', n.y);
 
       var isLit = (!focus || n.id === focus.id || lit[n.id]) &&
-                  (!profileOnly || n.profile);
+                  (!profileOnly || inProfile(n));
       n.el.classList.toggle('is-dim', !isLit);
       n.el.setAttribute('r', radius(n) * (n === focus ? 1.5 : 1));
 

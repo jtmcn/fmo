@@ -11,7 +11,7 @@
 
   var $ = function (id) { return document.getElementById(id); };
 
-  var byId = {}, nodes = [], props = {}, drawn = 0;
+  var byId = {}, nodes = [], edges = [], props = {}, drawn = 0;
   // Datatype properties, grouped by the class that carries them: they end at a
   // literal, so they never reach the map and the panel is the only place they show.
   var lits = {}, profile = null, profileOnly = false;
@@ -32,6 +32,7 @@
 
   function init(data, handlers) {
     nodes = data.nodes;
+    edges = data.edges;
     props = data.properties;
     onSelect = handlers.select;
     nodes.forEach(function (n) { byId[n.id] = n; });
@@ -41,7 +42,7 @@
       if (e.k === 'rel' && !seen[e.p]) { seen[e.p] = 1; drawn++; }
     });
 
-    Object.keys(data.datatypes).forEach(function (pid) {
+    Object.keys(data.datatypes || {}).forEach(function (pid) {
       var d = data.datatypes[pid];
       d.on.forEach(function (cid) {
         // A carrier off the map -- borrowed ground nothing else touches -- has no
@@ -50,7 +51,10 @@
       });
     });
 
-    profile = data.profile;
+    // data.js is gitignored, so it can predate the branch that reads it. A stale
+    // one should cost the profile chip, not the whole map.
+    profile = data.profile || { label: '', relations: [], literals: [] };
+    $('chip-profile').hidden = !data.profile;
     $('chip-profile').textContent = profile.label;
 
     $('version').textContent = 'v' + data.version;
@@ -95,6 +99,8 @@
     });
   }
 
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
   function legend() {
     var counts = {};
     nodes.forEach(function (n) {
@@ -113,16 +119,33 @@
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
     // Drawn, not declared: the properties left open-domain on purpose have no
     // edge, and the legend should not claim a line for them.
-    // Same rule on both branches: count what is actually on the page. The lit
-    // classes are counted off the nodes, not off profile.classes, or turning a
-    // module chip off leaves the note claiming terms the map is no longer showing.
-    var inProf = nodes.filter(function (n) { return n.profile && !n.hidden; }).length;
+    // Every number counted off what is on the page right now. A build-time total
+    // goes stale the moment a module chip hides half of what it counted.
+    var named = 0, reached = 0, carriers = 0, seenLit = {}, litCount = 0;
+    nodes.forEach(function (n) {
+      if (n.hidden) return;
+      if (n.profile) named++;
+      else if (n.reached) reached++;
+      if (!lits[n.id]) return;
+      carriers++;
+      lits[n.id].forEach(function (d) {
+        if (d.meta.profile && !seenLit[d.id]) { seenLit[d.id] = 1; litCount++; }
+      });
+    });
+    var seenRel = {}, relCount = 0;
+    if (showRel) {
+      edges.forEach(function (e) {
+        if (!e.profile || e.k !== 'rel' || seenRel[e.p]) return;
+        if (byId[e.s].hidden || byId[e.t].hidden) return;
+        seenRel[e.p] = 1;
+        relCount++;
+      });
+    }
     $('legend-note').textContent = profileOnly
-      ? profile.label + ' · ' + inProf + ' classes · ' + profile.relations.length +
-        ' relations · ' + profile.literals.length + ' literal'
+      ? profile.label + ' · ' + named + ' constrained · ' + reached + ' reached · ' +
+        plural(relCount, 'relation') + ' · ' + plural(litCount, 'literal')
       : shown + ' classes · ' + drawn + ' of ' + Object.keys(props).length +
-        ' object properties drawn · ' + Object.keys(lits).length +
-        ' carry literal values';
+        ' object properties drawn · ' + carriers + ' carry literal values';
   }
 
   /* ---- search ---- */
@@ -261,8 +284,12 @@
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id;
 
-    $('panel-prof').hidden = !n.profile;
-    $('panel-prof').textContent = 'constrained by the ' + profile.label + ' shapes';
+    // Named by a shape, or only landed on by an edge one walks -- fm:hasSubject
+    // ranges over fm:ObservationTarget while the shape narrows it to the subclass,
+    // so calling the range constrained would name the wrong class.
+    $('panel-prof').hidden = !(n.profile || n.reached);
+    $('panel-prof').textContent = (n.profile ? 'constrained by the ' : 'reached by the ') +
+      profile.label + ' shapes';
 
     if (field('f-def', n.def)) $('panel-def').textContent = n.def;
     if (field('f-note', n.note)) $('panel-note').textContent = n.note;
