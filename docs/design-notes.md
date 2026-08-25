@@ -108,16 +108,23 @@ the bearer's physical make-up. An obligation to pay is grounded in an institutio
 external to the bearer. That is the textbook role/disposition line and this falls cleanly on the
 role side.
 
-**The designation vocabularies are pairwise disjoint, and the block lives in `kalshi.ttl`.**
+**The designation vocabularies are pairwise disjoint, and the block is asserted twice.**
 Each vocabulary already carried an `owl:AllDifferent` separating its own individuals; nothing
 separated the vocabularies from each other, so one individual could be typed into two at once.
 The slip that matters is `ksh:ResolvedYes` doubling as `fm:True`, which reads as harmless and
 is not: the exchange's resolution and the proposition's truth value have to be able to
 disagree, because a correction moves the assessment while the resolution stays fixed, and that
 divergence is the whole subject of CQ7. Every property involved is functional, so a
-cross-typing would have satisfied each guard individually. Declared in `kalshi.ttl` because it
-is the only module where all six classes resolve — the same reason `qudt:Unit` is grounded in
-`core.ttl` rather than in the QUDT subset.
+cross-typing would have satisfied each guard individually.
+
+All nine subclasses of `fm:Designation` are members, the two bridged QUDT classes included —
+`qudt:QuantityKind` and `qudt:QuantityKindDimensionVector` are what the unit checks compare,
+and conflating them is a live error rather than a hypothetical one. The full block is in
+`kalshi.ttl`, the only module where all nine resolve. `core.ttl` restates its own five, because
+`fmo.ttl` advertises importing modules individually and a consumer taking core without kalshi
+would otherwise get the `AllDifferent` blocks and no disjointness at all — `fm:True` used as a
+comparator would reason clean for them and inconsistent for everyone else. The overlap between
+the two blocks is deliberate.
 
 **`ksh:BinaryContract` is a partition, not just a disjoint pair.** `ksh:YesContract
 owl:disjointWith ksh:NoContract` is the exclusivity half and was all that was asserted through
@@ -446,17 +453,19 @@ settles. 641 pairs are checked. The relation upgrades the diagnosis from "mismat
 the two authorities — being declared alternative determinations is not a defence, it is the
 point.
 
-## What OWL cannot say, and why three checks are Python
+## What OWL cannot say, and why some checks are Python
 
-Three of the validator's checks look like axioms that were never written:
+Several of the validator's checks look like axioms that were never written:
 
 - a forecast must score the same target the market settles on
 - a market must express a proposition about the target its grouping covers
 - a settlement source's protocol must be the one its proposition's target names
+- a payout's lot must sit in the market its resolution resolves, and be held by the party
+  whose obligation that payout realizes (`check_payouts`, both comparisons)
 
-Each has the same shape: two paths out of one individual must land on the *same*
-individual. That is not expressible as an OWL class definition, and the reason is
-structural rather than a gap in this ontology. An `owl:equivalentClass` definition is a
+The list is representative rather than complete, and the shape recurs: two paths out of one
+individual must land on the *same* individual. That is not expressible as an OWL class
+definition, and the reason is structural rather than a gap in this ontology. An `owl:equivalentClass` definition is a
 formula with one free variable — it says what an individual must satisfy, so it can
 require that a market has a proposition and that the market has a grouping, but it cannot
 require that the target reached through the first is the target reached through the
@@ -464,12 +473,12 @@ second. Saying that needs a second free variable. The textbook case is a person 
 friend who is also their enemy: definable in neither OWL nor any description logic in the
 OWL DL family, for exactly this reason.
 
-So the three checks are not shortcuts around axioms that were too much trouble. They are
+So these checks are not shortcuts around axioms that were too much trouble. They are
 outside what the schema language can state, and there are only two mechanisms that can
 state them: SWRL rules, and SHACL. This ontology uses SHACL for the export contract and
 Python for internal integrity.
 
-**SWRL was considered and rejected.** It would express all three directly —
+**SWRL was considered and rejected.** It would express every one of them directly —
 `ksh:coversTarget(?g, ?t), fm:hasSubject(?p, ?t2), DifferentFrom(?t, ?t2) -> ...` — and
 its built-ins (`subtract`, `divide`, `lessThan`) would also cover the derived-value checks
 on `wx:leadTimeHours` and `fm:BrierScore`. Three reasons not to:
