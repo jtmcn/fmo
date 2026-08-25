@@ -239,6 +239,17 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "wx:leadTimeHours says",
     ),
     (
+        # The seventh zero-coverage guard. Six were written by hand -- assessment,
+        # forecast-target, grouping, score, settlement-value, target-protocol -- and
+        # lead times was missed, so a graph where every forecast lost its lead time
+        # reported "0 checked" and passed.
+        "the lead-time check traverses nothing",
+        "scripts/validate.py",
+        """    for forecast, stated in g.subject_objects(LEAD_HOURS):""",
+        """    for forecast, stated in g.subject_objects(URIRef("https://example.invalid/none")):""",
+        "lead times: nothing to check",
+    ),
+    (
         "information artifact misfiled as a process",
         "src/kalshi.ttl",
         """ksh:Resolution a owl:Class ;

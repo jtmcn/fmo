@@ -124,6 +124,29 @@ def fail(msg: str) -> None:
     failures.append(msg)
 
 
+coverage_log: list[tuple[str, int]] = []
+
+
+def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
+    """Record a check's traversal count, and fail when it is zero.
+
+    Every check prints how much it looked at. Printing is not checking: six
+    "traverses nothing" guards were written by hand and the seventh, for lead
+    times, was missed, so the count could read 0 and the run stayed green.
+
+    on_empty carries the diagnostic the hand-written guard used to print --
+    which chain is broken, not merely that something is. A new check that
+    passes nothing still gets the guard; it just gets a blunter message until
+    someone writes a sharper one.
+    """
+    coverage_log.append((name, count))
+    if count == 0 and EXAMPLES:
+        fail(f"{name}: nothing to check, so this check proved nothing"
+             + (f" -- {on_empty}" if on_empty else ""))
+        return
+    notes.append(f"{name}: {count} {detail}")
+
+
 def is_ours(term) -> bool:
     return isinstance(term, URIRef) and str(term).startswith(OUR_NS)
 
@@ -362,7 +385,7 @@ def check_dimensions(g: Graph) -> None:
             )
         compared += 1
 
-    notes.append(f"unit coherence: {compared} comparison pair(s) checked")
+    coverage("unit coherence", compared, "comparison pair(s) checked")
 
 
 LEAD_HOURS = URIRef(WX + "leadTimeHours")
@@ -433,7 +456,7 @@ def check_lead_times(g: Graph) -> None:
             )
         checked += 1
 
-    notes.append(f"lead times: {checked} checked against issuance and interval start")
+    coverage("lead times", checked, "checked against issuance and interval start")
 
 
 def check_current_assessments(g: Graph) -> None:
@@ -461,12 +484,9 @@ def check_current_assessments(g: Graph) -> None:
                 f"superseded record. Calibration counts assessments, so this "
                 f"double-counts the proposition rather than contradicting itself."
             )
-    if EXAMPLES and not by_proposition:
-        fail(
-            "no proposition has a current assessment, so the assessment check "
-            "matched nothing; the assessesProposition chain is broken"
-        )
-    notes.append(f"{len(by_proposition)} proposition(s) checked for a single current assessment")
+    coverage("current assessments", len(by_proposition),
+             "proposition(s) checked for a single current assessment",
+             "the assessesProposition chain is broken")
 
 
 def check_scores(g: Graph) -> None:
@@ -530,12 +550,8 @@ def check_scores(g: Graph) -> None:
                 f"{probs[0]} against outcome {outcome:.0f} is {expected:.4f}"
             )
         checked += 1
-    if EXAMPLES and not checked:
-        fail(
-            "no Brier score was checked against its inputs, so the score check "
-            "matched nothing; the usesScoringRule or scoresAssignment chain is broken"
-        )
-    notes.append(f"{checked} Brier score(s) checked against their inputs")
+    coverage("skill scores", checked, "Brier score(s) checked against their inputs",
+             "the usesScoringRule or scoresAssignment chain is broken")
 
 
 def check_protocols(g: Graph) -> None:
@@ -568,12 +584,8 @@ def check_protocols(g: Graph) -> None:
                 f"of the target, not an annotation on it, so without exactly one the "
                 f"target does not fix a quantity."
             )
-    if EXAMPLES and not targets:
-        fail(
-            "no observation target was found, so the target-protocol check matched "
-            "nothing; the wx:WeatherObservationTarget typing is broken"
-        )
-    notes.append(f"{len(targets)} observation target(s) checked for a protocol")
+    coverage("target protocols", len(targets), "observation target(s) checked for a protocol",
+             "the wx:WeatherObservationTarget typing is broken")
 
     checked = 0
     reported: set[URIRef] = set()
@@ -625,12 +637,8 @@ def check_protocols(g: Graph) -> None:
                             f"under {settles_under}, but {prop} is about {subject} "
                             f"under {protocol}"
                         )
-    if EXAMPLES and not checked:
-        fail(
-            "no market reaches a target protocol, so the settlement-protocol check "
-            "matched nothing; the settlementSource or sourceProtocol chain is broken"
-        )
-    notes.append(f"{checked} market/protocol pair(s) checked for settlement agreement")
+    coverage("settlement protocols", checked, "market/protocol pair(s) checked for settlement agreement",
+             "the settlementSource or sourceProtocol chain is broken")
 
 
 def check_grouping_coherence(g: Graph) -> None:
@@ -745,13 +753,8 @@ def check_grouping_coherence(g: Graph) -> None:
                         f"CQ5 would sum their implied probabilities regardless."
                     )
 
-    if EXAMPLES and not checked:
-        fail(
-            "no market reaches a proposition subject, so the grouping check "
-            "matched nothing; the inEventGrouping or expressesProposition chain "
-            "is broken"
-        )
-    notes.append(f"{checked} market/grouping pair(s) checked for target agreement")
+    coverage("grouping coherence", checked, "market/grouping pair(s) checked for target agreement",
+             "the inEventGrouping or expressesProposition chain is broken")
 
 
 def check_payouts(g: Graph) -> None:
@@ -883,7 +886,7 @@ def check_payouts(g: Graph) -> None:
     # Counted after the comparisons, not on arrival: a payout on a scalar or voided
     # outcome leaves the loop before its side and amount are ever compared, and
     # reporting it as checked is how a skip reads as a pass.
-    notes.append(f"{verified} payout(s) checked against their resolution, holder and lot")
+    coverage("payouts", verified, "payout(s) checked against their resolution, holder and lot")
 
 
 def check_trades(g: Graph) -> None:
@@ -931,12 +934,8 @@ def check_trades(g: Graph) -> None:
                 f"{quantities[1][0]}, but one match made both"
             )
 
-    if EXAMPLES and not checked:
-        fail(
-            "no trade outputs two contract lots, so the match check matched "
-            "nothing; the trading layer is unexercised again"
-        )
-    notes.append(f"{checked} trade(s) checked for opposite sides and equal quantity")
+    coverage("trades", checked, "trade(s) checked for opposite sides and equal quantity",
+             "the trading layer is unexercised again")
 
 
 def check_context_terms(g: Graph, ex: Graph) -> None:
@@ -1275,13 +1274,8 @@ def main() -> int:
                         f"scores: {forecast} is for {ftarget}, but {prop} has subject "
                         f"{subject}{detail}"
                     )
-    if EXAMPLES and not scored:
-        fail(
-            "no forecast probability reaches a proposition subject, so the "
-            "forecast-target check matched nothing; the has-part or "
-            "assignsProbabilityTo chain is broken"
-        )
-    notes.append(f"{scored} forecast probability/proposition pair(s) checked for target agreement")
+    coverage("forecast targets", scored, "forecast probability/proposition pair(s) checked for target agreement",
+             "the has-part or assignsProbabilityTo chain is broken")
 
     if EXAMPLES and not joined:
         fail(
