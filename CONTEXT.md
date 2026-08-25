@@ -155,14 +155,19 @@ _Avoid_: "the price is the probability".
 These are the words for working *on* the ontology, and none of them are minted terms.
 
 **Module**: one of the four ontology files in `src/`. The `MODULES` list in
-`scripts/registry.py` holds six — the two files in `src/imports/` are
-loaded but are not modules, and are not ours to edit.
+`scripts/registry.py` holds six — the two files in `src/imports/` are loaded but are
+not modules, and are not ours to edit.
 _Avoid_: "the file", "the namespace" (a namespace is an IRI prefix).
 
 **Check**: one assertion in `scripts/validate.py`. Pure Python, no Java.
-**Negative test**: the injected-defect proof in `scripts/test_validate.py` that a check
-fails when it should. A check without one is not known to work.
-_Avoid_: "test" bare — it reads as either, and they fail for opposite reasons.
+**Negative test**: proof that a check fails when it should, split across three files by
+what each proves. `scripts/test_validate.py` injects a defect into a throwaway copy and
+asserts the matching check fails with the right message — one check, one defect.
+`scripts/test_shapes.py` (`make shapes-negative`) proves properties of the SHACL shapes
+themselves: vacuity, dead `sh:class`, and that each shape's required-property mutants are
+attributed to the shape under test. `scripts/test_meta.py` (`make meta`) proves every
+check function fails on an empty graph, so a check with nothing to check cannot pass.
+_Avoid_: "test" bare — it reads as any of the three, and they fail for different reasons.
 
 **Competency question** (CQ): a question the ontology must answer, numbered 1–8. Most are
 a `queries/cqNN-*.rq` plus its `.expected`, and an empty result set **fails** — but CQ3 is
