@@ -161,7 +161,13 @@ def robot_command() -> list[str] | None:
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
              expect: str | tuple[str, ...] = "inconsistent",
-             inputs: tuple[str, ...] = ("src/fmo.ttl", EXAMPLE, TRADING)) -> bool:
+             inputs: tuple[str, ...] = ("src/fmo.ttl", EXAMPLE, TRADING),
+             drop_axiom: str | None = None, quiet: bool = False) -> bool:
+    # drop_axiom lets check_axioms.py delete one axiom and re-run the case, proving
+    # the case is pinned to that axiom rather than merely passing near it. It is
+    # applied AFTER the text mutation, never before: deleting an axiom means
+    # reserialising the module, which destroys the anchors `find` looks for, and a
+    # setup failure would then be indistinguishable from a guard that stopped firing.
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "fmo"
         shutil.copytree(
@@ -171,9 +177,18 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
         target = work / rel
         text = target.read_text()
         if text.count(find) != 1:
-            print(f"  SETUP FAIL [{name}]: anchor found {text.count(find)} times in {rel}")
-            return False
+            if not quiet:
+                print(f"  SETUP FAIL [{name}]: anchor found {text.count(find)} times in {rel}")
+            raise LookupError(f"anchor found {text.count(find)} times in {rel}")
         target.write_text(text.replace(find, replace))
+
+        if drop_axiom:
+            import axioms
+            module = work / "src" / drop_axiom.split(":", 1)[0]
+            module.write_text(
+                axioms.remove_site(drop_axiom, module.read_text(encoding="utf-8")),
+                encoding="utf-8",
+            )
 
         merge_inputs = [a for rel_in in inputs for a in ("--input", str(work / rel_in))]
         proc = subprocess.run(
@@ -185,7 +200,8 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
         )
         output = proc.stdout + proc.stderr
         if proc.returncode == 0:
-            print(f"  FAIL [{name}]: the reasoner accepted the ontology")
+            if not quiet:
+                print(f"  FAIL [{name}]: the reasoner accepted the ontology")
             return False
         wanted = (expect,) if isinstance(expect, str) else expect
         # Both sides lower-cased: expectations get written with the IRI as it
@@ -193,10 +209,12 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
         # broken ontology rather than as a typo in the expectation.
         missing = [w for w in wanted if w.lower() not in output.lower()]
         if missing:
-            print(f"  FAIL [{name}]: non-zero exit, but the report is missing {missing}")
-            print("        " + output.strip().splitlines()[-1])
+            if not quiet:
+                print(f"  FAIL [{name}]: non-zero exit, but the report is missing {missing}")
+                print("        " + output.strip().splitlines()[-1])
             return False
-        print(f"  ok   [{name}]")
+        if not quiet:
+            print(f"  ok   [{name}]")
         return True
 
 
@@ -224,7 +242,15 @@ def main() -> int:
         return 1
     print("  ok   [baseline: the unmodified tree is consistent]")
 
-    results = [run_case(robot, *case) for case in CASES]
+    results = []
+    for case in CASES:
+        try:
+            results.append(run_case(robot, *case))
+        except LookupError:
+            # The anchor moved. That is a broken case, not a guard that stopped
+            # firing, and the two must not read alike -- run_case raises so that
+            # check_axioms.py cannot score a setup failure as a pinned axiom.
+            results.append(False)
     passed, total = sum(results) + 1, len(results) + 1
     print(f"\n{passed}/{total} reasoner guards fire")
     return 0 if all(results) else 1

@@ -21,7 +21,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -122,6 +122,16 @@ endif
 reason-negative:
 	$(PY) scripts/test_reason.py
 
+## Every axiom is pinned by a reasoner case or exempt with a reason, and every
+## `pinned` claim is re-verified by deleting the axiom. Skips without ROBOT.
+axioms:
+	$(PY) scripts/check_axioms.py
+
+## Per-term semantic digests for downstream consumers to pin against. --check
+## proves they are reproducible; a signature that churns is not a pin.
+signatures:
+	$(PY) scripts/term_signatures.py --check
+
 ## Competency question 3: weaken an assertion and confirm the reasoner re-derives it.
 ## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
 ## reasoner, unlike `make cq`, because the answer is inferred rather than asserted.
@@ -178,7 +188,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative competency
+test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures competency
 
 clean:
 	rm -rf $(BUILD)

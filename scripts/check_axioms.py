@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""Every axiom is pinned by a reasoner case, or exempt with a stated reason.
+
+The ontology asserts axioms; the prose says what they guarantee; the tests prove
+some of them. Nothing tied those three together, and the gap showed twice in one
+afternoon: an AllDisjointClasses block whose deletion left the whole suite green,
+and a union axiom whose test named a mistake the axiom does not catch. Both read
+as guarantees. Neither was one.
+
+So the axioms get the treatment MODULES gets in registry.py, and shapes get in
+test_shapes.py: enumerate the real set, compare it against a checked-in ledger,
+and fail on anything the ledger does not account for. Adding an axiom now fails
+the build until someone either writes a case for it or records why it has none.
+
+Two properties are checked, and the second is the one that matters:
+
+1. Completeness -- every site in scripts/axioms.py is in the ledger, and every
+   ledger entry names a site that still exists. A stale exemption is as bad as a
+   missing one: it reads as a decision someone made about today's ontology.
+2. Pinning -- for each axiom the ledger claims a case proves, delete that axiom
+   and confirm the case stops firing. Without this the ledger is prose again,
+   asserting a relationship nothing verifies. That is the whole failure being
+   fixed, so the fix does not get to repeat it.
+
+    poetry run python3 scripts/check_axioms.py             # verify
+    poetry run python3 scripts/check_axioms.py --discover  # re-derive the ledger
+
+--discover removes each axiom in turn and runs every case against the result, so
+it reports which axioms are load-bearing rather than which ones someone believed
+were. It is slow (a reasoner run per trial) and writes nothing; the ledger is
+edited by hand from what it prints, because the reasons are the point.
+
+Skips with a notice when ROBOT or Java is absent, like `make reason`.
+"""
+
+from __future__ import annotations
+
+import json
+import shutil
+import sys
+import tempfile
+from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import axioms  # noqa: E402
+import test_reason as T  # noqa: E402
+from registry import ROOT, SRC  # noqa: E402
+
+LEDGER = ROOT / "queries" / "axiom-expectations.json"
+
+
+def load_ledger() -> dict:
+    if not LEDGER.exists():
+        print(f"FAIL: no ledger at {LEDGER.relative_to(ROOT)}", file=sys.stderr)
+        raise SystemExit(1)
+    return json.loads(LEDGER.read_text(encoding="utf-8"))
+
+
+def case_by_name(name: str) -> tuple | None:
+    return next((c for c in T.CASES if c[0] == name), None)
+
+
+def fires_without(robot: list[str], key: str, case: tuple) -> bool:
+    """Does `case` still fire when `key` is deleted? False means it was pinned.
+
+    The deletion happens inside run_case, after the case's own text mutation, so a
+    reserialised module cannot strand the anchor. run_case raises on a setup failure
+    rather than returning False, which keeps "the case broke" out of the answer to
+    "the case stopped firing" -- conflating those was what made the first version of
+    this probe report 53 of 68 axioms load-bearing, nearly all of them spuriously.
+    """
+    return T.run_case(robot, *case, drop_axiom=key, quiet=True)
+
+
+def _probe(args: tuple) -> tuple[str, str | None]:
+    """One axiom against every case; returns the first case it turns out to pin."""
+    key, robot = args
+    for case in T.CASES:
+        if not fires_without(robot, key, case):
+            return key, case[0]
+    return key, None
+
+
+def discover(robot: list[str]) -> int:
+    sites = sorted(axioms.all_sites())
+    print(f"probing {len(sites)} axiom sites against {len(T.CASES)} cases "
+          f"({len(sites) * len(T.CASES)} trials, worst case)\n")
+    pinned: dict[str, str] = {}
+    with ProcessPoolExecutor() as pool:
+        for key, case_name in pool.map(_probe, [(k, robot) for k in sites]):
+            if case_name:
+                pinned[key] = case_name
+                print(f"  PINNED   {key}\n           by: {case_name}")
+    print(f"\n{len(pinned)} of {len(sites)} axioms are load-bearing for the suite; "
+          f"{len(sites) - len(pinned)} are asserted but untested.")
+    print("\nSuggested ledger 'pinned' block:")
+    print(json.dumps(pinned, indent=2, sort_keys=True))
+    return 0
+
+
+def verify(robot: list[str]) -> int:
+    ledger = load_ledger()
+    pinned, exempt = ledger.get("pinned", {}), ledger.get("exempt", {})
+    sites = axioms.all_sites()
+    failures: list[str] = []
+
+    if not sites:
+        print("FAIL: enumerated no axiom sites, so this check verified nothing",
+              file=sys.stderr)
+        return 1
+    if not pinned:
+        # A ledger that exempts everything passes every other assertion here while
+        # proving nothing about any axiom, which is the failure this file exists for
+        # wearing the file's own clothes.
+        print("FAIL: no axiom is pinned, so the ledger asserts nothing about any of them",
+              file=sys.stderr)
+        return 1
+
+    both = sorted(set(pinned) & set(exempt))
+    for key in both:
+        failures.append(f"in both pinned and exempt, so the ledger does not say which: {key}")
+
+    for key in sorted(set(sites) - set(pinned) - set(exempt)):
+        failures.append(
+            f"axiom in neither pinned nor exempt: {key}\n"
+            f"      write a case for it, or record in {LEDGER.name} why it has none"
+        )
+
+    for key in sorted((set(pinned) | set(exempt)) - set(sites)):
+        failures.append(
+            f"ledger names an axiom that no longer exists: {key}\n"
+            f"      it reads as a decision about today's ontology, and is not one"
+        )
+
+    for key, reason in sorted(exempt.items()):
+        if not str(reason).strip():
+            failures.append(f"exempt with no reason given: {key}")
+
+    # The claim that a case proves an axiom is itself checked, or the ledger is
+    # prose asserting a relationship nothing verifies -- the bug this file exists for.
+    verified = 0
+    for key, name in sorted(pinned.items()):
+        case = case_by_name(name)
+        if case is None:
+            failures.append(f"pinned by a case that does not exist: {key}\n      names: {name}")
+            continue
+        if key not in sites:
+            continue
+        if fires_without(robot, key, case):
+            failures.append(
+                f"claims to be pinned but is not: {key}\n"
+                f"      deleting it leaves '{name}' still firing, so nothing here "
+                f"proves the axiom does anything"
+            )
+        else:
+            verified += 1
+            print(f"  ok   {key}\n       pinned by: {name}")
+
+    print(f"\n{len(sites)} axiom sites: {len(pinned)} pinned ({verified} verified), "
+          f"{len(exempt)} exempt")
+    if failures:
+        print(f"\nFAILED ({len(failures)}):", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
+        return 1
+    print("OK")
+    return 0
+
+
+def main() -> int:
+    robot = T.robot_command()
+    if robot is None:
+        print("SKIP check_axioms: ROBOT or Java not found. Set ROBOT_JAR or put robot on PATH.")
+        return 0
+    if "--discover" in sys.argv:
+        return discover(robot)
+    return verify(robot)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
