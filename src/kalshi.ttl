@@ -8,6 +8,7 @@
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
@@ -312,17 +313,20 @@ ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized"
                          ksh:Determined ksh:Disputed ksh:Amended ksh:Finalized ) .
 
 ################################################################
-# The designation vocabularies are pairwise disjoint
+# All nine designation vocabularies are pairwise disjoint
 #
 # The AllDifferent blocks separate each vocabulary's individuals from each other,
 # not the vocabularies from one another: without this, ksh:ResolvedYes could double
-# as fm:True and every functional-property guard would still pass. Here rather than
-# in core.ttl because this is the only module where all six classes resolve.
+# as fm:True and every functional-property guard would still pass. Every subclass of
+# fm:Designation is a member; core.ttl asserts its five again on its own, so nothing
+# is lost by importing core without this module.
 ################################################################
 
 [] a owl:AllDisjointClasses ;
-   owl:members ( fm:TruthValue fm:Comparator ksh:ContractSide
-                 ksh:OrderAction ksh:ResolutionOutcome ksh:MarketStatus ) .
+   owl:members ( fm:TruthValue fm:Comparator fm:ScoringRule
+                 qudt:QuantityKind qudt:QuantityKindDimensionVector
+                 ksh:ContractSide ksh:OrderAction ksh:ResolutionOutcome
+                 ksh:MarketStatus ) .
 
 ################################################################
 # Pricing and implied probability

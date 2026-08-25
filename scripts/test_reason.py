@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Negative tests for the axioms that only a reasoner enforces.
 
-scripts/validate.py is deliberately Java-free, so the guards whose whole job is to
-turn a mistake into a HermiT rejection have no coverage there: the owl:AllDifferent
-blocks in core.ttl -- over the units and over the truth values -- the irreflexivity of
-wx:alternativeDeterminationOf, the disjointness of the two contract sides in kalshi.ttl,
-the facet on fm:probabilityValue, and the pairwise disjointness of the designation
-vocabularies. Each case here injects the mistake the guard exists for and asserts ROBOT
-rejects the result.
+scripts/validate.py is deliberately Java-free, so the guards whose whole job is to turn
+a mistake into a HermiT rejection have no coverage there. One case per guard, eight in
+all: the owl:AllDifferent blocks in core.ttl over the units and over the truth values,
+the irreflexivity of wx:alternativeDeterminationOf, the disjointness of the two contract
+sides, the cardinality restriction on ksh:Payout, the facet on fm:probabilityValue, the
+AllDisjointClasses block over the designation vocabularies, and the union axiom that
+makes ksh:BinaryContract a partition. Each case injects the mistake its guard exists for
+and asserts ROBOT rejects the result.
 
 A guard can be violated in two shapes and the reasoner reports them differently. Bad data
 makes the ontology *inconsistent*; a bad class definition with no individuals leaves it
 consistent and makes that class *unsatisfiable*, which is how the InformationBearingEntity
-bug arrived. Each case therefore names which report it expects, so a guard cannot be
-credited with an unrelated failure.
+bug arrived. Each case names the report it expects, and a class-level case also names the
+class, because "some class is unsatisfiable" would be satisfied by an unrelated one -- the
+same attribution the SHACL mutants make on sh:minCount violations.
 
 Skips with a notice when ROBOT or Java is absent, like `make reason`.
 
@@ -33,8 +35,8 @@ ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 
-# (name, path-to-mutate, find, replace) and optionally the report expected,
-# which defaults to "inconsistent" -- the shape a data mistake takes.
+# (name, path-to-mutate, find, replace) and optionally the substrings the reasoner's
+# report must contain, defaulting to "inconsistent" -- the shape a data mistake takes.
 CASES = [
     (
         # The trap README and core.ttl both warn about: fm:hasUnit is functional,
@@ -118,7 +120,7 @@ CASES = [
     skos:definition "A third side, injected by scripts/test_reason.py." .
 
 ksh:TraderRole a owl:Class ;""",
-        "unsatisfiable",
+        ("unsatisfiable", "kalshi#scalarcontract"),
     ),
 ]
 
@@ -137,7 +139,7 @@ def robot_command() -> list[str] | None:
 
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
-             expect: str = "inconsistent") -> bool:
+             expect: str | tuple[str, ...] = "inconsistent") -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "fmo"
         shutil.copytree(
@@ -165,8 +167,10 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
         if proc.returncode == 0:
             print(f"  FAIL [{name}]: the reasoner accepted the ontology")
             return False
-        if expect not in output.lower():
-            print(f"  FAIL [{name}]: non-zero exit but no {expect} report")
+        wanted = (expect,) if isinstance(expect, str) else expect
+        missing = [w for w in wanted if w not in output.lower()]
+        if missing:
+            print(f"  FAIL [{name}]: non-zero exit, but the report is missing {missing}")
             print("        " + output.strip().splitlines()[-1])
             return False
         print(f"  ok   [{name}]")

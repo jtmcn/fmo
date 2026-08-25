@@ -257,6 +257,20 @@ fm:LogarithmicScore a fm:ScoringRule, owl:NamedIndividual ;
 [] a owl:AllDifferent ;
    owl:distinctMembers ( fm:BrierScore fm:LogarithmicScore ) .
 
+################################################################
+# The designation vocabularies declared here are pairwise disjoint
+#
+# The AllDifferent blocks separate each vocabulary's individuals from each other,
+# not the vocabularies from one another: without this, fm:BrierScore could double
+# as fm:True and every functional-property guard would still pass. kalshi.ttl
+# restates these pairs inside a block covering its four as well, so that a
+# consumer importing core without kalshi still gets the ones declared here.
+################################################################
+
+[] a owl:AllDisjointClasses ;
+   owl:members ( fm:TruthValue fm:Comparator fm:ScoringRule
+                 qudt:QuantityKind qudt:QuantityKindDimensionVector ) .
+
 fm:SkillScore a owl:Class ;
     rdfs:subClassOf fm:MeasurementDatum ;
     rdfs:label "skill score" ;
