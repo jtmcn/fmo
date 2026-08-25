@@ -269,16 +269,21 @@ class constraints on `wx:underProtocol` and `fm:assignsProbabilityTo` could neve
 and a dangling protocol IRI conformed. A bad protocol is caught instead by requiring
 `fm:statedAs` — a literal that entailment cannot fabricate.
 
-`make shapes-negative` (`scripts/test_shapes.py`) now enforces both mechanically, plus a
-third property no one wrote by hand: every shape's `sh:minCount` properties are mutated
-directly from the shapes graph — retype a shape's focus nodes to its own `sh:targetClass`,
-drop one required property, and require a violation. Retyping alone can't prove a shape
-still fires: the export fixture is valid, so it conforms whether or not a shape matched
-it at all, which is why a mutant must retype *and* break something. What it does not
-prove is that a shape's `sh:targetClass` is general enough — that a shape still fires
-when data is typed with a broader class than the shape expects is not something the
-class hierarchy alone can tell apart from a target that is correctly specific, so the two
-cases above stay hand-written in `scripts/test_validate.py`.
+`make shapes-negative` (`scripts/test_shapes.py`) mechanically enforces the second rule
+in full, plus only the vacuity half of the first: every shape is required to match at
+least one focus node in each export fixture. It does not enforce that a shape's
+`sh:targetClass` is pitched at the right level of generality — a shape targeting a
+subclass narrower than the data conforms vacuously the same way a dead shape does, and
+nothing in the mutant matrix can tell that apart from a target that is correctly
+specific, because both produce a passing run. That half of the rule rests on the
+hand-written cases in `scripts/test_validate.py`.
+
+`make shapes-negative` also proves a third property no one wrote by hand: every shape's
+`sh:minCount` properties are mutated directly from the shapes graph — retype a shape's
+focus nodes to its own `sh:targetClass`, drop one required property, and require a
+violation attributed to that shape. Retyping alone can't prove a shape still fires: the
+export fixture is valid, so it conforms whether or not a shape matched it at all, which
+is why a mutant must retype *and* break something.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.

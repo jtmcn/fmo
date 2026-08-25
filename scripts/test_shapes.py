@@ -127,7 +127,14 @@ def main() -> int:
                 _, results_graph, _ = shacl_validate(
                     mutant, shacl_graph=shapes, inference="rdfs", advanced=True,
                 )
-                if (None, SH.resultPath, path) in results_graph:
+                # sh:resultPath alone credits ANY shape on this path, not the one
+                # under test -- a deactivated shape reusing the same path passed
+                # silently. sh:sourceShape pins the result to this property shape.
+                caught = any(
+                    results_graph.value(result, SH.resultPath) == path
+                    for result in results_graph.subjects(SH.sourceShape, prop_shape)
+                )
+                if caught:
                     print(f"  ok   [{label}] catches a missing {pname}")
                 else:
                     failures.append(
