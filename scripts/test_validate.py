@@ -638,6 +638,7 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
 
 
 EXPORT = "examples/export/thermaledge-kxhighaus-2026-08-22.ttl"
+MISMATCH = "examples/negative/thermaledge-target-mismatch.ttl"
 
 # Defects the SHACL shapes must reject. Run against the examples union, like
 # `make shapes`: a shape checked on one file alone fires on absences that are not
@@ -832,36 +833,57 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
 ]
 
 
+def copy_tree(tmp: str) -> Path:
+    work = Path(tmp) / "fmo"
+    shutil.copytree(
+        ROOT, work,
+        ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc"),
+    )
+    return work
+
+
+def expect_failure(work: Path, script: str, name: str, expect: str) -> bool:
+    proc = subprocess.run(
+        [sys.executable, *script.split()],
+        cwd=work, capture_output=True, text=True,
+    )
+    output = proc.stdout + proc.stderr
+
+    if proc.returncode == 0:
+        print(f"  FAIL [{name}]: {Path(script).name} passed but should have failed")
+        return False
+    if expect not in output:
+        print(f"  FAIL [{name}]: exited non-zero but message missing")
+        print(f"         expected substring: {expect!r}")
+        return False
+    print(f"  ok   [{name}]")
+    return True
+
+
 def run_case(name: str, rel: str, find: str, replace: str, expect: str,
              script: str = "scripts/validate.py") -> bool:
     with tempfile.TemporaryDirectory() as tmp:
-        work = Path(tmp) / "fmo"
-        shutil.copytree(
-            ROOT, work,
-            ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc"),
-        )
+        work = copy_tree(tmp)
         target = work / rel
         text = target.read_text()
         if text.count(find) != 1:
             print(f"  SETUP FAIL [{name}]: anchor found {text.count(find)} times in {rel}")
             return False
         target.write_text(text.replace(find, replace))
+        return expect_failure(work, script, name, expect)
 
-        proc = subprocess.run(
-            [sys.executable, *script.split()],
-            cwd=work, capture_output=True, text=True,
-        )
-        output = proc.stdout + proc.stderr
 
-        if proc.returncode == 0:
-            print(f"  FAIL [{name}]: {Path(script).name} passed but should have failed")
-            return False
-        if expect not in output:
-            print(f"  FAIL [{name}]: exited non-zero but message missing")
-            print(f"         expected substring: {expect!r}")
-            return False
-        print(f"  ok   [{name}]")
-        return True
+def run_sweep_case(name: str, src: str, dest_dir: str, expect: str, script: str) -> bool:
+    """Misfile a fixture into the other sweep's directory; the sweep must object.
+
+    The sweeps ARE the checking apparatus -- they decide which fixtures run at all --
+    and nothing else here exercises them. Every other case mutates a fixture, so an
+    inverted condition in a sweep would pass the whole suite.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        work = copy_tree(tmp)
+        shutil.copy(work / src, work / dest_dir / Path(src).name)
+        return expect_failure(work, script, name, expect)
 
 
 def main() -> int:
@@ -887,10 +909,12 @@ def main() -> int:
 
     print("\n  -- validator --")
     results = [run_case(*case) for case in CASES]
+    # Export cases go through --exports rather than naming the file, so the sweep
+    # `make shapes` actually runs is the thing under test, not just main().
     print("\n  -- shapes --")
     results += [
         run_case(*case, script=(
-            f"scripts/validate_shapes.py {EXPORT}" if case[1] == EXPORT
+            "scripts/validate_shapes.py --exports" if case[1] == EXPORT
             else "scripts/validate_shapes.py --examples"))
         for case in SHAPES_CASES
     ]
@@ -900,6 +924,20 @@ def main() -> int:
         run_case(*case, script="scripts/run_competency.py")
         for case in COMPETENCY_CASES
     ]
+
+    print("\n  -- production sweeps --")
+    results.append(run_sweep_case(
+        "a negative fixture that nothing rejects",
+        EXPORT, "examples/negative",
+        "but no query reported a failure",
+        "scripts/run_competency.py --negatives",
+    ))
+    results.append(run_sweep_case(
+        "an export fixture that fails a production floor",
+        MISMATCH, "examples/export",
+        "FAIL [cq02-probability-gap.rq]",
+        "scripts/run_competency.py --exports",
+    ))
 
     # --update used to return 0 unconditionally. A query that errors or returns
     # nothing skips its write, so the stale .expected survives and `make cq-update`

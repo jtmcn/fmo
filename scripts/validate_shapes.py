@@ -7,6 +7,8 @@ no data. This one answers a different question: does THIS export conform?
 Usage:
     python3 scripts/validate_shapes.py <data.ttl> [...] [--shapes <file>]
     python3 scripts/validate_shapes.py --examples          # the examples union
+    python3 scripts/validate_shapes.py --exports           # each export fixture,
+                                                           # separately
 Exit:
     0 conforms, 1 violations found, 2 could not run.
 
@@ -27,7 +29,7 @@ from pyshacl import validate
 from rdflib import Graph
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import MODULES, ROOT, SRC, SHAPES, examples, exports  # noqa: E402
+from registry import MODULES, SRC, SHAPES, examples, exports  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
