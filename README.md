@@ -273,11 +273,13 @@ the checks claim to catch into a throwaway copy and asserts they fail with the r
 A checker nobody has watched fail is not known to work — the first version of the unit check
 passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exposed it.
 
-`make meta` checks the checks. Every check reports how much it traversed, and a
-check that traversed nothing has proved nothing — so `scripts/test_meta.py` calls
-each one with the schema and no example data and requires it to fail. Six such
-guards were written by hand before this existed and the seventh, for lead times,
-was missed; a rule enforced by memory is enforced wherever someone remembered.
+`make meta` checks the checks. Every traversal reports how much it covered, and a
+traversal that covered nothing has proved nothing — so `scripts/test_meta.py` calls
+each check with the schema and no example data and requires every one of its
+coverage counts to be zero and to have failed. Those guards were written by hand,
+one per traversal, until the one for lead times was never written; a rule enforced
+by memory is enforced wherever someone remembered. The assertion is on the coverage
+log rather than on "did the check fail somehow", which any unrelated guard satisfies.
 
 The checks have caught real bugs at every stage: four classes floating under `owl:Thing`; an
 `InformationBearingEntity` axiom using `concretizes` where BFO requires `is carrier of`, making
