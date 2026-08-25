@@ -130,9 +130,11 @@ coverage_log: list[tuple[str, int]] = []
 def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
     """Record a check's traversal count, and fail when it is zero.
 
-    Every check prints how much it looked at. Printing is not checking: six
-    "traverses nothing" guards were written by hand and the seventh, for lead
-    times, was missed, so the count could read 0 and the run stayed green.
+    Every check prints how much it looked at. Printing is not checking: each
+    "traverses nothing" guard was written by hand, one per traversal, and the
+    one for lead times was never written -- so that count could read 0 and the
+    run stayed green. One call per traversal, not one per check: an aggregate
+    counter over several traversals stays non-zero when one of them empties.
 
     on_empty carries the diagnostic the hand-written guard used to print --
     which chain is broken, not merely that something is. A new check that
@@ -140,11 +142,12 @@ def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
     someone writes a sharper one.
     """
     coverage_log.append((name, count))
+    # Noted before the guard, not after: the hand-written guards failed AND kept
+    # the "0 checked" line, and a failing run still wants the count in the summary.
+    notes.append(f"{name}: {count} {detail}")
     if count == 0 and EXAMPLES:
         fail(f"{name}: nothing to check, so this check proved nothing"
              + (f" -- {on_empty}" if on_empty else ""))
-        return
-    notes.append(f"{name}: {count} {detail}")
 
 
 def is_ours(term) -> bool:
@@ -302,8 +305,6 @@ def check_dimensions(g: Graph) -> None:
             return None
         return units[0]
 
-    compared = 0
-
     def check_identical(left, left_unit, right, right_unit, phrasing):
         """Units on either side of a comparison must be the same unit, not merely
         the same dimension."""
@@ -333,16 +334,22 @@ def check_dimensions(g: Graph) -> None:
             )
 
     # A proposition's threshold is compared against its target's realized value.
+    threshold_compared = 0
     for prop, target in g.subject_objects(HAS_SUBJECT):
         pu, tu = unit_of(prop), unit_of(target)
         check_identical(prop, pu, target, tu, "proposition threshold vs target")
-        compared += 1
+        threshold_compared += 1
+    coverage("unit coherence: threshold vs target", threshold_compared, "pair(s) checked",
+             "no proposition names a subject; the hasSubject chain is broken")
 
     # A datum's reading is the value the target's proposition gets evaluated against.
+    datum_compared = 0
     for datum, target in g.subject_objects(REPORTS_FOR):
         du, tu = unit_of(datum), unit_of(target)
         check_identical(datum, du, target, tu, "datum vs target")
-        compared += 1
+        datum_compared += 1
+    coverage("unit coherence: datum vs target", datum_compared, "pair(s) checked",
+             "no datum reaches a target; the reportsFor chain is broken")
 
     # The exchange's own number, against the target the market settles on. It
     # reaches the target through the market's proposition rather than directly,
@@ -360,15 +367,14 @@ def check_dimensions(g: Graph) -> None:
                                 target, unit_of(target),
                                 "settlement value vs target")
                 settlement_compared += 1
-    if EXAMPLES and not settlement_compared:
-        fail(
-            "no settlement value reaches a target, so the settlement-value check "
-            "matched nothing; the resolutionOf or expressesProposition chain is broken"
-        )
-    compared += settlement_compared
+    coverage("unit coherence: settlement value vs target", settlement_compared,
+             "pair(s) checked",
+             "no settlement value reaches a target; the resolutionOf or "
+             "expressesProposition chain is broken")
 
     # A target's unit should be dimensionally compatible with its variable's
     # conventional units. Advisory: a target may use an unlisted but valid unit.
+    variable_compared = 0
     for target, variable in g.subject_objects(TARGET_VAR):
         tu = unit_of(target)
         if tu is None:
@@ -383,9 +389,11 @@ def check_dimensions(g: Graph) -> None:
                 f"dimension mismatch: target {target} uses {tu} ({td}) but variable "
                 f"{variable} is conventionally reported in {sorted(str(c) for c in cdims)}"
             )
-        compared += 1
-
-    coverage("unit coherence", compared, "comparison pair(s) checked")
+        variable_compared += 1
+    coverage("unit coherence: target vs conventional unit", variable_compared,
+             "pair(s) checked",
+             "no target with a unit reaches a variable with conventional units; "
+             "the targetVariable or wx:conventionalUnit chain is broken")
 
 
 LEAD_HOURS = URIRef(WX + "leadTimeHours")
@@ -775,8 +783,7 @@ def check_payouts(g: Graph) -> None:
     Voided and scalar outcomes are skipped rather than guessed at: neither pays a
     fixed sum per contract on one side, and no example produces one.
     """
-    reached = 0   # payouts naming a resolution and a lot -- what the coverage guard is about
-    verified = 0  # ...and whose side, recipient and amount were actually compared
+    verified = 0  # payouts whose side, recipient and amount were actually compared
     for payout in instances_of(g, PAYOUT):
         inputs = list(g.objects(payout, HAS_INPUT))
         resolutions = [i for i in inputs if RESOLUTION in types_of(g, i)]
@@ -789,7 +796,6 @@ def check_payouts(g: Graph) -> None:
             )
             continue
         resolution, lot = resolutions[0], lots[0]
-        reached += 1
 
         # Same market, or the payout is settling one market's contracts against
         # another's determination. Both are functional, so more than one value is
@@ -878,15 +884,12 @@ def check_payouts(g: Graph) -> None:
             )
         verified += 1
 
-    if EXAMPLES and not reached:
-        fail(
-            "no payout reaches a resolution and a contract lot, so the payout "
-            "check matched nothing; the trading layer is unexercised again"
-        )
     # Counted after the comparisons, not on arrival: a payout on a scalar or voided
     # outcome leaves the loop before its side and amount are ever compared, and
     # reporting it as checked is how a skip reads as a pass.
-    coverage("payouts", verified, "payout(s) checked against their resolution, holder and lot")
+    coverage("payouts", verified, "payout(s) checked against their resolution, holder and lot",
+             "no payout reaches a resolution and a contract lot, or every one was "
+             "voided or scalar; the trading layer is unexercised again")
 
 
 def check_trades(g: Graph) -> None:
@@ -1001,6 +1004,83 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     )
 
 
+def check_forecast_market_join(g: Graph) -> None:
+    """The join the ontology exists for: one proposition, both probabilities.
+
+    All three conditions are required. An earlier version intersected "expressed
+    by a market" with "assigned any probability", which a bracket ladder satisfies
+    trivially -- every market has an implied probability, so the count rose with
+    the data while proving strictly less. The join is only demonstrated when the
+    SAME proposition carries a forecast probability AND a market-implied one.
+    """
+    expressed = set(g.objects(None, EXPRESSES))
+    with_forecast = {
+        p for s in g.subjects(RDF.type, URIRef(FM + "ForecastProbability"))
+        for p in g.objects(s, URIRef(FM + "assignsProbabilityTo"))
+    }
+    with_market = {
+        p for s in g.subjects(RDF.type, URIRef(FM + "MarketImpliedProbability"))
+        for p in g.objects(s, URIRef(FM + "assignsProbabilityTo"))
+    }
+    joined = expressed & with_forecast & with_market
+    coverage(
+        "forecast/market join", len(joined),
+        f"proposition(s) carrying both ({len(expressed)} expressed by markets, "
+        f"{len(with_forecast)} forecast, {len(with_market)} market-implied)",
+        "no proposition is expressed by a market AND carries both a forecast "
+        "probability and a market-implied probability; the forecast/market join "
+        "is not demonstrated",
+    )
+
+
+def check_forecast_targets(g: Graph) -> None:
+    """A forecast's target is the subject of the propositions it scores.
+
+    wx:forecastFor fixes what a forecast claims to be about; the proposition's
+    subject fixes what the market settles on. Nothing tied the two together, so
+    they could drift apart in silence -- and the examples aligned them only by
+    hand. wx:alternativeDeterminationOf turns the specific cross-authority case
+    from "mismatch" into a diagnosis. The relation licenses no substitution, so
+    being declared alternative determinations is not a defence; it is the point.
+    """
+    alt_det = URIRef(WX + "alternativeDeterminationOf")
+    has_part = URIRef(BFO + "BFO_0000178")
+    assigns = URIRef(FM + "assignsProbabilityTo")
+    forecast_prob = URIRef(FM + "ForecastProbability")
+    scored = 0
+    for forecast, ftarget in g.subject_objects(FORECAST_FOR):
+        for part in g.objects(forecast, has_part):
+            if (part, RDF.type, forecast_prob) not in g:
+                continue
+            for prop in g.objects(part, assigns):
+                for subject in g.objects(prop, HAS_SUBJECT):
+                    scored += 1
+                    if subject == ftarget:
+                        continue
+                    # Symmetry is asserted, not materialised -- rdflib does no
+                    # reasoning here, so both directions are checked explicitly.
+                    declared = (ftarget, alt_det, subject) in g or (
+                        subject,
+                        alt_det,
+                        ftarget,
+                    ) in g
+                    detail = (
+                        "; they are declared alternative determinations, so this "
+                        "forecast is scored against a different authority than the "
+                        "market settles on"
+                        if declared
+                        else ""
+                    )
+                    fail(
+                        f"forecast target is not the subject of the proposition it "
+                        f"scores: {forecast} is for {ftarget}, but {prop} has subject "
+                        f"{subject}{detail}"
+                    )
+    coverage("forecast targets", scored,
+             "forecast probability/proposition pair(s) checked for target agreement",
+             "the has-part or assignsProbabilityTo chain is broken")
+
+
 def run_check(fn, *args) -> None:
     """Run one function-shaped check; a raised exception becomes that check's failure.
 
@@ -1008,9 +1088,9 @@ def run_check(fn, *args) -> None:
     unrun and the operator saw a traceback where a verdict belonged. A crashing
     check has failed; the others still have something to say.
 
-    Only the checks written as functions route through here. main()'s inline check
-    bodies cannot resume mid-function, so a crash there still ends the run -- the
-    __main__ guard turns it into a verdict rather than a traceback.
+    Every check is function-shaped and routes through here, which is also what
+    test_meta.py's sweep can see: an inline check body in main() would be invisible
+    to it, so there are none.
     """
     try:
         fn(*args)
@@ -1213,82 +1293,9 @@ def main() -> int:
     # This catches unit-system mistakes, not quantity confusions.
     for check in (check_dimensions, check_lead_times, check_current_assessments,
                   check_scores, check_grouping_coherence, check_protocols,
-                  check_payouts, check_trades):
+                  check_payouts, check_trades, check_forecast_market_join,
+                  check_forecast_targets):
         run_check(check, ex)
-
-    # Domain sanity: the join the ontology exists for.
-    #
-    # All three conditions are required. An earlier version intersected "expressed
-    # by a market" with "assigned any probability", which a bracket ladder satisfies
-    # trivially -- every market has an implied probability, so the count rose with
-    # the data while proving strictly less. The join is only demonstrated when the
-    # SAME proposition carries a forecast probability AND a market-implied one.
-    expressed = set(ex.objects(None, EXPRESSES))
-    with_forecast = {
-        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability"))
-        for p in ex.objects(s, URIRef(FM + "assignsProbabilityTo"))
-    }
-    with_market = {
-        p for s in ex.subjects(RDF.type, URIRef(FM + "MarketImpliedProbability"))
-        for p in ex.objects(s, URIRef(FM + "assignsProbabilityTo"))
-    }
-    joined = expressed & with_forecast & with_market
-    # 6b. a forecast's target is the subject of the propositions it scores
-    #
-    # wx:forecastFor fixes what a forecast claims to be about; the proposition's
-    # subject fixes what the market settles on. Nothing tied the two together, so
-    # they could drift apart in silence -- and the examples aligned them only by
-    # hand. wx:alternativeDeterminationOf turns the specific cross-authority case
-    # from "mismatch" into a diagnosis. The relation licenses no substitution, so
-    # being declared alternative determinations is not a defence; it is the point.
-    alt_det = URIRef(WX + "alternativeDeterminationOf")
-    has_part = URIRef(BFO + "BFO_0000178")
-    assigns = URIRef(FM + "assignsProbabilityTo")
-    forecast_prob = URIRef(FM + "ForecastProbability")
-    scored = 0
-    for forecast, ftarget in ex.subject_objects(FORECAST_FOR):
-        for part in ex.objects(forecast, has_part):
-            if (part, RDF.type, forecast_prob) not in ex:
-                continue
-            for prop in ex.objects(part, assigns):
-                for subject in ex.objects(prop, HAS_SUBJECT):
-                    scored += 1
-                    if subject == ftarget:
-                        continue
-                    # Symmetry is asserted, not materialised -- rdflib does no
-                    # reasoning here, so both directions are checked explicitly.
-                    declared = (ftarget, alt_det, subject) in ex or (
-                        subject,
-                        alt_det,
-                        ftarget,
-                    ) in ex
-                    detail = (
-                        "; they are declared alternative determinations, so this "
-                        "forecast is scored against a different authority than the "
-                        "market settles on"
-                        if declared
-                        else ""
-                    )
-                    fail(
-                        f"forecast target is not the subject of the proposition it "
-                        f"scores: {forecast} is for {ftarget}, but {prop} has subject "
-                        f"{subject}{detail}"
-                    )
-    coverage("forecast targets", scored, "forecast probability/proposition pair(s) checked for target agreement",
-             "the has-part or assignsProbabilityTo chain is broken")
-
-    if EXAMPLES and not joined:
-        fail(
-            "no proposition is expressed by a market AND carries both a forecast "
-            "probability and a market-implied probability; the forecast/market join "
-            "is not demonstrated"
-        )
-    elif joined:
-        notes.append(
-            f"forecast/market join demonstrated on {len(joined)} proposition(s) "
-            f"({len(expressed)} expressed by markets, {len(with_forecast)} forecast, "
-            f"{len(with_market)} market-implied)"
-        )
 
     run_check(check_context_terms, g, ex)
 
@@ -1311,8 +1318,8 @@ if __name__ == "__main__":
     try:
         code = main()
     except Exception as exc:  # noqa: BLE001
-        # A crash in one of main()'s inline check bodies ends the run, but the
-        # operator still gets a verdict and the failures gathered before it.
+        # run_check catches a crash inside any one check; this catches a crash in
+        # main()'s own scaffolding, so the operator still gets a verdict.
         fail(f"validate.py raised {type(exc).__name__}: {exc}")
         code = report()
     raise SystemExit(code)

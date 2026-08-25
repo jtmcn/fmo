@@ -204,7 +204,7 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         # data because the synthetic set repeats the has-part link 160 times, so no
         # single-anchor edit can empty the traversal -- and a renamed BFO IRI is the
         # refactor that would silently reduce the check to "0 pairs checked, OK".
-        "the forecast-target check traverses nothing",
+        "check_forecast_targets traverses nothing",
         "scripts/validate.py",
         """    has_part = URIRef(BFO + "BFO_0000178")""",
         """    has_part = URIRef(BFO + "BFO_0000178_renamed")""",
@@ -219,16 +219,16 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "not grounded in BFO",
     ),
     (
-        # Was reachable by downgrading the temperature example's only forecast
-        # probability. The rain example adds a second, independent join, so that
+        # check_forecast_market_join. Was reachable by downgrading the temperature
+        # example's only forecast probability. The rain example adds a second, independent join, so that
         # mutation now leaves one proposition joined rather than zero. Mutated in
         # the checker instead, like the zero-coverage guard above: renaming the
         # class the join check looks for empties with_forecast regardless of how
         # many examples contribute.
         "the join check no longer finds any forecast probability",
         "scripts/validate.py",
-        """        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability"))""",
-        """        p for s in ex.subjects(RDF.type, URIRef(FM + "ForecastProbability_renamed"))""",
+        """        p for s in g.subjects(RDF.type, URIRef(FM + "ForecastProbability"))""",
+        """        p for s in g.subjects(RDF.type, URIRef(FM + "ForecastProbability_renamed"))""",
         "the forecast/market join is not demonstrated",
     ),
     (
@@ -241,10 +241,10 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "wx:leadTimeHours says",
     ),
     (
-        # The seventh zero-coverage guard. Six were written by hand -- assessment,
-        # forecast-target, grouping, score, settlement-value, target-protocol -- and
-        # lead times was missed, so a graph where every forecast lost its lead time
-        # reported "0 checked" and passed.
+        # The guard nobody wrote. Every other traversal had a hand-written
+        # zero-coverage guard and this one did not, so a graph where every forecast
+        # lost its lead time reported "0 checked" and passed. coverage() now issues
+        # the guard, and test_meta.py proves every check has one.
         "the lead-time check traverses nothing",
         "scripts/validate.py",
         """    for forecast, stated in g.subject_objects(LEAD_HOURS):""",
@@ -950,6 +950,22 @@ def main() -> int:
         MISMATCH, "examples/export",
         "FAIL [cq02-probability-gap.rq]",
         "scripts/run_competency.py --exports",
+    ))
+
+    # test_meta.py asserted `if V.failures:` -- "the check failed somehow", which any
+    # unrelated guard inside it satisfies. Two checks passed that sweep on their own
+    # retained guards, so their coverage() calls could have been deleted outright and
+    # `make meta` stayed green. This mutation is that exact shape: a check with no
+    # coverage() call and a failure from somewhere else.
+    print("\n  -- meta --")
+    results.append(run_case(
+        "a check that fails for reasons unrelated to its coverage",
+        "scripts/validate.py",
+        """    coverage("trades", checked, "trade(s) checked for opposite sides and equal quantity",
+             "the trading layer is unexercised again")""",
+        """    fail("an unrelated guard, standing in for the coverage() call")""",
+        "check_trades records no coverage()",
+        script="scripts/test_meta.py",
     ))
 
     # --update used to return 0 unconditionally. A query that errors or returns
