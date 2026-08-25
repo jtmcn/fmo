@@ -21,7 +21,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative meta shapes export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -51,6 +51,12 @@ meta:
 shapes:
 	$(PY) scripts/validate_shapes.py --examples
 	$(PY) scripts/validate_shapes.py --exports
+
+## Tests about the shapes themselves: no shape may match nothing, no shape may
+## fail to catch a missing required property on a node typed as its own
+## targetClass, and no sh:class may be dead under rdfs range entailment.
+shapes-negative:
+	$(PY) scripts/test_shapes.py
 
 ## Production CQ mode, both directions. Every export fixture must pass, every
 ## negative fixture must be rejected, and the target-mismatch fixture must fail
@@ -172,7 +178,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative meta shapes export-check verification-data-check diagram-check cq reason reason-negative competency
+test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)
