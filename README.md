@@ -82,6 +82,8 @@ make shapes                          # SHACL: does the data satisfy the export c
 make shapes-negative                 # tests about the shapes: vacuity, required-property mutants, dead constraints
 make export-check                    # production CQ mode: export passes, mismatch fails
 make reason                          # HermiT consistency (needs robot.jar)
+make axioms                          # every axiom pinned by a case, or exempt with a reason
+make signatures                      # per-term semantic digests, for downstream pinning
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
 ```
@@ -338,6 +340,37 @@ at an IRI that no longer existed, for all 40 days, and everything stayed green �
 is legal RDF that reads as an untyped resource. The targets silently lost their protocol, which
 in an ontology whose central rule is that the target carries the protocol is the worst available
 place to lose one.
+
+## What holds the checks honest
+
+Two failures of the same shape shipped in one afternoon: an `owl:AllDisjointClasses`
+block whose deletion left every test green, and a union axiom whose test named a
+mistake the axiom does not catch. Both read in the prose as guarantees. Neither was
+one. The ontology's job is to stop exactly that from happening downstream, so it does
+not get to do it itself.
+
+`make axioms` enumerates every axiom in the minted modules — 68 of them — and requires
+each to be either **pinned** by a reasoner case or **exempt** with a stated reason in
+`queries/axiom-expectations.json`. Adding an axiom fails the build until it is one or
+the other. The `pinned` claims are not taken on trust: the checker deletes each pinned
+axiom and confirms its case stops firing, because a ledger asserting an unverified
+relationship is the original bug wearing the ledger's clothes.
+
+The honest current number is **9 pinned, 59 exempt**. Most of the ontology's axioms are
+asserted and untested — the exemptions say why, and most say that the constraint cannot
+fail under the open-world assumption and is enforced for data by SHACL instead. That
+ratio is now visible rather than assumed, which is the point;
+`scripts/check_axioms.py --discover` re-derives it by deleting each axiom in turn and
+running every case against the result.
+
+`make signatures` addresses the same failure at the downstream boundary. ThermalEdge
+borrows FMO's terms and pins them by the digest of `skos:definition`, which catches a
+reworded definition and nothing else: both cardinality restrictions can be deleted from
+`ksh:Market` — the axiom this README cites as the reason SHACL is needed — with its
+definition untouched, and the pin still reports every term matching. `semantics_sha256`
+digests the label, definition, scope notes, parents and axioms together, so it moves
+when the commitments move. A consumer tracking prose keeps pinning `definition_sha256`;
+one whose inferences depend on the axioms pins the semantic one.
 
 ## Open questions
 
