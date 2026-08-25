@@ -35,8 +35,11 @@ ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
 
-# (name, path-to-mutate, find, replace) and optionally the substrings the reasoner's
-# report must contain, defaulting to "inconsistent" -- the shape a data mistake takes.
+# (name, path-to-mutate, find, replace), then optionally the substrings the reasoner's
+# report must contain -- defaulting to "inconsistent", the shape a data mistake takes --
+# and the modules to reason over, defaulting to the whole ontology plus the two examples.
+# A case narrows that last field when the axiom it tests is asserted in more than one
+# module and the superset would answer for the one under test.
 CASES = [
     (
         # The trap README and core.ttl both warn about: fm:hasUnit is functional,
@@ -107,10 +110,15 @@ CASES = [
         'ksh:ResolvedYes  a ksh:ResolutionOutcome, fm:TruthValue, owl:NamedIndividual ;',
     ),
     (
-        # The partition on ksh:BinaryContract. A third side is a class-level mistake
-        # that no data has to exercise, so the reasoner leaves the ontology consistent
-        # and reports the class unsatisfiable instead.
-        "a third contract side minted under the binary partition",
+        # The partition on ksh:BinaryContract. Note what this does and does not
+        # catch: the union does not refuse a third subclass, it forces one into
+        # ksh:YesContract or ksh:NoContract. Minting an undecorated third side is
+        # therefore consistent, and correctly so. What the union refuses is a third
+        # side that is genuinely a third -- disjoint from both -- which is why the
+        # mutant declares that disjointness rather than relying on the name. No data
+        # exercises it, so the ontology stays consistent and the class is
+        # unsatisfiable instead.
+        "a contract side disjoint from both under the binary partition",
         "src/kalshi.ttl",
         "ksh:TraderRole a owl:Class ;",
         """ksh:ScalarContract a owl:Class ;
@@ -120,7 +128,20 @@ CASES = [
     skos:definition "A third side, injected by scripts/test_reason.py." .
 
 ksh:TraderRole a owl:Class ;""",
-        ("unsatisfiable", "kalshi#scalarcontract"),
+        ("unsatisfiable", "kalshi#ScalarContract"),
+    ),
+    (
+        # The core-only half of the designation disjointness. Every other case
+        # reasons over src/fmo.ttl, where kalshi.ttl's superset block satisfies this
+        # too -- so deleting core.ttl's block as redundant left the whole suite
+        # green. This case reasons over core.ttl alone, which is the import path the
+        # block exists for and the only way to tell the two blocks apart.
+        "a core designation cross-typed, reasoning over core.ttl alone",
+        "src/core.ttl",
+        "fm:BrierScore a fm:ScoringRule, owl:NamedIndividual ;",
+        "fm:BrierScore a fm:ScoringRule, fm:TruthValue, owl:NamedIndividual ;",
+        "inconsistent",
+        ("src/core.ttl",),
     ),
 ]
 
@@ -139,7 +160,8 @@ def robot_command() -> list[str] | None:
 
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
-             expect: str | tuple[str, ...] = "inconsistent") -> bool:
+             expect: str | tuple[str, ...] = "inconsistent",
+             inputs: tuple[str, ...] = ("src/fmo.ttl", EXAMPLE, TRADING)) -> bool:
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp) / "fmo"
         shutil.copytree(
@@ -153,11 +175,9 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
             return False
         target.write_text(text.replace(find, replace))
 
+        merge_inputs = [a for rel_in in inputs for a in ("--input", str(work / rel_in))]
         proc = subprocess.run(
-            [*robot, "merge",
-             "--input", str(work / "src" / "fmo.ttl"),
-             "--input", str(work / EXAMPLE),
-             "--input", str(work / TRADING),
+            [*robot, "merge", *merge_inputs,
              "--catalog", str(work / "src" / "catalog-v001.xml"),
              "reason", "--reasoner", "HermiT",
              "--output", str(work / "reasoned.owl")],
@@ -168,7 +188,10 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
             print(f"  FAIL [{name}]: the reasoner accepted the ontology")
             return False
         wanted = (expect,) if isinstance(expect, str) else expect
-        missing = [w for w in wanted if w not in output.lower()]
+        # Both sides lower-cased: expectations get written with the IRI as it
+        # appears in the source, and a case that can never match reads as a
+        # broken ontology rather than as a typo in the expectation.
+        missing = [w for w in wanted if w.lower() not in output.lower()]
         if missing:
             print(f"  FAIL [{name}]: non-zero exit, but the report is missing {missing}")
             print("        " + output.strip().splitlines()[-1])
