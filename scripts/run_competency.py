@@ -19,6 +19,10 @@ Usage:
     python3 scripts/run_competency.py --data <file.ttl>  # production mode: check
         one export against queries/production-expectations.json instead of
         examples/ + .expected
+    python3 scripts/run_competency.py --exports    # production mode over every
+        examples/export/ fixture; all must pass
+    python3 scripts/run_competency.py --negatives  # production mode over every
+        examples/negative/ fixture; each must be rejected by some query
 """
 
 from __future__ import annotations
@@ -30,7 +34,7 @@ from pathlib import Path
 from rdflib import Graph, Literal, URIRef
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import IRI_TO_PREFIX, MODULES, QUERIES, ROOT, SRC, examples, exports, negatives  # noqa: E402
+from registry import IRI_TO_PREFIX, MODULES, QUERIES, SRC, examples, exports, negatives  # noqa: E402
 
 
 def shorten(term) -> str:
@@ -223,16 +227,30 @@ if __name__ == "__main__":
         for path in fixtures:
             print(f"== {path.name}")
             sys.argv = [sys.argv[0], "--data", str(path)]
-            # A non-zero exit is not proof of rejection: "no queries found", an
-            # unreadable fixture or a renamed script all exit non-zero too. The
-            # Makefile target this replaces greps for a FAIL [cq line for exactly
-            # that reason, and dropping to an exit code would weaken it.
+            # A crash is this fixture's failure, not the sweep's: an unparseable
+            # fixture used to abort the whole run with a traceback where a verdict
+            # belonged, and every fixture sorting after it went unchecked.
             buf = io.StringIO()
-            with redirect_stdout(buf):
-                code = main()
+            try:
+                with redirect_stdout(buf):
+                    code = main()
+            except Exception as exc:  # noqa: BLE001
+                print(buf.getvalue(), end="")
+                print(f"  FAIL [{path.name}]: raised {type(exc).__name__}: {exc}")
+                worst = 1
+                continue
             out = buf.getvalue()
             print(out, end="")
-            if not want_pass and "FAIL [cq" not in out:
+            # A non-zero exit is not proof of rejection: "no queries found", an
+            # unreadable fixture or a renamed script all exit non-zero too. Config
+            # breakage is excluded for the same reason -- a missing expectations
+            # entry rejects every fixture alike and says nothing about this one.
+            rejections = [
+                line for line in out.splitlines()
+                if "FAIL [cq" in line
+                and ": query error:" not in line and ": no entry in" not in line
+            ]
+            if not want_pass and not rejections:
                 print(f"  FAIL [{path.name}]: exited {code} but no query reported a failure")
                 worst = 1
                 continue

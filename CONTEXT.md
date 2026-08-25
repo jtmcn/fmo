@@ -154,8 +154,8 @@ _Avoid_: "the price is the probability".
 
 These are the words for working *on* the ontology, and none of them are minted terms.
 
-**Module**: one of the four ontology files in `src/`. The `MODULES` lists in
-`validate.py` and `run_competency.py` hold six — the two files in `src/imports/` are
+**Module**: one of the four ontology files in `src/`. The `MODULES` list in
+`scripts/registry.py` holds six — the two files in `src/imports/` are
 loaded but are not modules, and are not ours to edit.
 _Avoid_: "the file", "the namespace" (a namespace is an IRI prefix).
 

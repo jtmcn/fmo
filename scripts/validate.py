@@ -92,7 +92,7 @@ BRANCHES = {
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from registry import (  # noqa: E402
-    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, OUR_NS, ONTOLOGY_PREFIXES as PREFIXES,
+    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, OUR_NS,
     PROSE_FILES, ROOT, SRC, examples,
 )
 
@@ -111,6 +111,9 @@ CONTEXT_PATH = re.compile(r"`((?:src|scripts|queries|docs|examples)/[^`*]*)`")
 CONTEXT_MAKE = re.compile(r"`make ([a-z][a-z-]*)`")
 CONTEXT_CHECK = re.compile(r"`(check_[a-z_]+)`")
 
+# Snapshotting the glob at import is safe here and only here: this script is always
+# a process whose ROOT is derived from its own location, so the negative-test copy
+# gets its own import. An in-process caller must call examples() instead.
 EXAMPLES = examples()
 
 failures: list[str] = []
@@ -1000,11 +1003,15 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
 
 
 def run_check(fn, *args) -> None:
-    """Run one check; a raised exception becomes that check's failure.
+    """Run one function-shaped check; a raised exception becomes that check's failure.
 
     An unhandled exception used to abort main(), so every later check went
     unrun and the operator saw a traceback where a verdict belonged. A crashing
     check has failed; the others still have something to say.
+
+    Only the checks written as functions route through here. main()'s inline check
+    bodies cannot resume mid-function, so a crash there still ends the run -- the
+    __main__ guard turns it into a verdict rather than a traceback.
     """
     try:
         fn(*args)
@@ -1307,4 +1314,11 @@ def report() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        code = main()
+    except Exception as exc:  # noqa: BLE001
+        # A crash in one of main()'s inline check bodies ends the run, but the
+        # operator still gets a verdict and the failures gathered before it.
+        fail(f"validate.py raised {type(exc).__name__}: {exc}")
+        code = report()
+    raise SystemExit(code)

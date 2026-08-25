@@ -38,12 +38,13 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 - **Every minted term must reach `bfo:entity` via `rdfs:subClassOf`.** Bridged external
   classes (QUDT) get grounded in `core.ttl` too — four classes once floated under
   `owl:Thing` and the check exists because of it.
-- **Adding a source file means updating the `MODULES` list** in both `scripts/validate.py`
-  and `scripts/run_competency.py`, plus `src/fmo.ttl` and `src/catalog-v001.xml`.
-  `validate_shapes.py` and `generate_diagram.py` import `MODULES` from `validate.py`
-  rather than copying it; keep it that way. A stale copy there fails silently — the
-  shapes run against a smaller ontology, `sh:class` matches fewer nodes, and fewer
-  matched nodes means *conformance*, not an error.
+- **Adding a source file means updating the `MODULES` list** in `scripts/registry.py`,
+  plus `src/fmo.ttl` and `src/catalog-v001.xml`. `registry.py` is the one definition of
+  every path, glob and namespace the checkers share; `validate.py`,
+  `run_competency.py`, `validate_shapes.py` and `generate_diagram.py` all import from it
+  rather than copying. Keep it that way — a stale copy fails silently: the shapes run
+  against a smaller ontology, `sh:class` matches fewer nodes, and fewer matched nodes
+  means *conformance*, not an error.
 - **Version bumps touch all four modules** — `owl:versionIRI` and `owl:versionInfo` in
   `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status line in
   `README.md`.
