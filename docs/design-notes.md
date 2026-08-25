@@ -108,6 +108,24 @@ the bearer's physical make-up. An obligation to pay is grounded in an institutio
 external to the bearer. That is the textbook role/disposition line and this falls cleanly on the
 role side.
 
+**The designation vocabularies are pairwise disjoint, and the block lives in `kalshi.ttl`.**
+Each vocabulary already carried an `owl:AllDifferent` separating its own individuals; nothing
+separated the vocabularies from each other, so one individual could be typed into two at once.
+The slip that matters is `ksh:ResolvedYes` doubling as `fm:True`, which reads as harmless and
+is not: the exchange's resolution and the proposition's truth value have to be able to
+disagree, because a correction moves the assessment while the resolution stays fixed, and that
+divergence is the whole subject of CQ7. Every property involved is functional, so a
+cross-typing would have satisfied each guard individually. Declared in `kalshi.ttl` because it
+is the only module where all six classes resolve — the same reason `qudt:Unit` is grounded in
+`core.ttl` rather than in the QUDT subset.
+
+**`ksh:BinaryContract` is a partition, not just a disjoint pair.** `ksh:YesContract
+owl:disjointWith ksh:NoContract` is the exclusivity half and was all that was asserted through
+0.11.0; disjointness on its own leaves a third side expressible, and a binary market has
+exactly two. The union axiom supplies exhaustiveness. Note this is the class-level construct
+only — it says nothing about whether a *bracket ladder* tiles the line, which is a claim about
+numeric coverage by individuals and remains open (see README).
+
 ## Units
 
 Adopted QUDT in 0.2.0, replacing the `xsd:string` unit of 0.1.0. Sixteen units and ten quantity
@@ -427,6 +445,47 @@ score, or the forecast is being graded against a different question than the one
 settles. 641 pairs are checked. The relation upgrades the diagnosis from "mismatch" to naming
 the two authorities — being declared alternative determinations is not a defence, it is the
 point.
+
+## What OWL cannot say, and why three checks are Python
+
+Three of the validator's checks look like axioms that were never written:
+
+- a forecast must score the same target the market settles on
+- a market must express a proposition about the target its grouping covers
+- a settlement source's protocol must be the one its proposition's target names
+
+Each has the same shape: two paths out of one individual must land on the *same*
+individual. That is not expressible as an OWL class definition, and the reason is
+structural rather than a gap in this ontology. An `owl:equivalentClass` definition is a
+formula with one free variable — it says what an individual must satisfy, so it can
+require that a market has a proposition and that the market has a grouping, but it cannot
+require that the target reached through the first is the target reached through the
+second. Saying that needs a second free variable. The textbook case is a person with a
+friend who is also their enemy: definable in neither OWL nor any description logic in the
+OWL DL family, for exactly this reason.
+
+So the three checks are not shortcuts around axioms that were too much trouble. They are
+outside what the schema language can state, and there are only two mechanisms that can
+state them: SWRL rules, and SHACL. This ontology uses SHACL for the export contract and
+Python for internal integrity.
+
+**SWRL was considered and rejected.** It would express all three directly —
+`ksh:coversTarget(?g, ?t), fm:hasSubject(?p, ?t2), DifferentFrom(?t, ?t2) -> ...` — and
+its built-ins (`subtract`, `divide`, `lessThan`) would also cover the derived-value checks
+on `wx:leadTimeHours` and `fm:BrierScore`. Three reasons not to:
+
+1. **HermiT cannot infer data property values.** That needs Pellet, which ROBOT does not
+   ship. Adopting SWRL means adopting a second reasoner for the arithmetic half.
+2. **A rule is one-directional.** A rule recognising a defect asserts nothing about the
+   entities it recognises, so the knowledge does not come back out for any other question.
+   Formal definitions are preferable wherever both are possible; rules are the fallback for
+   reasoning definitions cannot reach.
+3. **A rule fires, it does not fail.** These checks need to stop a build, and a rule's
+   output is a new assertion — turning that into a failure means querying for the
+   assertion afterward, which is the Python check with a reasoner bolted underneath it.
+
+The general form worth remembering: if a constraint relates two individuals rather than
+classifying one, do not go looking for the axiom. It is not there.
 
 ## Rejected alternatives
 
