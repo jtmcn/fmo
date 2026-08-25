@@ -623,6 +623,17 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
         "`wx:conventionalUnit_renamed` is deliberately\n**not** a sub-property of `fm:hasUnit`",
         "README.md names an undeclared term: wx:conventionalUnit_renamed",
     ),
+    (
+        # A check that raises used to abort the run, so every check after it was
+        # never executed and the output ended in a traceback rather than a verdict.
+        # A crash is a failure of that check and nothing more.
+        "a check raising an unexpected exception",
+        "scripts/validate.py",
+        """def check_trades(g: Graph) -> None:""",
+        """def check_trades(g: Graph) -> None:
+    raise RuntimeError("injected")""",
+        "check_trades raised RuntimeError: injected",
+    ),
 ]
 
 
