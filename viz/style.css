@@ -365,7 +365,8 @@ body {
   font: 400 10.5px/1.4 var(--f-mono);
   color: var(--graphite);
 }
-.lit-def { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
+/* Scoped past `.field p`, which is more specific than a bare class and wins. */
+.lits .lit-def { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; }
 
 .ttl {
   margin: 0; padding: 12px 13px;

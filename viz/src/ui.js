@@ -113,9 +113,13 @@
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
     // Drawn, not declared: the properties left open-domain on purpose have no
     // edge, and the legend should not claim a line for them.
+    // Same rule on both branches: count what is actually on the page. The lit
+    // classes are counted off the nodes, not off profile.classes, or turning a
+    // module chip off leaves the note claiming terms the map is no longer showing.
+    var inProf = nodes.filter(function (n) { return n.profile && !n.hidden; }).length;
     $('legend-note').textContent = profileOnly
-      ? profile.label + ' · ' + profile.classes.length + ' classes · ' +
-        profile.paths.length + ' properties'
+      ? profile.label + ' · ' + inProf + ' classes · ' + profile.relations.length +
+        ' relations · ' + profile.literals.length + ' literal'
       : shown + ' classes · ' + drawn + ' of ' + Object.keys(props).length +
         ' object properties drawn · ' + Object.keys(lits).length +
         ' carry literal values';

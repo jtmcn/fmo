@@ -45,6 +45,13 @@ FILE_OF = {"fm": "core.ttl", "wx": "weather.ttl", "ksh": "kalshi.ttl"}
 # answer "does an export have everything the shapes ask for" without a diff.
 PROFILE_LABEL = "ThermalEdge export"
 
+# Datatype properties whose domain is left open on purpose, so nothing on the map
+# carries them. Pinned rather than counted: a fifth means a domain was dropped or
+# turned into an unnamed restriction, and that property would quietly leave every
+# class panel with no count moving.
+OPEN_DATATYPES = ["fm:identifier", "fm:realizedValue", "fm:referenceTime",
+                  "wx:stationIdentifier"]
+
 
 def curie(term) -> str | None:
     """Prefixed name, or None for terms outside the namespaces we draw."""
@@ -184,9 +191,7 @@ def build() -> dict:
             continue
         carriers = ends(g.value(p, RDFS.domain))
         datatypes[pid] = {
-            "label": text(p, RDFS.label) or pid.split(":")[1],
             "def": text(p, SKOS.definition),
-            "note": text(p, SKOS.scopeNote),
             "ttl": src_text[pid.split(":")[0]].get(pid),
             "range": datatype(g.value(p, RDFS.range)),
             # Same distinction the object properties draw: a domain left open on
@@ -202,6 +207,7 @@ def build() -> dict:
     # teh: targets or walks is what an export has to carry.
     sh = Graph()
     sh.parse(SHAPES, format="turtle")
+    constrained = set(sh.objects(None, SH.targetClass)) | set(sh.objects(None, SH.path))
     prof_classes = {c for c in map(curie, sh.objects(None, SH.targetClass)) if c}
     prof_paths = {c for c in map(curie, sh.objects(None, SH.path)) if c}
     for cid in prof_classes & set(nodes):
@@ -211,6 +217,14 @@ def build() -> dict:
             v["profile"] = pid in prof_paths
     for e in edges:
         e["profile"] = e.get("p") in prof_paths
+
+    # An edge the shapes walk lands somewhere, and a relation drawn at full strength
+    # into a dimmed dot reads as a fault in the map. Its endpoints are in the profile
+    # too -- which is also what puts both ends of a subClassOf in it, so the hierarchy
+    # inside the profile still draws instead of leaving the targets as islands.
+    for e in edges:
+        if e["profile"]:
+            nodes[e["s"]]["profile"] = nodes[e["t"]]["profile"] = True
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
@@ -233,6 +247,13 @@ def build() -> dict:
             "label": PROFILE_LABEL,
             "classes": sorted(prof_classes),
             "paths": sorted(prof_paths),
+            # Split the way the legend has to report them: one draws a line, the
+            # other cannot. curie() returns None for a blank-node property path or
+            # a namespace the map does not draw, and a term quietly leaving the
+            # profile is the failure this count exists to make loud.
+            "relations": sorted(prof_paths & set(properties)),
+            "literals": sorted(prof_paths & set(datatypes)),
+            "unmapped": sum(1 for t in constrained if curie(t) is None),
         },
     }
 
@@ -287,19 +308,32 @@ def check(data: dict, html: str) -> int:
         assert not blank, f"datatype property with no {field}: {blank[:5]}"
     drawn_ids = {n["id"] for n in data["nodes"]}
     orphan = sorted({c for v in dts.values() for c in v["on"]
-                     if c.split(":")[0] in ("fm", "wx", "ksh") and c not in drawn_ids})
+                     if c.split(":")[0] in MINTED and c not in drawn_ids})
     assert not orphan, f"carries a datatype property but is not on the map: {orphan[:5]}"
+    left_open = sorted(pid for pid, v in dts.items() if v["open"])
+    assert left_open == OPEN_DATATYPES, \
+        f"the set of domain-less datatype properties changed: {left_open}"
 
     # The export profile has to land on the map. A term the shapes constrain and the
     # map cannot show is exactly the hole this tagging exists to make visible.
     prof = data["profile"]
     assert prof["classes"] and prof["paths"], f"no shapes read from {SHAPES.name}"
+    assert not prof["unmapped"], \
+        f"{prof['unmapped']} shape term(s) outside the namespaces the map draws"
     known = drawn_ids | set(data["properties"]) | set(dts)
     absent = [t for t in prof["classes"] + prof["paths"] if t not in known]
     assert not absent, f"{prof['label']} term absent from the map: {absent}"
-    tagged = sum(1 for n in data["nodes"] if n["profile"])
-    assert tagged == len(prof["classes"]), \
-        f"{len(prof['classes'])} targeted classes but {tagged} tagged"
+    assert len(prof["relations"]) + len(prof["literals"]) == len(prof["paths"]), \
+        "a shape path is neither an object nor a datatype property"
+
+    tagged = {n["id"] for n in data["nodes"] if n["profile"]}
+    untagged = sorted(set(prof["classes"]) - tagged)
+    assert not untagged, f"targeted by a shape but not tagged: {untagged}"
+    # Both ends of every edge the shapes walk light up too, or the profile view
+    # draws a lit line into a dimmed dot and the targets sit as islands.
+    loose = sorted({c for e in data["edges"] if e["profile"]
+                    for c in (e["s"], e["t"]) if c not in tagged})
+    assert not loose, f"joined by an edge the shapes walk but not tagged: {loose}"
     marked = sum(1 for t in (data["properties"], dts) for v in t.values() if v["profile"])
     assert marked == len(prof["paths"]), \
         f"{len(prof['paths'])} shape paths but {marked} tagged properties"
@@ -332,7 +366,8 @@ def check(data: dict, html: str) -> int:
 
     print(f"OK: {len(minted)} classes, {len(data['properties'])} properties "
           f"({len(drawn)} drawn), {len(dts)} datatype properties, "
-          f"{prof['label']} fully covered ({tagged} classes, {marked} properties), "
+          f"{prof['label']} fully covered ({len(tagged)} classes lit, "
+          f"{len(prof['relations'])} relations, {len(prof['literals'])} literal), "
           f"pivot intact, all stanzas found, nothing remote")
     return 0
 
