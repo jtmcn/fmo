@@ -95,8 +95,17 @@ double-clicking and survives being emailed to someone. The build drops the webfo
 links `viz/index.html` uses in development; the built file renders on the system
 stack `style.css` falls back to rather than blocking on a font server.
 
-Selecting a term shows its definition, its scope note, what it connects to, and
-the Turtle stanza it is actually declared in — the axioms, not a summary of them.
+Selecting a term shows its definition, its scope note, what it connects to, the
+literal values it carries, and the Turtle stanza it is actually declared in — the
+axioms, not a summary of them. Datatype properties end at a literal, so there is no
+far class to draw an edge to; they are listed on the class that carries them, with
+the type they land in, rather than left off the map entirely.
+
+The `ThermalEdge export` chip cuts the map down to the export profile: the classes
+`shapes/thermaledge-export.ttl` targets and the properties it walks stay lit, and
+everything else dims to the ground it was cut from. It is read off the shapes, not
+restated in the generator, so a shape that starts constraining a new term lights
+that term up on the next build.
 Colour follows the ontology's central claim rather than the namespace list: `wx`
 is the forecast side, `ksh` is the market side, `fm` is the pivot both point at,
 and borrowed BFO ground is held back in grey.
@@ -109,9 +118,10 @@ against the last generated data without a build step.
 
 `make diagram-check` runs in `make test`. It asserts every minted class still
 resolves to a Turtle stanza, that every object property with a declared domain and
-range still draws an edge, that the pivot edges above survive, and that the built
-file fetches nothing — because a viewer that silently drops half the graph still
-renders a convincing picture.
+range still draws an edge, that every class carrying a datatype property is on the
+map, that every term the export shapes constrain reaches the map and is tagged, that
+the pivot edges above survive, and that the built file fetches nothing — because a
+viewer that silently drops half the graph still renders a convincing picture.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
 `poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on

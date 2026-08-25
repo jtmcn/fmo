@@ -33,6 +33,7 @@
     <button class="chip is-on" data-module="bfo" type="button"><i></i>bfo</button>
     <span class="chip-sep" aria-hidden="true"></span>
     <button class="chip is-on" data-kind="rel" type="button">relations</button>
+    <button class="chip" id="chip-profile" data-profile="1" type="button"></button>
   </div>
 </header>
 
@@ -62,6 +63,7 @@
     <p class="panel-kicker" id="panel-kicker"></p>
     <h1 class="panel-title" id="panel-title"></h1>
     <p class="panel-curie" id="panel-curie"></p>
+    <p class="prof" id="panel-prof" hidden></p>
 
     <section class="field" id="f-def">
       <h2>Definition</h2><p id="panel-def"></p>
@@ -71,6 +73,9 @@
     </section>
     <section class="field" id="f-example">
       <h2>Example</h2><p id="panel-example"></p>
+    </section>
+    <section class="field" id="f-lit">
+      <h2>Literal values</h2><ul class="lits" id="panel-lits"></ul>
     </section>
     <section class="field" id="f-links">
       <h2>Connects to</h2><ul class="links" id="panel-links"></ul>

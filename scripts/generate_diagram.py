@@ -21,10 +21,10 @@ import sys
 from pathlib import Path
 
 from rdflib import Graph, OWL, RDF, RDFS, URIRef
-from rdflib.namespace import SKOS
+from rdflib.namespace import SH, SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import MODULES, ROOT, SRC  # noqa: E402
+from registry import MODULES, ROOT, SHAPES, SRC  # noqa: E402
 
 VIZ = ROOT / "viz"
 BUILD = ROOT / "build"
@@ -40,6 +40,10 @@ NS = {
 # These three are minted here; anything else is borrowed ground.
 MINTED = ("fm", "wx", "ksh")
 FILE_OF = {"fm": "core.ttl", "wx": "weather.ttl", "ksh": "kalshi.ttl"}
+
+# The one export profile there is. Terms it constrains get marked so the map can
+# answer "does an export have everything the shapes ask for" without a diff.
+PROFILE_LABEL = "ThermalEdge export"
 
 
 def curie(term) -> str | None:
@@ -109,7 +113,7 @@ def build() -> dict:
             nodes[cid] = {
                 "id": cid, "module": cid.split(":")[0], "minted": False,
                 "label": cid.split(":")[1], "def": None, "note": None,
-                "example": None, "ttl": None,
+                "example": None, "ttl": None, "profile": False,
             }
         return cid
 
@@ -164,6 +168,50 @@ def build() -> dict:
             for b in r:
                 edges.append({"s": touch(a), "t": touch(b), "k": "rel", "p": pid})
 
+    def datatype(term) -> str:
+        """The datatype's short name. A faceted range -- xsd:decimal held to 0..1 --
+        is a blank node, and the base type it restricts is what a reader wants."""
+        if term is not None and not isinstance(term, URIRef):
+            term = g.value(term, OWL.onDatatype)
+        return str(term).rsplit("#", 1)[-1] if term is not None else "literal"
+
+    # Datatype properties end at a literal, so there is no far class to draw an edge
+    # to. They hang off the class that carries them instead, and the panel lists them.
+    datatypes: dict[str, dict] = {}
+    for p in g.subjects(RDF.type, OWL.DatatypeProperty):
+        pid = curie(p)
+        if not pid or pid.split(":")[0] not in MINTED:
+            continue
+        carriers = ends(g.value(p, RDFS.domain))
+        datatypes[pid] = {
+            "label": text(p, RDFS.label) or pid.split(":")[1],
+            "def": text(p, SKOS.definition),
+            "note": text(p, SKOS.scopeNote),
+            "ttl": src_text[pid.split(":")[0]].get(pid),
+            "range": datatype(g.value(p, RDFS.range)),
+            # Same distinction the object properties draw: a domain left open on
+            # purpose has nothing to hang from, and is not a lost attachment.
+            "open": not carriers,
+            # Borrowed ground can carry one of ours -- fm:instantDateTime hangs off
+            # a BFO instant nothing else in the ontology touches, so no node exists
+            # for it. The panel skips a carrier it cannot find; check() does not.
+            "on": carriers,
+        }
+
+    # The export profile, read off the shapes rather than restated here: whatever
+    # teh: targets or walks is what an export has to carry.
+    sh = Graph()
+    sh.parse(SHAPES, format="turtle")
+    prof_classes = {c for c in map(curie, sh.objects(None, SH.targetClass)) if c}
+    prof_paths = {c for c in map(curie, sh.objects(None, SH.path)) if c}
+    for cid in prof_classes & set(nodes):
+        nodes[cid]["profile"] = True
+    for table in (properties, datatypes):
+        for pid, v in table.items():
+            v["profile"] = pid in prof_paths
+    for e in edges:
+        e["profile"] = e.get("p") in prof_paths
+
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
     for n in nodes.values():
@@ -180,6 +228,12 @@ def build() -> dict:
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
         "edges": edges,
         "properties": properties,
+        "datatypes": dict(sorted(datatypes.items())),
+        "profile": {
+            "label": PROFILE_LABEL,
+            "classes": sorted(prof_classes),
+            "paths": sorted(prof_paths),
+        },
     }
 
 
@@ -224,6 +278,32 @@ def check(data: dict, html: str) -> int:
     lost = [p for p, v in data["properties"].items() if not v["open"] and p not in drawn]
     assert not lost, f"declared domain and range but no edge drawn: {lost[:5]}"
 
+    # Datatype properties are the half of the vocabulary that ends at a literal.
+    # They draw no edge, so nothing else here would notice them going missing.
+    dts = data["datatypes"]
+    assert len(dts) > 25, f"expected ~34 datatype properties, got {len(dts)}"
+    for field in ("def", "ttl"):
+        blank = [pid for pid, v in dts.items() if not v[field]]
+        assert not blank, f"datatype property with no {field}: {blank[:5]}"
+    drawn_ids = {n["id"] for n in data["nodes"]}
+    orphan = sorted({c for v in dts.values() for c in v["on"]
+                     if c.split(":")[0] in ("fm", "wx", "ksh") and c not in drawn_ids})
+    assert not orphan, f"carries a datatype property but is not on the map: {orphan[:5]}"
+
+    # The export profile has to land on the map. A term the shapes constrain and the
+    # map cannot show is exactly the hole this tagging exists to make visible.
+    prof = data["profile"]
+    assert prof["classes"] and prof["paths"], f"no shapes read from {SHAPES.name}"
+    known = drawn_ids | set(data["properties"]) | set(dts)
+    absent = [t for t in prof["classes"] + prof["paths"] if t not in known]
+    assert not absent, f"{prof['label']} term absent from the map: {absent}"
+    tagged = sum(1 for n in data["nodes"] if n["profile"])
+    assert tagged == len(prof["classes"]), \
+        f"{len(prof['classes'])} targeted classes but {tagged} tagged"
+    marked = sum(1 for t in (data["properties"], dts) for v in t.values() if v["profile"])
+    assert marked == len(prof["paths"]), \
+        f"{len(prof['paths'])} shape paths but {marked} tagged properties"
+
     # Self-contained means self-contained: nothing left to fetch, nothing unresolved.
     remote = re.findall(r'(?:src|href)="(?://|https?:)[^"]*"', html)
     assert not remote, f"built file still fetches: {remote[:3]}"
@@ -251,7 +331,9 @@ def check(data: dict, html: str) -> int:
         assert any(c.startswith("bfo:") for c in seen), f"{n['id']} does not reach BFO"
 
     print(f"OK: {len(minted)} classes, {len(data['properties'])} properties "
-          f"({len(drawn)} drawn), pivot intact, all stanzas found, nothing remote")
+          f"({len(drawn)} drawn), {len(dts)} datatype properties, "
+          f"{prof['label']} fully covered ({tagged} classes, {marked} properties), "
+          f"pivot intact, all stanzas found, nothing remote")
     return 0
 
 
@@ -271,7 +353,8 @@ def main() -> int:
     n_min = sum(1 for n in data["nodes"] if n["minted"])
     print(f"{out.relative_to(ROOT)}: {n_min} minted classes, "
           f"{len(data['nodes']) - n_min} external, {len(data['edges'])} edges, "
-          f"{len(data['properties'])} properties ({out.stat().st_size // 1024} KB)")
+          f"{len(data['properties'])} object and {len(data['datatypes'])} datatype "
+          f"properties ({out.stat().st_size // 1024} KB)")
     return 0
 
 

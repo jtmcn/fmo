@@ -18,6 +18,9 @@
   var selected = null, hovered = null, lit = {};
   var drag = null, pan = null;
   var kindOn = { sub: true, rel: true };
+  // Profile mode dims rather than hides: the export subgraph is only legible as a
+  // shape if the ontology it is cut from stays on the page behind it.
+  var profileOnly = false;
 
   function el(name, attrs) {
     var e = document.createElementNS(SVGNS, name);
@@ -103,9 +106,13 @@
       if (off) { if (e.lab) e.lab.style.display = 'none'; return; }
 
       e.el.setAttribute('d', path(a, b));
-      var isLit = focus && (a.id === focus.id || b.id === focus.id);
+      // A relation is in the profile when the shapes walk that path; a subClassOf
+      // is in it when both ends are, which is what makes the hierarchy still read.
+      var inProf = !profileOnly ||
+        (e.k === 'rel' ? !!e.profile : !!(a.profile && b.profile));
+      var isLit = inProf && focus && (a.id === focus.id || b.id === focus.id);
       e.el.classList.toggle('is-lit', !!isLit);
-      e.el.classList.toggle('is-dim', !!focus && !isLit);
+      e.el.classList.toggle('is-dim', (!!focus && !isLit) || !inProf);
 
       // Relation names only on the edges you are interrogating. At rest they pile
       // up in the dense core and drown the map they are annotating. Sit them on
@@ -135,7 +142,8 @@
       n.el.setAttribute('cx', n.x);
       n.el.setAttribute('cy', n.y);
 
-      var isLit = !focus || n.id === focus.id || lit[n.id];
+      var isLit = (!focus || n.id === focus.id || lit[n.id]) &&
+                  (!profileOnly || n.profile);
       n.el.classList.toggle('is-dim', !isLit);
       n.el.setAttribute('r', radius(n) * (n === focus ? 1.5 : 1));
 
@@ -325,6 +333,8 @@
 
   function setKind(kind, on) { kindOn[kind] = on; paint(); }
 
+  function setProfile(on) { profileOnly = on; paint(); }
+
   FMO.graph = {
     build: build,
     paint: paint,
@@ -333,6 +343,7 @@
     zoomTo: zoomTo,
     setFocus: setFocus,
     setKind: setKind,
+    setProfile: setProfile,
     camera: cam
   };
 })(window.FMO);
