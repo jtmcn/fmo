@@ -12,6 +12,9 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var byId = {}, nodes = [], props = {}, drawn = 0;
+  // Datatype properties, grouped by the class that carries them: they end at a
+  // literal, so they never reach the map and the panel is the only place they show.
+  var lits = {}, profile = null, profileOnly = false;
   var onSelect = function () {};
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
   var showRel = true;
@@ -38,6 +41,18 @@
       if (e.k === 'rel' && !seen[e.p]) { seen[e.p] = 1; drawn++; }
     });
 
+    Object.keys(data.datatypes).forEach(function (pid) {
+      var d = data.datatypes[pid];
+      d.on.forEach(function (cid) {
+        // A carrier off the map -- borrowed ground nothing else touches -- has no
+        // panel to list it in. Skipping is what keeps it off, not an omission.
+        if (byId[cid]) (lits[cid] || (lits[cid] = [])).push({ id: pid, meta: d });
+      });
+    });
+
+    profile = data.profile;
+    $('chip-profile').textContent = profile.label;
+
     $('version').textContent = 'v' + data.version;
     initSearch();
     initChips();
@@ -55,6 +70,7 @@
   function applyFilters() {
     nodes.forEach(function (n) { n.hidden = !modules[chipOf(n)]; });
     FMO.graph.setKind('rel', showRel);
+    FMO.graph.setProfile(profileOnly);
     legend();
     // Results were filtered on visibility when they were built; rebuild them, or
     // Enter opens a term that is no longer on the map. Rebuilding must not pop the
@@ -71,10 +87,11 @@
         btn.classList.toggle('is-on', on);
         btn.setAttribute('aria-pressed', String(on));
         if (btn.dataset.module) modules[btn.dataset.module] = on;
+        else if (btn.dataset.profile) profileOnly = on;
         else showRel = on;
         applyFilters();
       });
-      btn.setAttribute('aria-pressed', 'true');
+      btn.setAttribute('aria-pressed', String(btn.classList.contains('is-on')));
     });
   }
 
@@ -96,8 +113,12 @@
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
     // Drawn, not declared: the properties left open-domain on purpose have no
     // edge, and the legend should not claim a line for them.
-    $('legend-note').textContent = shown + ' classes · ' + drawn + ' of ' +
-      Object.keys(props).length + ' object properties drawn';
+    $('legend-note').textContent = profileOnly
+      ? profile.label + ' · ' + profile.classes.length + ' classes · ' +
+        profile.paths.length + ' properties'
+      : shown + ' classes · ' + drawn + ' of ' + Object.keys(props).length +
+        ' object properties drawn · ' + Object.keys(lits).length +
+        ' carry literal values';
   }
 
   /* ---- search ---- */
@@ -236,13 +257,32 @@
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id;
 
+    $('panel-prof').hidden = !n.profile;
+    $('panel-prof').textContent = 'constrained by the ' + profile.label + ' shapes';
+
     if (field('f-def', n.def)) $('panel-def').textContent = n.def;
     if (field('f-note', n.note)) $('panel-note').textContent = n.note;
     if (field('f-example', n.example)) $('panel-example').textContent = n.example;
 
+    literals(n);
     links(n);
 
     if (field('f-ttl', n.ttl)) $('panel-ttl').innerHTML = turtle(n.ttl);
+  }
+
+  /* The literal half of the surface. No edge to draw and nowhere to click
+     through to, so a datatype property is listed with the type it lands in --
+     that type is the whole of what it says beyond its definition. */
+  function literals(n) {
+    var out = (lits[n.id] || []).map(function (d) {
+      var tone = { fm: 'ink', wx: 'cold', ksh: 'warm' }[d.id.split(':')[0]] || 'graphite';
+      return '<li' + (d.meta.profile ? ' class="in-prof"' : '') + '>' +
+        '<p class="lit-head"><span class="lk-to" style="color:var(--' + tone + ')">' +
+        esc(d.id) + '</span><span class="lit-range">' + esc(d.meta.range) + '</span></p>' +
+        (d.meta.def ? '<p class="lit-def">' + esc(d.meta.def) + '</p>' : '') + '</li>';
+    });
+    field('f-lit', out.length);
+    $('panel-lits').innerHTML = out.join('');
   }
 
   function links(n) {
