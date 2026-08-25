@@ -967,6 +967,20 @@ def main() -> int:
         "check_trades records no coverage()",
         script="scripts/test_meta.py",
     ))
+    # test_shapes.py printed its assertion count without asserting it, so an
+    # sh:minCount dropped from the export contract shrank the matrix from 14 to 13
+    # and the suite still said OK -- the shape it exists to prove stopped being
+    # proved, silently.
+    results.append(run_case(
+        "an sh:minCount dropped from the export contract",
+        "shapes/thermaledge-export.ttl",
+        """        sh:path ksh:marketTicker ;
+        sh:minCount 1 ; sh:maxCount 1 ;""",
+        """        sh:path ksh:marketTicker ;
+        sh:maxCount 1 ;""",
+        "the matrix changed size",
+        script="scripts/test_shapes.py",
+    ))
 
     # --update used to return 0 unconditionally. A query that errors or returns
     # nothing skips its write, so the stale .expected survives and `make cq-update`

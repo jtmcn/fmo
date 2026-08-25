@@ -16,6 +16,7 @@ make setup              # poetry install + fetch robot.jar if missing
 make validate           # structure, BFO grounding, disjointness, units, docs (no Java)
 make validate-negative  # negative tests: prove the validator fails when it should
 make shapes             # SHACL conformance: examples union, then each export fixture
+make shapes-negative    # tests about the shapes: vacuity, mutants, dead constraints
 make export-check       # production CQ mode: exports pass, the mismatch fixture fails on CQ2
 make cq                 # SPARQL competency questions vs checked-in .expected
 make cq-update          # regenerate .expected — review the diff before committing

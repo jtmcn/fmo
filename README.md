@@ -283,7 +283,17 @@ hand-written cases in `scripts/test_validate.py`.
 focus nodes to its own `sh:targetClass`, drop one required property, and require a
 violation attributed to that shape. Retyping alone can't prove a shape still fires: the
 export fixture is valid, so it conforms whether or not a shape matched it at all, which
-is why a mutant must retype *and* break something.
+is why a mutant must retype *and* break something. The violation must be a `sh:minCount`
+one from that exact property shape: the mutant retypes as well as deletes, so any other
+constraint firing would otherwise be credited to the property that was dropped.
+
+The size of that matrix is itself an assertion. `EXPECTED_ASSERTIONS` in `test_shapes.py`
+is checked in like a CQ `.expected`, because dropping an `sh:minCount` from the export
+contract shrinks the matrix by one and a suite that only *prints* its count still reports
+success. Focus nodes are counted under the same `inference="rdfs"` that `make shapes`
+runs, and only among nodes the fixture itself contributes — an export may leave a
+probability untyped and let `rdfs:domain` supply the class, and the two runs have to
+agree about that.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.
