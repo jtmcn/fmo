@@ -77,6 +77,7 @@ make setup                           # poetry install, plus robot.jar if it is m
 make validate                        # structure, BFO grounding, unit coherence, docs
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
+make meta                            # tests about the checks: none may pass with nothing to check
 make shapes                          # SHACL: does the data satisfy the export contract?
 make export-check                    # production CQ mode: export passes, mismatch fails
 make reason                          # HermiT consistency (needs robot.jar)
@@ -271,6 +272,12 @@ and a dangling protocol IRI conformed. A bad protocol is caught instead by requi
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.
 A checker nobody has watched fail is not known to work — the first version of the unit check
 passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exposed it.
+
+`make meta` checks the checks. Every check reports how much it traversed, and a
+check that traversed nothing has proved nothing — so `scripts/test_meta.py` calls
+each one with the schema and no example data and requires it to fail. Six such
+guards were written by hand before this existed and the seventh, for lead times,
+was missed; a rule enforced by memory is enforced wherever someone remembered.
 
 The checks have caught real bugs at every stage: four classes floating under `owl:Thing`; an
 `InformationBearingEntity` axiom using `concretizes` where BFO requires `is carrier of`, making

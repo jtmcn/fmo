@@ -21,7 +21,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative shapes export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative meta shapes export-check cq cq-update reason reason-negative competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -40,6 +40,10 @@ validate:
 ## Negative tests: prove the validator actually fails on each defect it claims to catch.
 validate-negative:
 	$(PY) scripts/test_validate.py
+
+## Tests about the checks themselves: every check must fail with nothing to check.
+meta:
+	$(PY) scripts/test_meta.py
 
 ## SHACL conformance: does the data satisfy the ThermalEdge export contract?
 ## Runs the examples as ONE graph -- they import each other, so a file checked
@@ -168,7 +172,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative shapes export-check verification-data-check diagram-check cq reason reason-negative competency
+test: validate validate-negative meta shapes export-check verification-data-check diagram-check cq reason reason-negative competency
 
 clean:
 	rm -rf $(BUILD)

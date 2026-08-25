@@ -29,6 +29,7 @@ CASES = [
         # The rename that strands the vocabulary file: nothing but validate.py reads
         # CONTEXT.md, so a term renamed in src/ leaves its prose mention dangling and
         # every other check stays green.
+        # Exercises check_context_terms.
         "CONTEXT.md naming a term that no longer exists",
         "CONTEXT.md",
         "`fm:MarketImpliedProbability`",
@@ -84,6 +85,7 @@ CASES = [
         "CONTEXT.md names a missing check: check_current_assessment",
     ),
     (
+        # Exercises check_dimensions.
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,
         """    fm:capValue "83"^^xsd:decimal ;
