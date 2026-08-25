@@ -102,10 +102,18 @@ far class to draw an edge to; they are listed on the class that carries them, wi
 the type they land in, rather than left off the map entirely.
 
 The `ThermalEdge export` chip cuts the map down to the export profile: the classes
-`shapes/thermaledge-export.ttl` targets and the properties it walks stay lit, and
-everything else dims to the ground it was cut from. It is read off the shapes, not
-restated in the generator, so a shape that starts constraining a new term lights
-that term up on the next build.
+`shapes/thermaledge-export.ttl` names and the properties it walks stay lit, and
+everything else dims to the ground it was cut from. Classes an edge merely lands on
+light too, or a relation would draw at full strength into a dimmed dot — but the
+panel calls those *reached*, not constrained, because `fm:hasSubject` ranges over
+`fm:ObservationTarget` while the shape narrows it to `wx:WeatherObservationTarget`,
+and naming the range would name the wrong class.
+
+The profile is read off the shapes rather than restated in the generator, so a shape
+that starts naming a new class or walking a new path lights that term up on the next
+build. It reads `sh:targetClass`, `sh:class` and `sh:path`; a shape reaching for a
+targeting construct the reader does not handle fails `diagram-check` rather than
+quietly shrinking the profile.
 
 Colour follows the ontology's central claim rather than the namespace list: `wx`
 is the forecast side, `ksh` is the market side, `fm` is the pivot both point at,
@@ -120,9 +128,10 @@ against the last generated data without a build step.
 `make diagram-check` runs in `make test`. It asserts every minted class still
 resolves to a Turtle stanza, that every object property with a declared domain and
 range still draws an edge, that every class carrying a datatype property is on the
-map, that every term the export shapes constrain reaches the map and is tagged, that
-the pivot edges above survive, and that the built file fetches nothing — because a
-viewer that silently drops half the graph still renders a convincing picture.
+map, that the set of deliberately domain-less ones has not grown, that every term the
+export shapes name or walk reaches the map, that the pivot edges above survive, and
+that the built file fetches nothing — because a viewer that silently drops half the
+graph still renders a convincing picture.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
 `poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on

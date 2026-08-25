@@ -120,7 +120,10 @@ def build() -> dict:
             nodes[cid] = {
                 "id": cid, "module": cid.split(":")[0], "minted": False,
                 "label": cid.split(":")[1], "def": None, "note": None,
-                "example": None, "ttl": None, "profile": False,
+                "example": None, "ttl": None,
+                # Two different things, and the panel must not say one for the other:
+                # a shape names this class, versus an edge a shape walks lands on it.
+                "profile": False, "reached": False,
             }
         return cid
 
@@ -207,9 +210,12 @@ def build() -> dict:
     # teh: targets or walks is what an export has to carry.
     sh = Graph()
     sh.parse(SHAPES, format="turtle")
-    constrained = set(sh.objects(None, SH.targetClass)) | set(sh.objects(None, SH.path))
-    prof_classes = {c for c in map(curie, sh.objects(None, SH.targetClass)) if c}
-    prof_paths = {c for c in map(curie, sh.objects(None, SH.path)) if c}
+    # sh:class narrows a path's range, so it names a class the export must carry just
+    # as sh:targetClass does. Reading only the targets missed it.
+    named = set(sh.objects(None, SH.targetClass)) | set(sh.objects(None, SH["class"]))
+    walked = set(sh.objects(None, SH.path))
+    prof_classes = {c for c in map(curie, named) if c}
+    prof_paths = {c for c in map(curie, walked) if c}
     for cid in prof_classes & set(nodes):
         nodes[cid]["profile"] = True
     for table in (properties, datatypes):
@@ -219,12 +225,24 @@ def build() -> dict:
         e["profile"] = e.get("p") in prof_paths
 
     # An edge the shapes walk lands somewhere, and a relation drawn at full strength
-    # into a dimmed dot reads as a fault in the map. Its endpoints are in the profile
-    # too -- which is also what puts both ends of a subClassOf in it, so the hierarchy
-    # inside the profile still draws instead of leaving the targets as islands.
+    # into a dimmed dot reads as a fault in the map. Its endpoints light too -- which
+    # is also what puts both ends of a subClassOf in the view, so the hierarchy draws
+    # instead of leaving the named classes as islands. They are only *reached*, not
+    # named: fm:hasSubject ranges over fm:ObservationTarget while the shape requires
+    # the subclass, so calling the range constrained would name the wrong class.
     for e in edges:
         if e["profile"]:
-            nodes[e["s"]]["profile"] = nodes[e["t"]]["profile"] = True
+            for cid in (e["s"], e["t"]):
+                nodes[cid]["reached"] = not nodes[cid]["profile"]
+
+    # Targeting the reader does not understand. A shape using one of these constrains
+    # a term the map never lights, and nothing downstream would notice -- the README
+    # promises the opposite, so fail here instead.
+    unread = sorted(str(t).rsplit("#", 1)[-1] for t in
+                    (SH.targetNode, SH.targetObjectsOf, SH.targetSubjectsOf)
+                    if (None, t, None) in sh)
+    unread += ["implicit class target" for s_ in sh.subjects(RDF.type, SH.NodeShape)
+               if (s_, RDF.type, RDFS.Class) in sh]
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
@@ -253,7 +271,8 @@ def build() -> dict:
             # profile is the failure this count exists to make loud.
             "relations": sorted(prof_paths & set(properties)),
             "literals": sorted(prof_paths & set(datatypes)),
-            "unmapped": sum(1 for t in constrained if curie(t) is None),
+            "unmapped": sum(1 for t in named | walked if curie(t) is None),
+            "unread": unread,
         },
     }
 
@@ -325,18 +344,14 @@ def check(data: dict, html: str) -> int:
     assert not absent, f"{prof['label']} term absent from the map: {absent}"
     assert len(prof["relations"]) + len(prof["literals"]) == len(prof["paths"]), \
         "a shape path is neither an object nor a datatype property"
-
-    tagged = {n["id"] for n in data["nodes"] if n["profile"]}
-    untagged = sorted(set(prof["classes"]) - tagged)
-    assert not untagged, f"targeted by a shape but not tagged: {untagged}"
-    # Both ends of every edge the shapes walk light up too, or the profile view
-    # draws a lit line into a dimmed dot and the targets sit as islands.
-    loose = sorted({c for e in data["edges"] if e["profile"]
-                    for c in (e["s"], e["t"]) if c not in tagged})
-    assert not loose, f"joined by an edge the shapes walk but not tagged: {loose}"
-    marked = sum(1 for t in (data["properties"], dts) for v in t.values() if v["profile"])
-    assert marked == len(prof["paths"]), \
-        f"{len(prof['paths'])} shape paths but {marked} tagged properties"
+    assert not prof["unread"], \
+        f"the profile reader does not understand: {prof['unread']}"
+    # A class is named by a shape or merely reached by one, never both: the panel
+    # says something different for each, and saying "constrained" of a range the
+    # shapes narrow elsewhere names the wrong class.
+    both = sorted(n["id"] for n in data["nodes"] if n["profile"] and n["reached"])
+    assert not both, f"tagged as named and reached at once: {both}"
+    lit = sum(1 for n in data["nodes"] if n["profile"] or n["reached"])
 
     # Self-contained means self-contained: nothing left to fetch, nothing unresolved.
     remote = re.findall(r'(?:src|href)="(?://|https?:)[^"]*"', html)
@@ -366,14 +381,20 @@ def check(data: dict, html: str) -> int:
 
     print(f"OK: {len(minted)} classes, {len(data['properties'])} properties "
           f"({len(drawn)} drawn), {len(dts)} datatype properties, "
-          f"{prof['label']} fully covered ({len(tagged)} classes lit, "
-          f"{len(prof['relations'])} relations, {len(prof['literals'])} literal), "
+          f"{prof['label']} fully covered ({lit} classes lit, "
+          f"{len(prof['relations'])} relations, "
+          f"{len(prof['literals'])} literal properties), "
           f"pivot intact, all stanzas found, nothing remote")
     return 0
 
 
 def main() -> int:
     data = build()
+    if "--check" not in sys.argv:
+        # Checked above, rendered by no panel: 13 KB of a file whose whole point is
+        # being one self-contained attachment.
+        for v in data["datatypes"].values():
+            v.pop("ttl", None)
     (VIZ / "src" / "data.js").write_text(
         # </script> inside a definition would close the inlined block early.
         "window.FMO = " + json.dumps(data, indent=1).replace("</", "<\\/") + ";\n")
