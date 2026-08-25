@@ -999,6 +999,19 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     )
 
 
+def run_check(fn, *args) -> None:
+    """Run one check; a raised exception becomes that check's failure.
+
+    An unhandled exception used to abort main(), so every later check went
+    unrun and the operator saw a traceback where a verdict belonged. A crashing
+    check has failed; the others still have something to say.
+    """
+    try:
+        fn(*args)
+    except Exception as exc:  # noqa: BLE001
+        fail(f"{fn.__name__} raised {type(exc).__name__}: {exc}")
+
+
 def main() -> int:
     g = Graph()
 
@@ -1192,14 +1205,10 @@ def main() -> int:
     # Dimension equality is necessary, not sufficient: snowfall depth and liquid
     # precipitation are both lengths, and percent and degrees are both dimensionless.
     # This catches unit-system mistakes, not quantity confusions.
-    check_dimensions(ex)
-    check_lead_times(ex)
-    check_current_assessments(ex)
-    check_scores(ex)
-    check_grouping_coherence(ex)
-    check_protocols(ex)
-    check_payouts(ex)
-    check_trades(ex)
+    for check in (check_dimensions, check_lead_times, check_current_assessments,
+                  check_scores, check_grouping_coherence, check_protocols,
+                  check_payouts, check_trades):
+        run_check(check, ex)
 
     # Domain sanity: the join the ontology exists for.
     #
@@ -1280,7 +1289,7 @@ def main() -> int:
             f"{len(with_market)} market-implied)"
         )
 
-    check_context_terms(g, ex)
+    run_check(check_context_terms, g, ex)
 
     return report()
 
