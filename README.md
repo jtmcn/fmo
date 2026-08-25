@@ -79,6 +79,7 @@ make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 
 make validate-negative               # prove the checks catch what they claim to
 make meta                            # tests about the checks: none may pass with nothing to check
 make shapes                          # SHACL: does the data satisfy the export contract?
+make shapes-negative                 # tests about the shapes: vacuity, required-property mutants, dead constraints
 make export-check                    # production CQ mode: export passes, mismatch fails
 make reason                          # HermiT consistency (needs robot.jar)
 make diagram                         # build/ontology.html, the interactive map
@@ -267,6 +268,17 @@ with `inference="rdfs"`, so range entailment types the object before SHACL looks
 class constraints on `wx:underProtocol` and `fm:assignsProbabilityTo` could never fire,
 and a dangling protocol IRI conformed. A bad protocol is caught instead by requiring
 `fm:statedAs` — a literal that entailment cannot fabricate.
+
+`make shapes-negative` (`scripts/test_shapes.py`) now enforces both mechanically, plus a
+third property no one wrote by hand: every shape's `sh:minCount` properties are mutated
+directly from the shapes graph — retype a shape's focus nodes to its own `sh:targetClass`,
+drop one required property, and require a violation. Retyping alone can't prove a shape
+still fires: the export fixture is valid, so it conforms whether or not a shape matched
+it at all, which is why a mutant must retype *and* break something. What it does not
+prove is that a shape's `sh:targetClass` is general enough — that a shape still fires
+when data is typed with a broader class than the shape expects is not something the
+class hierarchy alone can tell apart from a target that is correctly specific, so the two
+cases above stay hand-written in `scripts/test_validate.py`.
 
 `scripts/test_validate.py` is the part that makes the rest trustworthy: it injects each defect
 the checks claim to catch into a throwaway copy and asserts they fail with the right message.
