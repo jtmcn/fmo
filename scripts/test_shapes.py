@@ -24,7 +24,7 @@ Three properties, each earned by a bug that shipped:
 
 In-process on purpose: test_validate.py copies the whole repo per case, which
 costs about a second each. The mutant matrix would push that suite past several
-minutes; here the whole thing runs in about one.
+minutes; here the whole thing runs in about 3 seconds.
 
 Run: python3 scripts/test_shapes.py
 """
@@ -49,13 +49,6 @@ def base_graph() -> Graph:
     for rel in MODULES:
         g.parse(SRC / rel, format="turtle")
     return g
-
-
-def conforms(data: Graph, shapes: Graph) -> bool:
-    ok, _, _ = shacl_validate(
-        data, shacl_graph=shapes, inference="rdfs", advanced=True,
-    )
-    return ok
 
 
 def targets(shapes: Graph) -> list[tuple[URIRef, URIRef]]:
@@ -112,16 +105,15 @@ def main() -> int:
                 continue
             print(f"  ok   [{label}] {len(focus)} focus node(s) in {fixture.name}")
 
-            # A mutant must retype AND break. Retyping alone proves nothing: the
-            # fixture is valid, so it conforms whether the shape matched it or
-            # not. Dropping a required property is the defect that makes a
-            # matching shape speak up -- and a shape that has stopped matching
-            # stay silent.
+            # Retyping alone proves nothing -- the fixture is valid regardless.
+            # A mutant must also break something.
+            mutants_for_shape = 0
             for prop_shape in shapes.objects(shape, SH.property):
                 path = shapes.value(prop_shape, SH.path)
                 if path is None or shapes.value(prop_shape, SH.minCount) is None:
                     continue
                 checked += 1
+                mutants_for_shape += 1
                 mutant = Graph()
                 for triple in data:
                     mutant.add(triple)
@@ -132,13 +124,22 @@ def main() -> int:
                     for _, _, obj in list(data.triples((node, path, None))):
                         mutant.remove((node, path, obj))
                 pname = str(path).split("#")[-1]
-                if conforms(mutant, shapes):
-                    failures.append(
-                        f"{label} does not catch a {pname} dropped from a node typed "
-                        f"as its own targetClass in {fixture.name}"
-                    )
-                else:
+                _, results_graph, _ = shacl_validate(
+                    mutant, shacl_graph=shapes, inference="rdfs", advanced=True,
+                )
+                if (None, SH.resultPath, path) in results_graph:
                     print(f"  ok   [{label}] catches a missing {pname}")
+                else:
+                    failures.append(
+                        f"{label} does not report a violation on {pname} for a node "
+                        f"typed as its own targetClass in {fixture.name}"
+                    )
+
+            if mutants_for_shape == 0:
+                failures.append(
+                    f"{label} has no sh:minCount property, so no mutant was generated "
+                    f"for it: the shape is present but nothing proves it can fire"
+                )
 
     print(f"\n{checked} shape assertion(s) checked")
     if failures:
