@@ -106,6 +106,7 @@ The `ThermalEdge export` chip cuts the map down to the export profile: the class
 everything else dims to the ground it was cut from. It is read off the shapes, not
 restated in the generator, so a shape that starts constraining a new term lights
 that term up on the next build.
+
 Colour follows the ontology's central claim rather than the namespace list: `wx`
 is the forecast side, `ksh` is the market side, `fm` is the pivot both point at,
 and borrowed BFO ground is held back in grey.
