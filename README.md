@@ -84,7 +84,7 @@ make export-check                    # production CQ mode: export passes, mismat
 make reason                          # HermiT consistency (needs robot.jar)
 make axioms                          # every axiom pinned by a case, or exempt with a reason
 make signatures                      # per-term semantic digests, for downstream pinning
-make shape-signatures                # per-shape contract signatures + weakening classifier
+make shape-signatures                # per-shape contract signatures + the drift mutants
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
 ```
@@ -373,18 +373,28 @@ digests the label, definition, scope notes, parents and axioms together, so it m
 when the commitments move. A consumer tracking prose keeps pinning `definition_sha256`;
 one whose inferences depend on the axioms pins the semantic one.
 
-`make shape-signatures` does the same for `shapes/thermaledge-export.ttl`, which is
-the definition of a valid export rather than a description of a term. It publishes
-each shape's target class and per-path constraints, and classifies a change against
-a pinned baseline. The asymmetry is the point: a shape that tightens already fails a
-consumer's nightly run with a SHACL report naming the constraint, while a shape that
+`scripts/shape_signatures.py` does the same for `shapes/thermaledge-export.ttl`,
+which is the definition of a valid export rather than a description of a term. It
+publishes each shape's target class and per-path constraints, and `--compare
+BASELINE.json` classifies a change against a consumer's pinned baseline. No
+baseline lives here: the pin belongs to whoever depends on the contract, and
+ThermalEdge holds the only one today. `make shape-signatures` checks the
+signatures reproduce and runs the drift mutants.
+
+The asymmetry is the point: a shape that tightens already fails a consumer's
+nightly run with a SHACL report naming the constraint, while a shape that
 loosens or disappears passes in silence. Rules name a weakening — a shape switched off with `sh:deactivated`, a shape or
-path removed, a target class narrowed or dropped, a minCount lowered, a maxCount
+path removed, a target class narrowed, dropped, or replaced by one no module
+declares, a minCount lowered, a maxCount
 raised, a value constraint removed, a severity lowered — and everything else is
 reported as changed rather than guessed at. A loosened numeric range and a widened
-`sh:in` are genuine weakenings that land in that second bucket; both still fail the
-consumer's check. A SHACL construct the signer does not model fails the signer,
-rather than being ignored. Target narrowing is in that list because a shape
+`sh:in` are genuine weakenings that land in that second bucket, which is why a
+consumer's policy should be to fail on any verdict, not only on a weakening;
+`--compare` itself exits 0 whenever it produced a report, because what a verdict
+is worth is the caller's decision. A SHACL construct the signer does not model fails the signer,
+rather than being ignored — including a constraint written directly on a node
+shape, a shape with no `rdf:type`, a non-IRI `sh:path`, and a constraint
+predicate repeated on one property shape. Target narrowing is in that list because a shape
 matching no focus nodes conforms, which is the bug `teh:MarketShape` shipped with.
 
 ## Open questions
