@@ -1033,18 +1033,14 @@ def check_designation_disjointness(g: Graph) -> None:
     fine. This is the drift the MODULES list has the same shape as, and the same
     answer: derive the expected set instead of trusting the enumeration.
 
+    The zero guard is coverage()'s, not hand-written: a hand-maintained guard is
+    what the sweep exists to stop relying on.
+
     Membership is checked, not the geometry. Whether the pairs are asserted in one
     block or several is a placement question -- core.ttl restates its own so that
     importing core without kalshi still gets them -- and either satisfies this.
     """
     designations = {c for c in g.subjects(RDFS.subClassOf, URIRef(FM + "Designation"))}
-    if not designations:
-        fail(
-            "no subclasses of fm:Designation found, so this check verified nothing -- "
-            "the class was renamed, or the module carrying it was not loaded"
-        )
-        return
-
     covered: set = set()
     for block in g.subjects(RDF.type, OWL.AllDisjointClasses):
         for members in g.objects(block, OWL.members):
@@ -1058,9 +1054,12 @@ def check_designation_disjointness(g: Graph) -> None:
             f"and every functional-property guard would still pass"
         )
 
-    notes.append(
-        f"designations: {len(designations)} subclass(es) of fm:Designation, "
-        f"{len(designations & covered)} covered by a disjointness block"
+    coverage(
+        "designations", len(designations),
+        f"subclass(es) of fm:Designation, {len(designations & covered)} "
+        f"covered by a disjointness block",
+        "no subclasses of fm:Designation found -- the class was renamed, or the "
+        "module carrying it was not loaded",
     )
 
 
