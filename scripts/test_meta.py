@@ -3,8 +3,12 @@
 
 A check with nothing to check must not pass. Those guards were written by hand,
 one per traversal, until one was missed -- which is what a hand-maintained rule
-earns over time. Calling every check with an empty graph enforces the rule for
-all of them, including checks nobody has written yet.
+earns over time. Calling every check with a graph that empties its traversal
+enforces the rule for all of them, including checks nobody has written yet.
+
+Which graph empties a traversal depends on what the check reads: data-dependent
+checks get the schema with no example data, schema-reading checks get an empty
+graph. Getting this wrong reads as a pass, so the two sets are named in code.
 
 The assertion is on coverage_log, not on failures: "the check failed somehow" is
 satisfied by any unrelated guard inside it, so a check could lose its coverage()
@@ -35,12 +39,27 @@ def schema_only() -> Graph:
     return g
 
 
-# The one check that reads no graph. It walks PROSE_FILES and compares what they
-# name against the schema, so "nothing to check" is not a state it can be in.
-# Exempting it by name, in code, beats exempting it by judgement at review time.
-NOT_DATA_DEPENDENT = {
+# Checks whose traversal empties when the EXAMPLE DATA goes away are swept against
+# the schema. Checks that read the modules never empty that way -- their population
+# is the schema itself -- so sweeping them needs a graph with nothing in it at all.
+# Skipping them instead, as this file once did, exempts them from the one rule the
+# sweep exists to enforce.
+SCHEMA_READING = {
+    "check_bfo_grounding": "its population is the minted classes, which example data cannot empty",
+    "check_bridged_grounding": "its population is the bridged QUDT classes",
+    "check_branch_disjointness": "its population is the minted classes",
+    "check_documentation": "its population is the minted terms",
+    "check_defined_terms": "schema IRIs are in scope too, so example data cannot empty it",
+}
+
+# Checks that read files off disk rather than the graph they are handed. No graph
+# empties their traversal, and coverage() deliberately disables its own guard when
+# EXAMPLES is empty, so there is no lever here. Exempting by name, in code, beats
+# exempting by judgement at review time.
+NOT_SWEEPABLE = {
     "check_context_terms": "reads PROSE_FILES, not the example graph",
-    "check_designation_disjointness": "reads the modules; example data cannot change the answer",
+    "check_declared_properties": "re-parses the example files itself, not the graph handed to it",
+    "check_designation_disjointness": "reads the modules; still guards by hand rather than coverage()",
 }
 
 
@@ -55,15 +74,20 @@ def main() -> int:
         print("FAIL: found no check_* functions in validate.py")
         return 1
 
-    g = schema_only()
+    schema = schema_only()
     for name in names:
         fn = getattr(V, name)
         V.failures.clear()
         V.notes.clear()
         V.coverage_log.clear()
-        if name in NOT_DATA_DEPENDENT:
-            print(f"  --   [{name}] exempt: {NOT_DATA_DEPENDENT[name]}")
+        if name in NOT_SWEEPABLE:
+            print(f"  --   [{name}] exempt: {NOT_SWEEPABLE[name]}")
             continue
+        # A schema-reading check needs an empty graph; anything else is swept against
+        # the schema, where only the example data has gone away.
+        schema_reading = name in SCHEMA_READING
+        g = Graph() if schema_reading else schema
+        given = "an empty graph" if schema_reading else "a graph with no example data"
         # Checks take one graph or two (schema, examples); pass the same one for
         # each parameter, so a two-argument check is tested rather than TypeError-ing
         # and reading as a coverage failure.
@@ -86,8 +110,8 @@ def main() -> int:
         empty = [n for n, count in V.coverage_log if count == 0]
         if not empty:
             failures.append(
-                f"{name} counted a non-zero traversal on a graph with no example "
-                f"data, so its coverage() calls are not counting example data"
+                f"{name} counted a non-zero traversal on {given}, so its "
+                f"coverage() calls are not counting what it traverses"
             )
             continue
         unguarded = [n for n in empty if not any(

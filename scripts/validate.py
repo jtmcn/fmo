@@ -186,6 +186,25 @@ def instances_of(g: Graph, cls: URIRef) -> list:
     return sorted({s for s in g.subjects(RDF.type, None) if cls in types_of(g, s)}, key=str)
 
 
+def minted_classes(g: Graph) -> list:
+    """Every class in our namespaces, declared or merely reached by rdfs:subClassOf.
+
+    Collected from rdfs:subClassOf as well as `a owl:Class`: a hand-authored class
+    that only ever appears as the subject or parent of a subClassOf is a plausible
+    slip, and taking the declared ones alone made it invisible rather than unrooted.
+
+    Recomputed per caller rather than passed in, so every check's interface stays
+    one graph -- which is the property test_meta.py's sweep depends on to call
+    them all uniformly.
+    """
+    return sorted(
+        {s for s in g.subjects(RDF.type, OWL.Class) if is_ours(s)}
+        | {s for s in g.subjects(RDFS.subClassOf, None) if is_ours(s)}
+        | {o for o in g.objects(None, RDFS.subClassOf) if is_ours(o)},
+        key=str,
+    )
+
+
 QUDT = "http://qudt.org/schema/qudt/"
 FM = "https://w3id.org/forecast-market-ontology/core#"
 WX = "https://w3id.org/forecast-market-ontology/weather#"
@@ -1122,6 +1141,157 @@ def check_forecast_targets(g: Graph) -> None:
              "the has-part or assignsProbabilityTo chain is broken")
 
 
+def check_bfo_grounding(g: Graph) -> None:
+    """Every minted class reaches bfo:entity, and lands in a known BFO branch."""
+    our_classes = minted_classes(g)
+    tally: dict[str, int] = {}
+    for cls in our_classes:
+        anc = ancestors(g, cls)
+        if ENTITY not in anc:
+            fail(f"not grounded in BFO: {cls} (ancestors: {sorted(str(a) for a in anc)})")
+            continue
+        branch = [name for iri, name in BRANCHES.items() if iri in anc or iri == cls]
+        if not branch:
+            fail(f"grounded in bfo:entity but in no known branch: {cls}")
+        else:
+            for b in branch:
+                tally[b] = tally.get(b, 0) + 1
+    coverage("BFO grounding", len(our_classes), "minted class(es) checked for a path to bfo:entity",
+             "no minted classes found -- the namespaces in registry.py no longer match src/")
+    if tally:
+        notes.append("BFO branch distribution:")
+        for name, count in sorted(tally.items(), key=lambda kv: -kv[1]):
+            notes.append(f"  {count:3d}  {name}")
+
+
+def check_bridged_grounding(g: Graph) -> None:
+    """External classes we bridge into the hierarchy must be grounded too.
+
+    QUDT makes no upper-level commitment, so without the bridge axioms in core.ttl
+    its classes float under owl:Thing. check_bfo_grounding would not notice, because
+    these are not in our namespace.
+
+    Derived from the subset rather than hard-coded, because the two IRIs named here
+    originally were the two that happened to be floating that day; the generator
+    later added a third (qudt:QuantityKindDimensionVector) and the check missed it.
+    """
+    qudt_classes = sorted(
+        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(QUDT)), key=str
+    )
+    for iri in qudt_classes:
+        if ENTITY not in ancestors(g, iri):
+            fail(f"bridged external class not grounded in BFO: {iri}")
+    coverage("bridged QUDT classes", len(qudt_classes), "class(es) checked for BFO grounding",
+             "the QUDT subset declares no owl:Class, so the bridge axioms guard nothing")
+
+
+def check_branch_disjointness(g: Graph) -> None:
+    """No minted class is both a continuant and an occurrent."""
+    our_classes = minted_classes(g)
+    for cls in our_classes:
+        anc = ancestors(g, cls)
+        if CONTINUANT in anc and OCCURRENT in anc:
+            fail(f"both continuant and occurrent: {cls}")
+    coverage("branch disjointness", len(our_classes),
+             "minted class(es) checked for a single BFO branch",
+             "no minted classes found -- the namespaces in registry.py no longer match src/")
+
+
+def check_declared_properties(g: Graph) -> None:
+    """Every property an example uses is declared in the modules.
+
+    Reads the example files directly rather than the merged graph, because the
+    failure names the file the undeclared property came from.
+    """
+    declared = {
+        s
+        for t in (OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty)
+        for s in g.subjects(RDF.type, t)
+    }
+    builtin_ok = {RDF.type, RDFS.label, RDFS.subClassOf, OWL.imports, OWL.versionIRI}
+    checked = 0
+    for path in EXAMPLES:
+        eg = Graph()
+        try:
+            eg.parse(path, format="turtle")
+        except Exception:  # noqa: BLE001
+            continue  # already reported by main()'s parse loop; do not lose report()
+        for _, p, _ in eg:
+            checked += 1
+            if p in builtin_ok or p in declared:
+                continue
+            if str(p).startswith(BFO) or str(p).startswith(str(SKOS)):
+                continue
+            if str(p).startswith("http://purl.org/dc/"):
+                continue
+            fail(f"{path.name} uses undeclared property: {p}")
+    coverage("declared properties", checked, "property use(s) checked against the declarations",
+             "no example parsed, so no property use was seen")
+
+
+def check_defined_terms(ex: Graph) -> None:
+    """Individuals and schema terms the examples reference are defined somewhere.
+
+    Checked against the union of the example files, not per file, because they
+    import each other: the synthetic dataset legitimately references the site and
+    protocol defined in the worked example. Schema IRIs are in scope too: the
+    grounding and documentation checks only see classes and properties, so a
+    deleted individual (ksh:Settled) left dangling in an example passed silently,
+    and rdfs:range made the reasoner infer its type rather than object.
+
+    This exists because re-pointing the settlement source renamed a protocol
+    individual and verification-synthetic.ttl went on referencing the old IRI for
+    all 40 days. Nothing failed. The targets silently lost their protocol, which
+    for an ontology whose central rule is "the observation target carries the
+    protocol" is the worst available place to lose one.
+    """
+    in_scope = ("https://w3id.org/forecast-market-ontology/examples/",) + OUR_NS
+    defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
+    dangling = sorted(
+        {
+            str(o)
+            for _, _, o in ex
+            if isinstance(o, URIRef)
+            and str(o).startswith(in_scope)
+            and o not in defined
+        }
+    )
+    for iri in dangling:
+        fail(f"undefined term referenced in examples: {iri}")
+    referenced = {
+        o
+        for _, _, o in ex
+        if isinstance(o, URIRef) and str(o).startswith(in_scope)
+    }
+    coverage("defined terms", len(referenced), "referenced IRI(s) checked for definedness",
+             "the examples reference no in-scope IRI, so nothing was resolved")
+
+
+def check_documentation(g: Graph) -> None:
+    """Every minted class and property carries rdfs:label and skos:definition.
+
+    A scopeNote used to count as a definition and this was advisory. Both the module
+    docstring and CLAUDE.md promise this fails, so it fails: a scope note says
+    "why here, not there", which is not a statement of what the term means.
+    """
+    terms = minted_classes(g) + sorted(
+        {
+            s
+            for t in (OWL.ObjectProperty, OWL.DatatypeProperty)
+            for s in g.subjects(RDF.type, t)
+            if is_ours(s)
+        },
+        key=str,
+    )
+    for term in terms:
+        if not any(g.objects(term, RDFS.label)):
+            fail(f"no rdfs:label: {term}")
+        if not any(g.objects(term, SKOS.definition)):
+            fail(f"no skos:definition: {term}")
+    coverage("documentation", len(terms), "minted term(s) checked for label and definition",
+             "no minted terms found -- the namespaces in registry.py no longer match src/")
+
+
 def run_check(fn, *args) -> None:
     """Run one function-shaped check; a raised exception becomes that check's failure.
 
@@ -1165,125 +1335,8 @@ def main() -> int:
             fail(f"parse error in {path.name}: {exc}")
     notes.append(f"parsed {len(EXAMPLES)} example files, {len(ex)} triples with schema")
 
-    # Collected from rdfs:subClassOf as well as `a owl:Class`: a hand-authored class
-    # that only ever appears as the subject or parent of a subClassOf is a plausible
-    # slip, and taking the declared ones alone made it invisible rather than unrooted.
-    our_classes = sorted(
-        {s for s in g.subjects(RDF.type, OWL.Class) if is_ours(s)}
-        | {s for s in g.subjects(RDFS.subClassOf, None) if is_ours(s)}
-        | {o for o in g.objects(None, RDFS.subClassOf) if is_ours(o)},
-        key=str,
-    )
+    our_classes = minted_classes(g)
     notes.append(f"{len(our_classes)} minted classes")
-
-    # 2. BFO grounding
-    tally: dict[str, int] = {}
-    for cls in our_classes:
-        anc = ancestors(g, cls)
-        if ENTITY not in anc:
-            fail(f"not grounded in BFO: {cls} (ancestors: {sorted(str(a) for a in anc)})")
-            continue
-        branch = [name for iri, name in BRANCHES.items() if iri in anc or iri == cls]
-        if not branch:
-            fail(f"grounded in bfo:entity but in no known branch: {cls}")
-        else:
-            for b in branch:
-                tally[b] = tally.get(b, 0) + 1
-
-    # 2b. External classes we bridge into the hierarchy must be grounded too.
-    # QUDT makes no upper-level commitment, so without the bridge axioms in core.ttl
-    # its classes float under owl:Thing. The per-namespace check above would not
-    # notice, because these are not in our namespace.
-    # Derived from the subset rather than hard-coded, because the two IRIs named here
-    # originally were the two that happened to be floating that day; the generator
-    # later added a third (qudt:QuantityKindDimensionVector) and the check missed it.
-    qudt_classes = sorted(
-        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(QUDT)), key=str
-    )
-    for iri in qudt_classes:
-        if ENTITY not in ancestors(g, iri):
-            fail(f"bridged external class not grounded in BFO: {iri}")
-    notes.append(f"{len(qudt_classes)} bridged QUDT class(es) checked for BFO grounding")
-
-    # 3. continuant / occurrent disjointness
-    for cls in our_classes:
-        anc = ancestors(g, cls)
-        if CONTINUANT in anc and OCCURRENT in anc:
-            fail(f"both continuant and occurrent: {cls}")
-
-    # 4. properties used in examples are declared
-    declared = {
-        s
-        for t in (OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty)
-        for s in g.subjects(RDF.type, t)
-    }
-    builtin_ok = {RDF.type, RDFS.label, RDFS.subClassOf, OWL.imports, OWL.versionIRI}
-    for path in EXAMPLES:
-        eg = Graph()
-        try:
-            eg.parse(path, format="turtle")
-        except Exception:  # noqa: BLE001
-            continue  # already reported by the parse loop above; do not lose report()
-        for _, p, _ in eg:
-            if p in builtin_ok or p in declared:
-                continue
-            if str(p).startswith(BFO) or str(p).startswith(str(SKOS)):
-                continue
-            if str(p).startswith("http://purl.org/dc/"):
-                continue
-            fail(f"{path.name} uses undeclared property: {p}")
-
-    # 4b. individuals referenced in the examples are defined in them
-    #
-    # Checked against the union of the example files, not per file, because they
-    # import each other: the synthetic dataset legitimately references the site and
-    # protocol defined in the worked example. Schema IRIs are in scope too: the
-    # grounding and documentation checks only see classes and properties, so a
-    # deleted individual (ksh:Settled) left dangling in an example passed silently,
-    # and rdfs:range made the reasoner infer its type rather than object.
-    #
-    # This exists because re-pointing the settlement source renamed a protocol
-    # individual and verification-synthetic.ttl went on referencing the old IRI for
-    # all 40 days. Nothing failed. The targets silently lost their protocol, which
-    # for an ontology whose central rule is "the observation target carries the
-    # protocol" is the worst available place to lose one.
-    in_scope = ("https://w3id.org/forecast-market-ontology/examples/",) + OUR_NS
-    defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
-    dangling = sorted(
-        {
-            str(o)
-            for _, _, o in ex
-            if isinstance(o, URIRef)
-            and str(o).startswith(in_scope)
-            and o not in defined
-        }
-    )
-    for iri in dangling:
-        fail(f"undefined term referenced in examples: {iri}")
-    referenced = {
-        o
-        for _, _, o in ex
-        if isinstance(o, URIRef) and str(o).startswith(in_scope)
-    }
-    notes.append(f"{len(referenced)} referenced IRI(s) checked for definedness")
-
-    # 5. documentation coverage
-    for term in our_classes + sorted(
-        {
-            s
-            for t in (OWL.ObjectProperty, OWL.DatatypeProperty)
-            for s in g.subjects(RDF.type, t)
-            if is_ours(s)
-        },
-        key=str,
-    ):
-        if not any(g.objects(term, RDFS.label)):
-            fail(f"no rdfs:label: {term}")
-        # Was advisory, and a scopeNote counted as a definition. Both the module
-        # docstring and CLAUDE.md promise this fails, so make it fail: a scope note
-        # says "why here, not there", which is not a statement of what the term means.
-        if not any(g.objects(term, SKOS.definition)):
-            fail(f"no skos:definition: {term}")
 
     # Advisory, never a failure. A term with no instance is a term nobody has
     # watched work; the trading layer is deliberately in that state and README
@@ -1318,11 +1371,6 @@ def main() -> int:
         f"examples directly, {closure} counting subclass closure"
     )
 
-    if tally:
-        notes.append("BFO branch distribution:")
-        for name, count in sorted(tally.items(), key=lambda kv: -kv[1]):
-            notes.append(f"  {count:3d}  {name}")
-
     # 6. Dimensional coherence.
     #
     # Checked on dimension vectors rather than quantity kinds because QUDT's
@@ -1338,10 +1386,17 @@ def main() -> int:
                   check_forecast_targets):
         run_check(check, ex)
 
+    # Schema-reading, so these take g rather than ex: what they check is a property
+    # of the modules, and no example data can change the answer.
+    for check in (check_bfo_grounding, check_bridged_grounding,
+                  check_branch_disjointness, check_documentation,
+                  check_designation_disjointness):
+        run_check(check, g)
+
+    # Reads the example files itself, to name the file an undeclared property came from.
+    run_check(check_declared_properties, g)
+    run_check(check_defined_terms, ex)
     run_check(check_context_terms, g, ex)
-    # Schema-only, so it takes g rather than ex: whether a vocabulary is covered is
-    # a property of the modules, and no example data can change the answer.
-    run_check(check_designation_disjointness, g)
 
     return report()
 

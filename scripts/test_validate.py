@@ -172,6 +172,7 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         # The bug this check exists for: re-pointing the settlement source renamed
         # ex:NWSDailyClimateProtocol, and verification-synthetic.ttl went on
         # referencing it for all 40 days. Every other check stayed green.
+        # Exercises check_defined_terms.
         "a referenced individual no longer exists",
         EXAMPLE,
         """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
@@ -211,6 +212,18 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "the has-part or assignsProbabilityTo chain is broken",
     ),
     (
+        # Exercises check_declared_properties. Never had a negative test: the rule
+        # is "new check => new negative test", and this was an inline body in
+        # main() rather than a check, so nothing bound it.
+        "an example using a property no module declares",
+        EXAMPLE,
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
+        """    wx:underProtocol ex:TWCDailyTempProtocol ;
+    wx:undeclaredProbe "probe" ;""",
+        "uses undeclared property",
+    ),
+    (
+        # Exercises check_bfo_grounding.
         "class unrooted from BFO",
         "src/kalshi.ttl",
         """ksh:Position a owl:Class ;
@@ -252,6 +265,7 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         "lead times: nothing to check",
     ),
     (
+        # Exercises check_branch_disjointness.
         "information artifact misfiled as a process",
         "src/kalshi.ttl",
         """ksh:Resolution a owl:Class ;
@@ -309,8 +323,9 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "lead time is ambiguous",
     ),
     (
-        # Check 5 only ever appended to notes, so eight live terms had no
-        # definition while CLAUDE.md promised the validator failed without one.
+        # Exercises check_documentation, which only ever appended to notes, so
+        # eight live terms had no definition while CLAUDE.md promised the
+        # validator failed without one.
         "a term left without a skos:definition",
         "src/weather.ttl",
         """    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." .""",
@@ -331,8 +346,9 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "https://w3id.org/forecast-market-ontology/kalshi#MarketStatus",
     ),
     (
-        # Check 2b hard-coded two QUDT IRIs, so the third class the generator adds
-        # floated under owl:Thing -- the exact defect 2b exists to catch.
+        # Exercises check_bridged_grounding, which hard-coded two QUDT IRIs, so
+        # the third class the generator adds floated under owl:Thing -- the
+        # exact defect it exists to catch.
         "a bridged QUDT class left unrooted",
         "src/core.ttl",
         """qudt:QuantityKindDimensionVector rdfs:subClassOf fm:Designation .""",
@@ -342,6 +358,7 @@ ex:Target-LowTemp a wx:ObservationTarget ;
     (
         # our_classes was built from `a owl:Class` alone, so a class introduced by
         # subClassOf only was invisible to every check rather than merely unrooted.
+        # Exercises check_documentation.
         "a class introduced by rdfs:subClassOf without being declared",
         "src/kalshi.ttl",
         """ksh:Position a owl:Class ;""",
