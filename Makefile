@@ -21,7 +21,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -132,6 +132,12 @@ axioms:
 signatures:
 	$(PY) scripts/term_signatures.py --check
 
+## Per-shape structured signatures for downstream consumers to pin against, and
+## the classifier that says whether a change weakened the export contract.
+shape-signatures:
+	$(PY) scripts/shape_signatures.py --check
+	$(PY) scripts/test_shape_drift.py
+
 ## Competency question 3: weaken an assertion and confirm the reasoner re-derives it.
 ## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
 ## reasoner, unlike `make cq`, because the answer is inferred rather than asserted.
@@ -188,7 +194,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures competency
+test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
 
 clean:
 	rm -rf $(BUILD)
