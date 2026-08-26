@@ -65,7 +65,10 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   first unit check passed a Celsius/Fahrenheit mismatch silently; only the negative test
   caught it.
 - **Every traversal calls `coverage()`, one call per traversal.** A check that
-  traversed nothing proved nothing, so `coverage()` fails on a zero count.
+  traversed nothing proved nothing, so `coverage()` fails on a zero count — when
+  there is example data to traverse. A check whose population is the schema passes
+  `always=True`, because no example file can empty it and gating its guard on
+  `EXAMPLES` makes it depend on something the check never reads.
   One call per *check* is not enough: an aggregate counter over several traversals
   stays non-zero when one of them empties, which is the original lead-time bug
   wearing a guard. `scripts/test_meta.py` (`make meta`) enforces both by running
@@ -74,7 +77,8 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   is the schema itself. Both sets are named in code; guessing wrong reads as a pass.
   Only a `check_*` function is visible to that sweep, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
-  guarded a zero count.
+  guarded a zero count. What is left inline is advisory and can never fail: the
+  minted-class count and the instantiation figures README cites.
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional

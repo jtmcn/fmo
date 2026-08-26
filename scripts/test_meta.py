@@ -63,6 +63,40 @@ NOT_SWEEPABLE = {
 }
 
 
+def coverage_guard_direction() -> list[str]:
+    """coverage(always=True) must still fail on zero when no example file exists.
+
+    The sweep cannot prove this: it runs with EXAMPLES populated, where
+    `always or EXAMPLES` is true whichever flag is passed. Both directions are
+    asserted, because a fix that dropped the gate entirely would satisfy the
+    first assertion and silently make every data-dependent check fail on a tree
+    with no examples.
+    """
+    out: list[str] = []
+    saved = V.EXAMPLES
+    try:
+        V.EXAMPLES = []
+        for always, want_failure, why in (
+            (True, True, "a schema population cannot be emptied by removing examples"),
+            (False, False, "a traversal over examples that do not exist is legitimately empty"),
+        ):
+            V.failures.clear()
+            V.notes.clear()
+            V.coverage_log.clear()
+            V.coverage("probe", 0, "thing(s) checked", "probe", always=always)
+            if bool(V.failures) is not want_failure:
+                out.append(
+                    f"coverage(always={always}) {'did not fail' if want_failure else 'failed'} "
+                    f"on a zero count with no example files -- {why}"
+                )
+    finally:
+        V.EXAMPLES = saved
+        V.failures.clear()
+        V.notes.clear()
+        V.coverage_log.clear()
+    return out
+
+
 def check_names() -> list[str]:
     return sorted(n for n in dir(V) if n.startswith("check_"))
 
@@ -107,11 +141,15 @@ def main() -> int:
                 f"{name} records no coverage(), so nothing proves it looked at anything"
             )
             continue
+        # Every count, not merely one of them: "some traversal emptied" is the
+        # aggregate-counter hazard wearing a sweep. A check with four traversals
+        # would pass on one zero while the other three went unproven.
         empty = [n for n, count in V.coverage_log if count == 0]
-        if not empty:
+        counted = [f"{n}={c}" for n, c in V.coverage_log if c != 0]
+        if counted:
             failures.append(
-                f"{name} counted a non-zero traversal on {given}, so its "
-                f"coverage() calls are not counting what it traverses"
+                f"{name} counted a non-zero traversal on {given} ({', '.join(counted)}), "
+                f"so those coverage() calls are not counting what the check traverses"
             )
             continue
         unguarded = [n for n in empty if not any(
@@ -123,6 +161,15 @@ def main() -> int:
             )
         else:
             print(f"  ok   [{name}] fails with nothing to check ({len(empty)} traversal(s))")
+
+    failures.extend(coverage_guard_direction())
+
+    # A stale or misspelled key is inert, and the dangerous direction is the one
+    # the docstring names: a data-dependent check filed under SCHEMA_READING gets
+    # an empty graph, empties trivially, and passes vacuously.
+    for label, names_set in (("SCHEMA_READING", SCHEMA_READING), ("NOT_SWEEPABLE", NOT_SWEEPABLE)):
+        for stale in sorted(set(names_set) - set(names)):
+            failures.append(f"{label} names {stale}, which is not a check in validate.py")
 
     # A smoke alarm, not a proof: a mention is not a test, and check_lead_times
     # was mentioned here while its zero-coverage hole went unnoticed for a

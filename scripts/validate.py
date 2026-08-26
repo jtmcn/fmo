@@ -127,7 +127,8 @@ def fail(msg: str) -> None:
 coverage_log: list[tuple[str, int]] = []
 
 
-def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
+def coverage(name: str, count: int, detail: str, on_empty: str = "",
+             *, always: bool = False) -> None:
     """Record a check's traversal count, and fail when it is zero.
 
     Every check prints how much it looked at. Printing is not checking: each
@@ -140,12 +141,19 @@ def coverage(name: str, count: int, detail: str, on_empty: str = "") -> None:
     which chain is broken, not merely that something is. A new check that
     passes nothing still gets the guard; it just gets a blunter message until
     someone writes a sharper one.
+
+    The guard is normally gated on there being example data at all, because a
+    traversal over examples that do not exist is legitimately empty. always=True
+    is for a check whose population is the schema: no example file can empty it,
+    so a zero count means the modules themselves stopped carrying what the check
+    reads, and gating that on EXAMPLES makes the guard depend on something the
+    check never looks at.
     """
     coverage_log.append((name, count))
     # Noted before the guard, not after: the hand-written guards failed AND kept
     # the "0 checked" line, and a failing run still wants the count in the summary.
     notes.append(f"{name}: {count} {detail}")
-    if count == 0 and EXAMPLES:
+    if count == 0 and (always or EXAMPLES):
         fail(f"{name}: nothing to check, so this check proved nothing"
              + (f" -- {on_empty}" if on_empty else ""))
 
@@ -1060,6 +1068,7 @@ def check_designation_disjointness(g: Graph) -> None:
         f"covered by a disjointness block",
         "no subclasses of fm:Designation found -- the class was renamed, or the "
         "module carrying it was not loaded",
+        always=True,
     )
 
 
@@ -1156,7 +1165,8 @@ def check_bfo_grounding(g: Graph) -> None:
             for b in branch:
                 tally[b] = tally.get(b, 0) + 1
     coverage("BFO grounding", len(our_classes), "minted class(es) checked for a path to bfo:entity",
-             "no minted classes found -- the namespaces in registry.py no longer match src/")
+             "no minted classes found -- the namespaces in registry.py no longer match src/",
+             always=True)
     if tally:
         notes.append("BFO branch distribution:")
         for name, count in sorted(tally.items(), key=lambda kv: -kv[1]):
@@ -1181,7 +1191,8 @@ def check_bridged_grounding(g: Graph) -> None:
         if ENTITY not in ancestors(g, iri):
             fail(f"bridged external class not grounded in BFO: {iri}")
     coverage("bridged QUDT classes", len(qudt_classes), "class(es) checked for BFO grounding",
-             "the QUDT subset declares no owl:Class, so the bridge axioms guard nothing")
+             "the QUDT subset declares no owl:Class, so the bridge axioms guard nothing",
+             always=True)
 
 
 def check_branch_disjointness(g: Graph) -> None:
@@ -1193,7 +1204,8 @@ def check_branch_disjointness(g: Graph) -> None:
             fail(f"both continuant and occurrent: {cls}")
     coverage("branch disjointness", len(our_classes),
              "minted class(es) checked for a single BFO branch",
-             "no minted classes found -- the namespaces in registry.py no longer match src/")
+             "no minted classes found -- the namespaces in registry.py no longer match src/",
+             always=True)
 
 
 def check_declared_properties(g: Graph) -> None:
@@ -1288,7 +1300,8 @@ def check_documentation(g: Graph) -> None:
         if not any(g.objects(term, SKOS.definition)):
             fail(f"no skos:definition: {term}")
     coverage("documentation", len(terms), "minted term(s) checked for label and definition",
-             "no minted terms found -- the namespaces in registry.py no longer match src/")
+             "no minted terms found -- the namespaces in registry.py no longer match src/",
+             always=True)
 
 
 def run_check(fn, *args) -> None:
