@@ -325,8 +325,9 @@ passed a Celsius-vs-Fahrenheit mismatch silently, and only the negative test exp
 
 `make meta` checks the checks. Every traversal reports how much it covered, and a
 traversal that covered nothing has proved nothing — so `scripts/test_meta.py` calls
-each check with the schema and no example data and requires every one of its
-coverage counts to be zero and to have failed. Those guards were written by hand,
+each check with a graph that empties what it traverses — the schema with no example
+data, or an empty graph where the population is the schema itself — and requires every
+one of its coverage counts to be zero and to have failed. Those guards were written by hand,
 one per traversal, until the one for lead times was never written; a rule enforced
 by memory is enforced wherever someone remembered. The assertion is on the coverage
 log rather than on "did the check fail somehow", which any unrelated guard satisfies.

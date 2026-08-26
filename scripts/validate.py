@@ -1299,8 +1299,9 @@ def run_check(fn, *args) -> None:
     check has failed; the others still have something to say.
 
     Every check is function-shaped and routes through here, which is also what
-    test_meta.py's sweep can see: an inline check body in main() would be invisible
-    to it, so there are none.
+    test_meta.py's sweep can see: an inline check body in main() is invisible to it,
+    and six lived there long enough to ship a release in which none of them guarded
+    a zero count. main() parses and dispatches; it holds no check of its own.
     """
     try:
         fn(*args)
