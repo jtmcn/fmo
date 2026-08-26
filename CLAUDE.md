@@ -72,9 +72,13 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   One call per *check* is not enough: an aggregate counter over several traversals
   stays non-zero when one of them empties, which is the original lead-time bug
   wearing a guard. `scripts/test_meta.py` (`make meta`) enforces both by running
-  every `check_*` against a graph that empties its traversal: the schema with no
-  example data for a data-dependent check, an empty graph for one whose population
-  is the schema itself. Both sets are named in code; guessing wrong reads as a pass.
+  every `check_*` against something that empties its traversal: the schema with no
+  example data for a data-dependent check, an empty graph and no `EXAMPLES` for one
+  whose population is the schema itself — which is what proves its `always=True` —
+  and an example file holding nothing for one that re-reads `examples/` off disk.
+  The sets are named in code, and the schema-reading claim is then run rather than
+  read: a data-dependent check misfiled there empties trivially and would otherwise
+  pass vacuously.
   Only a `check_*` function is visible to that sweep, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
   guarded a zero count. What is left inline is advisory and can never fail: the

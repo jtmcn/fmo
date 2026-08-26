@@ -990,12 +990,14 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
     deprecated = set(g.subjects(OWL.deprecated, Literal(True)))
 
     all_mentioned: set = set()
+    context_mentioned: set = set()
     for path in PROSE_FILES:
         prose = path.read_text(encoding="utf-8")
         mentioned = set(CONTEXT_TERM.findall(prose))
-        if path == CONTEXT and not mentioned:
-            fail("CONTEXT.md names no terms in backticks, so this check matched nothing")
-            return
+        # Counted for CONTEXT.md alone: the other prose files backtick plenty of terms
+        # themselves, so an aggregate stays non-zero with CONTEXT.md emptied.
+        if path == CONTEXT:
+            context_mentioned = mentioned
         all_mentioned |= mentioned
         for prefix, local in sorted(mentioned):
             term = URIRef(CONTEXT_PREFIXES[prefix] + local)
@@ -1024,11 +1026,22 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
         if f"def {name}(" not in source:
             fail(f"CONTEXT.md names a missing check: {name}")
 
-    notes.append(
-        f"prose: {len(all_mentioned)} distinct term(s) across {len(PROSE_FILES)} file(s), "
-        f"{len(paths)} path(s), {len(targets)} make target(s), "
-        f"{len(checks)} check name(s) verified"
-    )
+    # One call per traversal: §4's paths, targets and check names were reported
+    # through notes alone, so any of the three could drop to zero and read as a pass.
+    coverage("prose terms", len(context_mentioned),
+             f"term(s) backticked in CONTEXT.md, {len(all_mentioned)} across "
+             f"{len(PROSE_FILES)} prose file(s)",
+             "CONTEXT.md names no terms in backticks, so this check matched nothing",
+             always=True)
+    coverage("prose paths", len(paths), "source path(s) checked against the tree",
+             "CONTEXT.md backticks no repo path, so §4's paths went unchecked",
+             always=True)
+    coverage("prose make targets", len(targets), "make target(s) checked against the Makefile",
+             "CONTEXT.md names no make target, so §4's targets went unchecked",
+             always=True)
+    coverage("prose checks", len(checks), "check name(s) checked against scripts/",
+             "CONTEXT.md names no check_* function, so §4's check names went unchecked",
+             always=True)
 
 
 def check_designation_disjointness(g: Graph) -> None:
@@ -1275,7 +1288,9 @@ def check_defined_terms(ex: Graph) -> None:
         if isinstance(o, URIRef) and str(o).startswith(in_scope)
     }
     coverage("defined terms", len(referenced), "referenced IRI(s) checked for definedness",
-             "the examples reference no in-scope IRI, so nothing was resolved")
+             "nothing in scope is referenced at all -- the modules supply IRIs here too, "
+             "so removing examples cannot empty this",
+             always=True)
 
 
 def check_documentation(g: Graph) -> None:

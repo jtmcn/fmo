@@ -85,6 +85,16 @@ CASES = [
         "CONTEXT.md names a missing check: check_current_assessment",
     ),
     (
+        # The other direction, and the reason §4's traversals are counted: CONTEXT.md
+        # backticks exactly one check name, so unbackticking it leaves the guard
+        # against "CONTEXT.md names a missing check" matching nothing and passing.
+        "CONTEXT.md naming no validator check at all",
+        "CONTEXT.md",
+        "enforced by `check_current_assessments`",
+        "enforced by check_current_assessments",
+        "prose checks: nothing to check",
+    ),
+    (
         # Exercises check_dimensions.
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,
@@ -221,8 +231,9 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         """    wx:underProtocol ex:TWCDailyTempProtocol ;
     wx:undeclaredProbe "probe" ;""",
         # The filename, not just the message: reading each example file separately
-        # is the whole reason this check is exempt from the meta sweep, and a
-        # rewrite onto the merged graph would still say "uses undeclared property".
+        # is why the meta sweep empties this one through EXAMPLES rather than the
+        # graph, and a rewrite onto the merged graph would still say "uses
+        # undeclared property".
         "kxhighny-2026-08-15.ttl uses undeclared property: "
         "https://w3id.org/forecast-market-ontology/weather#undeclaredProbe",
     ),
