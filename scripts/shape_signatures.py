@@ -17,6 +17,7 @@ strength, and including it would make the digest churn on prose.
 
     poetry run python3 scripts/shape_signatures.py            # emit facts
     poetry run python3 scripts/shape_signatures.py --check     # reproducible?
+    poetry run python3 scripts/shape_signatures.py --compare BASELINE.json
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ import json
 import sys
 from pathlib import Path
 
-from rdflib import BNode, Graph, Namespace, RDF
+from rdflib import BNode, Graph, Namespace, RDF, RDFS, URIRef
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -93,25 +94,43 @@ def shapes_graph(path: Path = SHAPES) -> Graph:
     return g
 
 
-def _constraints(g: Graph, prop: BNode) -> dict:
+def _single(g: Graph, subject, predicate, where: str):
+    """The one object for a predicate, refusing a repeat.
+
+    SHACL reads a repeated constraint conjunctively -- sh:class A, B requires
+    both -- so an arbitrary pick drops the rest, and removing one of two later
+    signs as no change at all. Same defect class as the two guards in facts().
+    """
+    values = list(g.objects(subject, predicate))
+    if len(values) > 1:
+        raise SystemExit(
+            f"FAIL: {where} has {len(values)} {curie(predicate)} values: "
+            f"{', '.join(sorted(curie(v) for v in values))}. SHACL applies all "
+            f"of them; a signature holds one, so dropping the rest would hide a "
+            f"weakening."
+        )
+    return values[0] if values else None
+
+
+def _constraints(g: Graph, prop: BNode, where: str) -> dict:
     out: dict = {}
     for name, predicate in SCALAR_CONSTRAINTS.items():
-        value = next(g.objects(prop, predicate), None)
+        value = _single(g, prop, predicate, where)
         if value is None:
             continue
         out[name] = int(value) if name in ("minCount", "maxCount") else curie(value)
-    listed = next(g.objects(prop, SH["in"]), None)
+    listed = _single(g, prop, SH["in"], where)
     if listed is not None:
         out["in"] = sorted(curie(v) for v in g.items(listed))
     # Recorded explicitly rather than left absent: sh:Violation is the SHACL
     # default, and comparing an absent value against an explicit one would read a
     # default as a removal -- reporting a weakening that did not happen.
-    severity = next(g.objects(prop, SH.severity), None)
+    severity = _single(g, prop, SH.severity, where)
     out["severity"] = curie(severity) if severity is not None else "sh:Violation"
     # Recorded explicitly, same reasoning as node-level deactivated below: an
     # unmodelled property-level sh:deactivated used to switch a constraint off
     # while facts() only read the predicate at the shape's own subject.
-    deactivated = next(g.objects(prop, SH.deactivated), None)
+    deactivated = _single(g, prop, SH.deactivated, where)
     out["deactivated"] = bool(deactivated) and str(deactivated).lower() == "true"
     return out
 
@@ -135,6 +154,53 @@ def _refuse_unmodelled(g: Graph) -> None:
             f"{', '.join(unmodelled)}\n"
             f"      Teach shape_signatures.py to classify them, or the contract can "
             f"change in a way the pin cannot see."
+        )
+
+    # UNDERSTOOD is a set of predicates, so it says nothing about WHERE one sits.
+    # SHACL allows a constraint component directly on a node shape, facts() reads
+    # constraints only under sh:property, and the predicate sweep above waves it
+    # through as understood -- sh:nodeKind on a NodeShape signed identically to
+    # its absence. Position, not just predicate.
+    shapes = set(g.subjects(RDF.type, SH.NodeShape))
+    node_level = sorted(
+        f"{curie(s)} {curie(p)}"
+        for s in shapes
+        for p in (*SCALAR_CONSTRAINTS.values(), SH["in"])
+        if (s, p, None) in g
+    )
+    if node_level:
+        raise SystemExit(
+            f"FAIL: {SHAPES.name} puts constraints directly on a node shape, where "
+            f"this signer does not read them: {', '.join(node_level)}\n"
+            f"      Move them under sh:property, or teach facts() to sign the node "
+            f"level; ignoring them signs a constrained shape as an unconstrained one."
+        )
+
+    # A node shape needs no rdf:type: SHACL calls any subject of sh:targetClass a
+    # shape, and pyshacl enforces one written that way. facts() collects by type,
+    # so such a shape is signed by nobody and its later deletion is invisible.
+    untyped = sorted(curie(s) for s in set(g.subjects(SH.targetClass, None)) - shapes)
+    if untyped:
+        raise SystemExit(
+            f"FAIL: {SHAPES.name} has sh:targetClass on a subject that is not typed "
+            f"sh:NodeShape: {', '.join(untyped)}\n"
+            f"      SHACL still enforces it and this signer would not sign it. Add "
+            f"`a sh:NodeShape`."
+        )
+
+    # sh:inversePath and friends are caught above as sh:-namespace predicates, but
+    # a sequence path is a plain RDF list: it introduces no sh: predicate, and its
+    # blank-node id becomes the signature's path key -- a fresh id per parse, so
+    # --check fails on non-reproducibility naming no construct at all.
+    complex_paths = sorted(
+        curie(s) for s, o in g.subject_objects(SH.path) if not isinstance(o, URIRef)
+    )
+    if complex_paths:
+        raise SystemExit(
+            f"FAIL: {SHAPES.name} uses a non-IRI sh:path (a sequence, inverse or "
+            f"alternative path) on {len(complex_paths)} property shape(s)\n"
+            f"      The signature keys paths by IRI, and a path with no IRI keys by "
+            f"blank node -- a different key on every parse."
         )
 
 
@@ -164,7 +230,7 @@ def facts(path: Path = SHAPES) -> dict[str, dict]:
         target = targets[0] if targets else None
         paths: dict[str, dict] = {}
         for prop in g.objects(shape, SH.property):
-            path = next(g.objects(prop, SH.path), None)
+            path = _single(g, prop, SH.path, curie(shape))
             if path is None:
                 continue
             key = curie(path)
@@ -174,8 +240,8 @@ def facts(path: Path = SHAPES) -> dict[str, dict]:
                     f"They would collapse onto one key and one would vanish from "
                     f"the signature."
                 )
-            paths[key] = _constraints(g, prop)
-        deactivated = next(g.objects(shape, SH.deactivated), None)
+            paths[key] = _constraints(g, prop, f"{curie(shape)} {key}")
+        deactivated = _single(g, shape, SH.deactivated, curie(shape))
         body = {
             "targetClass": curie(target) if target is not None else None,
             "deactivated": bool(deactivated) and str(deactivated).lower() == "true",
@@ -213,19 +279,24 @@ def subclass_map() -> dict[str, set[str]]:
     hierarchy. FMO's README records being bitten by exactly this -- MarketShape
     once targeted ksh:WeatherMarket, matched no focus node on an export typing
     markets as ksh:Market, and conformed with a probability of 7.41.
+
+    Every declared class is a key, a leaf mapping to the empty set, so membership
+    doubles as "is this class declared anywhere" for the target-undeclared rule.
     """
-    from rdflib import RDFS, URIRef
+    from rdflib import OWL
 
     g = Graph()
     for rel in MODULES:
         g.parse(SRC / rel, format="turtle")
     direct: dict[str, set[str]] = {}
+    declared = {curie(c) for c in g.subjects(RDF.type, OWL.Class) if isinstance(c, URIRef)}
     for child, parent in g.subject_objects(RDFS.subClassOf):
         if isinstance(child, URIRef) and isinstance(parent, URIRef):
             direct.setdefault(curie(parent), set()).add(curie(child))
+            declared |= {curie(child), curie(parent)}
 
     below: dict[str, set[str]] = {}
-    for parent in direct:
+    for parent in declared:
         seen, stack = set(), [parent]
         while stack:
             for child in direct.get(stack.pop(), set()):
@@ -241,7 +312,7 @@ def subclass_map() -> dict[str, set[str]]:
 # case exercised, while the plan claimed one case per row.
 RULES = (
     "shape-removed", "shape-added", "deactivated-set", "deactivated-cleared",
-    "target-removed", "target-narrowed", "target-changed",
+    "target-removed", "target-narrowed", "target-undeclared", "target-changed",
     "path-removed", "path-added",
     "min-weakened", "min-changed", "max-weakened", "max-changed",
     "severity-weakened", "severity-changed",
@@ -282,16 +353,22 @@ def _compare_path(shape: str, path: str, old: dict, new: dict) -> list[dict]:
         out.append(_verdict(shape, "CHANGED", f"{path}: maxCount {old_max} -> {new_max}",
                             "max-changed"))
 
-    if _severity_rank(new.get("severity")) < _severity_rank(old.get("severity")):
+    # Absent means sh:Violation, the SHACL default: a baseline pinned before this
+    # signer recorded severity meant Violation, and raising on its None aborted
+    # the whole report -- suppressing the weakenings the run existed to surface.
+    # An explicit unrecognised value still fails, which is what _severity_rank
+    # guards against.
+    old_sev, new_sev = old.get("severity", "sh:Violation"), new.get("severity", "sh:Violation")
+    if _severity_rank(new_sev) < _severity_rank(old_sev):
         out.append(_verdict(shape, "WEAKENED",
-                            f"{path}: severity {old.get('severity')} -> {new.get('severity')}",
+                            f"{path}: severity {old_sev} -> {new_sev}",
                             "severity-weakened"))
-    elif new.get("severity") != old.get("severity"):
+    elif new_sev != old_sev:
         # The spec's table says every non-weakening is CHANGED. Without this the
         # weakening direction had a branch and the other did not, so a raised
         # severity was silent -- found by review, not by the eleven cases.
         out.append(_verdict(shape, "CHANGED",
-                            f"{path}: severity {old.get('severity')} -> {new.get('severity')}",
+                            f"{path}: severity {old_sev} -> {new_sev}",
                             "severity-changed"))
 
     for key in ("class", "datatype", "nodeKind", "pattern",
@@ -305,6 +382,30 @@ def _compare_path(shape: str, path: str, old: dict, new: dict) -> list[dict]:
     return out
 
 
+def _check_baseline(base: dict) -> None:
+    """Refuse a malformed pin with the message every other failure here uses.
+
+    --compare reads a caller-supplied path, the one genuinely external input to
+    this tool, and compare() indexes it directly -- a missing key surfaced as a
+    bare KeyError traceback rather than a FAIL line naming the file's problem.
+    """
+    if not isinstance(base, dict):
+        raise SystemExit("FAIL: baseline must be a JSON object of shape name -> facts")
+    for name, body in base.items():
+        if not isinstance(body, dict):
+            raise SystemExit(f"FAIL: baseline entry {name} is not an object")
+        missing = sorted({"targetClass", "paths"} - set(body))
+        if missing:
+            raise SystemExit(
+                f"FAIL: baseline entry {name} is missing {', '.join(missing)}")
+        if not isinstance(body["paths"], dict):
+            raise SystemExit(f"FAIL: baseline entry {name} has a non-object 'paths'")
+        for path, constraints in body["paths"].items():
+            if not isinstance(constraints, dict):
+                raise SystemExit(
+                    f"FAIL: baseline entry {name} path {path} is not an object")
+
+
 def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]:
     """Classify current against a pinned baseline.
 
@@ -312,6 +413,7 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
     actually happens; everything else is reported as CHANGED rather than guessed
     at, and CHANGED means "a human decides", not "probably fine".
     """
+    _check_baseline(base)
     out: list[dict] = []
     for name in sorted(set(base) | set(current)):
         # Skip the per-field rules when the two bodies are identical -- an
@@ -350,6 +452,15 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
                     name, "WEAKENED",
                     f"targetClass removed (was {old_target}): the shape matches "
                     f"no focus nodes, and a shape matching none conforms", "target-removed"))
+            elif new_target not in below:
+                # No ontology declares it, so nothing is ever typed with it and
+                # the shape matches no focus nodes -- target-removed's failure
+                # mode reached by a typo, or by the class leaving src/.
+                out.append(_verdict(
+                    name, "WEAKENED",
+                    f"targetClass {old_target} -> {new_target}, which no module "
+                    f"declares: the shape matches no focus nodes, and a shape "
+                    f"matching none conforms", "target-undeclared"))
             elif new_target in below.get(old_target, set()):
                 out.append(_verdict(
                     name, "WEAKENED",

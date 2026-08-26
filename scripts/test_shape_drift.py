@@ -9,6 +9,7 @@ Run: python3 scripts/test_shape_drift.py
 
 from __future__ import annotations
 
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -114,6 +115,10 @@ CASES = [
     ("severity lowered", "severity-weakened",
      "        sh:path wx:underProtocol ;", "        sh:path wx:underProtocol ;\n        sh:severity sh:Warning ;",
      {("teh:TargetShape", "WEAKENED", "severity-weakened")}, "severity"),
+
+    ("targetClass changed to a class no module declares", "target-undeclared",
+     "    sh:targetClass ksh:Market ;", "    sh:targetClass ksh:Merket ;",
+     {("teh:MarketShape", "WEAKENED", "target-undeclared")}, "no module declares"),
 ]
 
 # severity-changed, deactivated-cleared and path-added need a mutated BASELINE
@@ -217,6 +222,42 @@ def test_facts_shape() -> list[str]:
     return problems
 
 
+# (name, find, replace, fragment the refusal must name). Every one of these is a
+# construct SHACL enforces and this signer does not read: signing it as though it
+# were absent is the sh:deactivated hole, and each of the last four was one.
+REFUSALS = [
+    ("sh:closed", "teh:ProtocolShape a sh:NodeShape ;",
+     "teh:ProtocolShape a sh:NodeShape ;\n    sh:closed true ;", "sh:closed"),
+
+    ("duplicate sh:path", "        sh:path fm:hasComparator ;",
+     "        sh:path fm:hasSubject ;", "two property shapes"),
+
+    ("duplicate sh:targetClass", "    sh:targetClass ksh:Market ;",
+     "    sh:targetClass ksh:Market ;\n    sh:targetClass fm:Proposition ;", "sh:targetClass"),
+
+    # facts() reads constraints only under sh:property, while UNDERSTOOD matches
+    # on predicate alone -- so this signed identically to its absence.
+    ("a constraint on the node shape itself", "teh:ProtocolShape a sh:NodeShape ;",
+     "teh:ProtocolShape a sh:NodeShape ;\n    sh:nodeKind sh:IRI ;",
+     "directly on a node shape"),
+
+    # SHACL calls any subject of sh:targetClass a shape and pyshacl enforces it;
+    # facts() collects by rdf:type, so nobody signed it.
+    ("a node shape with no rdf:type", "teh:ProtocolShape a sh:NodeShape ;",
+     "teh:ProtocolShape", "not typed"),
+
+    # No sh: predicate to catch: an RDF list whose blank-node id would become the
+    # path key, fresh on every parse.
+    ("a sequence path", "        sh:path ksh:expressesProposition ;",
+     "        sh:path ( ksh:expressesProposition fm:hasSubject ) ;", "non-IRI sh:path"),
+
+    # sh:class A, B requires both; keeping one made removing the other invisible.
+    ("a repeated constraint predicate", "        sh:class wx:WeatherObservationTarget ;",
+     "        sh:class wx:WeatherObservationTarget ;\n        sh:class fm:ObservationTarget ;",
+     "sh:class values"),
+]
+
+
 def test_refuses_unmodelled() -> list[str]:
     """An unmodelled construct must fail the signer, not be ignored.
 
@@ -224,48 +265,67 @@ def test_refuses_unmodelled() -> list[str]:
     of during review.
     """
     problems = []
-    edited = with_edit("teh:ProtocolShape a sh:NodeShape ;",
-                       "teh:ProtocolShape a sh:NodeShape ;\n    sh:closed true ;")
-    try:
-        S.facts(edited)
-        problems.append("sh:closed was ignored rather than refused")
-    except SystemExit as exc:
-        if "sh:closed" not in str(exc):
-            problems.append(f"refusal does not name the construct: {exc}")
-        else:
-            print("  ok   [refuses unmodelled] sh:closed")
+    for name, find, replace, fragment in REFUSALS:
+        try:
+            S.facts(with_edit(find, replace))
+            problems.append(f"[{name}] was signed rather than refused")
+        except SystemExit as exc:
+            if fragment not in str(exc):
+                problems.append(f"[{name}] refusal does not name {fragment!r}: {exc}")
+            else:
+                print(f"  ok   [refuses unmodelled] {name}")
+    return problems
 
-    duplicated = with_edit(
-        "        sh:path fm:hasComparator ;",
-        "        sh:path fm:hasSubject ;",
-    )
-    try:
-        S.facts(duplicated)
-        problems.append("two property shapes on one path collapsed silently")
-    except SystemExit as exc:
-        if "two property shapes" not in str(exc):
-            problems.append(f"duplicate-path refusal is the wrong error: {exc}")
-        else:
-            print("  ok   [refuses unmodelled] duplicate sh:path")
 
-    duplicated_target = with_edit(
-        "    sh:targetClass ksh:Market ;",
-        "    sh:targetClass ksh:Market ;\n    sh:targetClass fm:Proposition ;",
-    )
+def test_baseline_is_not_trusted() -> list[str]:
+    """Two ways a caller-supplied pin took the whole report down with it.
+
+    --compare's baseline is the one input this tool does not produce itself, so
+    an old or hand-edited one must degrade to a verdict, never to a traceback or
+    to silence.
+    """
+    problems, below = [], S.subclass_map()
+    base = S.facts()
+
+    # A pin written before this signer recorded severity. Absent is the SHACL
+    # default, not an unknown value: raising on it emitted no verdicts at all,
+    # including the weakening the run existed to find.
+    stale = json.loads(json.dumps(base))
+    for body in stale.values():
+        for constraints in body["paths"].values():
+            constraints.pop("severity", None)
+    weakened = S.facts(with_edit(
+        "        sh:path fm:statedAs ;\n        sh:minCount 1 ;",
+        "        sh:path fm:statedAs ;\n        sh:minCount 0 ;"))
     try:
-        S.facts(duplicated_target)
-        problems.append("two sh:targetClass values on one shape collapsed silently")
-    except SystemExit as exc:
-        if "sh:targetClass" not in str(exc):
-            problems.append(f"duplicate-targetClass refusal is the wrong error: {exc}")
+        got = S.compare(stale, weakened, below)
+        rules = {v["rule"] for v in got}
+        if "min-weakened" not in rules:
+            problems.append(f"a baseline predating severity lost the weakening: {rules}")
         else:
-            print("  ok   [refuses unmodelled] duplicate sh:targetClass")
+            print("  ok   [baseline] one predating severity still reports the weakening")
+    except SystemExit as exc:
+        problems.append(f"a baseline predating severity aborted the report: {exc}")
+
+    malformed = json.loads(json.dumps(base))
+    malformed["teh:MarketShape"].pop("targetClass")
+    try:
+        S.compare(malformed, base, below)
+        problems.append("a baseline missing targetClass was accepted")
+    except SystemExit as exc:
+        if "missing targetClass" not in str(exc):
+            problems.append(f"malformed-baseline refusal is the wrong error: {exc}")
+        else:
+            print("  ok   [baseline] a missing key fails with a message, not a traceback")
+    except Exception as exc:  # noqa: BLE001 - the traceback this guard exists to stop
+        problems.append(f"a baseline missing targetClass raised {type(exc).__name__}: {exc}")
     return problems
 
 
 def main() -> int:
     problems = (
         test_facts_shape() + test_refuses_unmodelled() + test_classifier()
+        + test_baseline_is_not_trusted()
         + test_every_rule_is_claimed() + test_no_false_positives()
     )
     for p in problems:
