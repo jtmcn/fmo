@@ -72,6 +72,13 @@ def digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
+def _body_digest(body: dict) -> str:
+    """Recompute the digest facts() would assign this body, ignoring any
+    'sha256' key it already carries -- see compare()'s equal-digest check."""
+    stripped = {k: v for k, v in body.items() if k != "sha256"}
+    return digest(json.dumps(stripped, sort_keys=True))
+
+
 def curie(node) -> str:
     text = str(node)
     for iri, prefix in PREFIXES.items():
@@ -307,13 +314,13 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
     """
     out: list[dict] = []
     for name in sorted(set(base) | set(current)):
-        # Equal digests must mean no verdicts. The digest is over the same facts
-        # the rules read, so a disagreement means facts() and compare() have
-        # drifted apart -- cheap to assert, and otherwise sha256 is dead weight
-        # that nothing reads.
+        # Skip the per-field rules when the two bodies are identical -- an
+        # optimization, not a cross-check: recomputed here rather than trusted
+        # from the stored 'sha256', so a baseline hand-edited to weaken a body
+        # while its old digest was left in place is not skipped by mistake.
         if (
             name in base and name in current
-            and base[name].get("sha256") == current[name].get("sha256")
+            and _body_digest(base[name]) == _body_digest(current[name])
         ):
             continue
         old, new = base.get(name), current.get(name)
