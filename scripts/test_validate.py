@@ -768,6 +768,35 @@ wx:DewPoint a owl:Class ;""",
         """    skos:altLabel "Instances are quality instances that vary continuously.""",
         "justification carries no scope note: wx:AirTemperature",
     ),
+    (
+        # The other half of the pin: a justification that never resolves at all. A typo
+        # here is quieter than a reword, because nothing in the file looks wrong.
+        "an unassertable entry whose justification names no declared term",
+        "queries/class-coverage-expectations.json",
+        '"justified_by": "wx:WindSpeed"',
+        '"justified_by": "wx:WindSpeed_typo"',
+        "unassertable entry names no declared justification: wx:WindSpeed",
+    ),
+    (
+        # unlisted is the one category resting on the world rather than on the model,
+        # and the date is the entire claim: 354 series read on one day says nothing
+        # about the listings a month later.
+        "an unlisted entry with no date saying when the listings were read",
+        "queries/class-coverage-expectations.json",
+        '"checked": "2026-08-23"',
+        '"checked_by": "2026-08-23"',
+        "unlisted entry carries no check date: wx:AirMotion",
+    ),
+    (
+        # Two categories flattened into one map: the second silently won, so a class
+        # could be recorded as refused by the ontology AND merely unwritten, and the
+        # ledger would report whichever category was read last.
+        "a class classified under two categories at once",
+        "queries/class-coverage-expectations.json",
+        '"wx:Snowfall": {',
+        '"wx:WindSpeed": {\n      "reason": "An injected duplicate of an unassertable entry."\n    },\n    "wx:Snowfall": {',
+        "classified twice: wx:WindSpeed",
+    ),
 ]
 
 
