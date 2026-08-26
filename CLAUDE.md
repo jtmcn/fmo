@@ -76,3 +76,17 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional
   `fm:hasUnit`; the `owl:AllDifferent` block in `core.ttl` makes that mistake a HermiT
   inconsistency rather than a wrong answer.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `jtmcn/fmo`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, using their default label strings. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
