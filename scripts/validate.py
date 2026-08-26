@@ -70,6 +70,7 @@ Exit code is non-zero if any check fails. Run: python3 scripts/validate.py
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -92,7 +93,7 @@ BRANCHES = {
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from registry import (  # noqa: E402
-    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, OUR_NS,
+    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, ONTOLOGY_PREFIXES, OUR_NS,
     PROSE_FILES, ROOT, SRC, examples,
 )
 
@@ -1162,6 +1163,101 @@ def check_forecast_targets(g: Graph) -> None:
              "the has-part or assignsProbabilityTo chain is broken")
 
 
+COVERAGE_LEDGER = ROOT / "queries" / "class-coverage-expectations.json"
+# schema-instantiated is not here: it is derived below, so no edit to the file can
+# claim it for a class the modules do not actually enumerate.
+COVERAGE_CATEGORIES = ("unassertable", "unlisted", "unwritten")
+
+
+def prefixed(term: URIRef) -> str:
+    for prefix, ns in ONTOLOGY_PREFIXES.items():
+        if str(term).startswith(ns):
+            return f"{prefix}:{str(term)[len(ns):]}"
+    return str(term)
+
+
+def check_class_coverage(g: Graph, ex: Graph) -> None:
+    """Every unexercised minted class is classified, with a reason.
+
+    A class no example instantiates is a class nobody has watched work. The count
+    was advisory for a long time and drifted to 36 of 98 unnoticed, so this makes
+    a new one fail the build until someone says which of four things it is.
+
+    No count is pinned. The four situations behind those 36 are not one population
+    -- some classes are empty because the ontology is correct, and a floor over the
+    lot could not move for reasons that have nothing to do with the model improving.
+    """
+    our_classes = minted_classes(g)
+    # A class the modules enumerate themselves. Derived rather than declared, and
+    # deliberately narrow: a class whose *children* carry the schema individuals is
+    # not one of these, it just has enumerated children.
+    schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
+    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
+
+    # Exercised directly or through a subclass, via ancestors of what examples type.
+    reached = set(instantiated)
+    for term in instantiated:
+        reached |= ancestors(g, term)
+
+    ledger = json.loads(COVERAGE_LEDGER.read_text(encoding="utf-8"))
+    classified = {
+        name: (category, entry)
+        for category in COVERAGE_CATEGORIES
+        for name, entry in ledger.get(category, {}).items()
+    }
+
+    for cls in our_classes:
+        if cls in reached or cls in schema_instantiated:
+            continue
+        if prefixed(cls) not in classified:
+            fail(f"unexercised and not classified: {prefixed(cls)} -- "
+                 f"add it to {COVERAGE_LEDGER.name} under one of {', '.join(COVERAGE_CATEGORIES)}")
+
+    by_name = {prefixed(cls): cls for cls in our_classes}
+    for name, (category, _entry) in sorted(classified.items()):
+        cls = by_name.get(name)
+        if cls is None:
+            fail(f"ledger names a class that does not exist: {name} -- "
+                 f"renamed or retired, so its entry in {category} is stale")
+            continue
+        if cls in reached or cls in schema_instantiated:
+            fail(f"classified but exercised: {name} -- an example now reaches it, "
+                 f"so drop it from {category} in {COVERAGE_LEDGER.name}")
+            continue
+        # unassertable is the only category claiming the ontology refuses the class,
+        # so it names where that argument is written. A reword that deletes the note
+        # leaves the entry citing nothing, and reads as settled while it does.
+        if category == "unassertable":
+            justifier = by_name.get(_entry.get("justified_by", ""))
+            if justifier is None:
+                fail(f"unassertable entry names no declared justification: {name}")
+            elif not any(g.objects(justifier, SKOS.scopeNote)):
+                fail(f"justification carries no scope note: {prefixed(justifier)} -- "
+                     f"cited by {name}, so its argument is no longer written down")
+
+    # Advisory, never a failure, and reported as two figures rather than one. A class
+    # only the schema can instantiate is not a gap an example could ever close, so
+    # folding it into a single number gives a figure that cannot reach 98 however much
+    # example data is written. Direct and closure are both kept: direct alone conflates
+    # an abstract parent exercised through a child with a class nothing can express.
+    direct = sum(1 for c in our_classes if c in instantiated)
+    closure = sum(1 for c in our_classes if c in reached)
+    schema_only = sum(1 for c in our_classes if c in schema_instantiated and c not in reached)
+    notes.append(
+        f"{direct} of {len(our_classes)} minted classes have an instance in the "
+        f"examples directly, {closure} counting subclass closure"
+    )
+    notes.append(
+        f"{schema_only} further class(es) only the schema can instantiate, so no "
+        f"example file can reach them"
+    )
+
+    coverage("class coverage", len(our_classes),
+             "minted class(es) checked for an exercise record",
+             "no minted classes found -- the namespaces in registry.py no longer match src/",
+             always=True)
+
+
 def check_bfo_grounding(g: Graph) -> None:
     """Every minted class reaches bfo:entity, and lands in a known BFO branch."""
     our_classes = minted_classes(g)
@@ -1379,38 +1475,6 @@ def main() -> int:
     our_classes = minted_classes(g)
     notes.append(f"{len(our_classes)} minted classes")
 
-    # Advisory, never a failure. A term with no instance is a term nobody has
-    # watched work; the trading layer is deliberately in that state and README
-    # says so, but the count should be visible on every run rather than needing
-    # an audit to find.
-    # Subtract types asserted by the schema graph alone: a class instantiated only
-    # by a schema-level individual (fm:BrierScore, ksh:MarketStatus, ...) is not
-    # exercised by an example, and counting it overclaimed the figure README cites
-    # as the mechanism that keeps the trading-layer gap visible.
-    schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
-    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
-    direct = sum(1 for c in our_classes if c in instantiated)
-
-    # Direct rdf:type alone conflates an abstract parent (only ever exercised via a
-    # child) with a class the vocabulary genuinely cannot express, so both counts are reported.
-    descendants: dict[URIRef, set] = {}
-    for cls in our_classes:
-        seen: set = set()
-        stack = [cls]
-        while stack:
-            node = stack.pop()
-            for sub in g.subjects(RDFS.subClassOf, node):
-                if sub not in seen:
-                    seen.add(sub)
-                    stack.append(sub)
-        descendants[cls] = seen
-    closure = sum(
-        1 for c in our_classes if c in instantiated or (descendants[c] & instantiated)
-    )
-    notes.append(
-        f"{direct} of {len(our_classes)} minted classes have an instance in the "
-        f"examples directly, {closure} counting subclass closure"
-    )
 
     # 6. Dimensional coherence.
     #
@@ -1433,6 +1497,7 @@ def main() -> int:
                   check_branch_disjointness, check_documentation,
                   check_designation_disjointness):
         run_check(check, g)
+    run_check(check_class_coverage, g, ex)
 
     # Reads the example files itself, to name the file an undeclared property came from.
     run_check(check_declared_properties, g)

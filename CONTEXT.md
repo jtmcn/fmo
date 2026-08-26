@@ -170,6 +170,25 @@ check function fails when handed a graph that empties its traversal, so a check 
 nothing to check cannot pass.
 _Avoid_: "test" bare — it reads as any of the three, and they fail for different reasons.
 
+**Exercised** / **unexercised**: a minted class is *exercised* when example data
+instantiates it, directly or through a subclass. A schema individual does not exercise
+its class — that is the ontology asserting its own enumerations, not data reaching the
+term — and the two populations are reported apart for that reason. Every unexercised
+class is classified in `queries/class-coverage-expectations.json`, and
+`check_class_coverage` fails on one that is not.
+_Avoid_: "dark", "unused" (a property nothing asserts, which is a separate and
+deliberately unmeasured question), "uninstantiated" — the last elides exactly the
+schema-versus-example split the word exists to carry.
+
+Four reasons a class is unexercised, and only the last is a gap: **schema-instantiated**
+(its individuals are declared in `src/`, so no example file can reach it), **unassertable**
+(instantiating it would assert what the ontology refuses — a quality instance standing in
+for a future fact), **unlisted** (no Kalshi market exists to model), and **unwritten**
+(nothing prevents an example; nobody has written one).
+> Say "unwritten", not "unexercised", for that fourth case. The umbrella word and the
+> residual category are not the same set, and using one for both is how the count that
+> matters gets read as the count that cannot move.
+
 **Competency question** (CQ): a question the ontology must answer, numbered 1–8. Most are
 a `queries/cqNN-*.rq` plus its `.expected`, and an empty result set **fails** — but CQ3 is
 `make competency` (a reasoner re-derivation, no query file) and CQ6 is two queries. Say

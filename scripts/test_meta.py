@@ -53,6 +53,8 @@ SCHEMA_READING = {
     "check_branch_disjointness": "its population is the minted classes",
     "check_documentation": "its population is the minted terms",
     "check_designation_disjointness": "its population is the subclasses of fm:Designation",
+    "check_class_coverage": "its population is the minted classes; example data changes "
+                            "which are exercised, never how many are traversed",
 }
 
 # Reads the example files off disk rather than the graph it is handed, so no graph

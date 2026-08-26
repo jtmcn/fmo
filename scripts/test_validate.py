@@ -85,13 +85,16 @@ CASES = [
         "CONTEXT.md names a missing check: check_current_assessment",
     ),
     (
-        # The other direction, and the reason §4's traversals are counted: CONTEXT.md
-        # backticks exactly one check name, so unbackticking it leaves the guard
-        # against "CONTEXT.md names a missing check" matching nothing and passing.
+        # The other direction, and the reason §4's traversals are counted: with no
+        # check name backticked, the guard against "CONTEXT.md names a missing check"
+        # matches nothing and passes. Emptied through the regex rather than by
+        # unbackticking, like the three cases below -- CONTEXT.md named exactly one
+        # check when this was written and now names two, and a case that has to be
+        # re-anchored every time §4 gains a sentence is a case that will be deleted.
         "CONTEXT.md naming no validator check at all",
-        "CONTEXT.md",
-        "enforced by `check_current_assessments`",
-        "enforced by check_current_assessments",
+        "scripts/validate.py",
+        """CONTEXT_CHECK = re.compile(r"`(check_""",
+        """CONTEXT_CHECK = re.compile(r"`zz(check_""",
         "prose checks: nothing to check",
     ),
     (
@@ -712,6 +715,58 @@ vex:A-20260701-LE81 a fm:TruthAssessment ;
         """def check_trades(g: Graph) -> None:
     raise RuntimeError("injected")""",
         "check_trades raised RuntimeError: injected",
+    ),
+    (
+        # The ledger's whole point: a newly minted class that no example reaches
+        # must not join the unexercised set silently. Every other check stays green
+        # while it happens, which is how the set grew to 36 unnoticed.
+        # Exercises check_class_coverage.
+        "a minted class that no example instantiates and the ledger does not classify",
+        "src/weather.ttl",
+        "wx:DewPoint a owl:Class ;",
+        """wx:Nephology a owl:Class ;
+    rdfs:subClassOf wx:AtmosphericQuality ;
+    rdfs:label "nephology" ;
+    skos:definition "An injected class, unexercised and unclassified." .
+
+wx:DewPoint a owl:Class ;""",
+        "unexercised and not classified: wx:Nephology",
+    ),
+    (
+        # The ledger is required to shrink. An entry left behind after an example
+        # starts exercising the class reads as an authoritative claim that nobody
+        # has, which is how the axiom ledger's stale exemptions were caught too.
+        "the ledger classifying a class the examples do exercise",
+        "queries/class-coverage-expectations.json",
+        """  "unwritten": {
+    "fm:InformationBearingEntity": {""",
+        """  "unwritten": {
+    "ksh:Market": {
+      "reason": "An injected entry for a class the worked examples instantiate."
+    },
+    "fm:InformationBearingEntity": {""",
+        "classified but exercised: ksh:Market",
+    ),
+    (
+        # A rename in src/ leaves the entry pointing at nothing. The reason stays
+        # readable and authoritative while describing a class the model no longer
+        # has -- the same defect check_axioms catches on its own ledger.
+        "the ledger naming a class that no longer exists",
+        "queries/class-coverage-expectations.json",
+        '"wx:Thunderstorm": {',
+        '"wx:Thunderstorm_renamed": {',
+        "ledger names a class that does not exist: wx:Thunderstorm_renamed",
+    ),
+    (
+        # unassertable is the only category asserting the ontology REFUSES a class,
+        # and one scope note carries that argument for the whole quality group. Reword
+        # it away and nine entries keep citing a justification that is no longer written
+        # anywhere, while every one of them still reads as settled.
+        "the scope note an unassertable entry rests on being removed",
+        "src/weather.ttl",
+        """    skos:scopeNote "Instances are quality instances that vary continuously.""",
+        """    skos:altLabel "Instances are quality instances that vary continuously.""",
+        "justification carries no scope note: wx:AirTemperature",
     ),
 ]
 
