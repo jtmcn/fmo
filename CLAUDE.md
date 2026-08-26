@@ -82,7 +82,17 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   Only a `check_*` function is visible to that sweep, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
   guarded a zero count. What is left inline is advisory and can never fail: the
-  minted-class count and the instantiation figures README cites.
+  minted-class count. The instantiation figures moved into `check_class_coverage`,
+  which already traverses what they report — two computations of one fact drift,
+  and the check is where the traversal is guarded.
+- **Every unexercised class is classified.** A minted class no example instantiates,
+  directly or through a subclass, must appear in
+  `queries/class-coverage-expectations.json` under `unassertable`, `unlisted` or
+  `unwritten`, with a reason. The fourth case, a class whose own individuals are
+  declared in `src/`, is derived at run time and never written in the file. No count
+  is pinned: the four situations are different populations, and a floor over the lot
+  cannot move for reasons that have nothing to do with the model improving. See
+  `docs/adr/0001-classify-unexercised-classes.md`.
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional

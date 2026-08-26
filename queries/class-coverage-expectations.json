@@ -1,0 +1,103 @@
+{
+  "_comment": "Every minted class that no example instantiates, directly or through a subclass, is here with a reason. scripts/validate.py fails on an unexercised class in none of these categories, on an entry naming a class that no longer exists, and on an entry for a class an example has since started exercising -- the ledger is required to shrink as example data grows. A fourth category, schema-instantiated, is derived at run time and deliberately absent from this file: a class whose individuals are declared in src/ cannot be reached by any example, and that fact is recomputed rather than asserted. unassertable entries name the term whose skos:scopeNote carries the argument, which is checked to still exist; one argument covers the whole quality group, so most of them point at wx:AirTemperature. unlisted entries rest on an external fact about what Kalshi lists and carry the date it was checked.",
+
+  "unassertable": {
+    "wx:AtmosphericQuality": {
+      "reason": "The parent of the quality group. A forecast concerns a future fact, so the quality instance it would be about does not exist when the forecast is issued; the model composes a proposition over an observation target instead. Every subclass is empty for this one reason.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:AirTemperature": {
+      "reason": "Its own scope note settles it: 'Yesterday's high' is not an instance of this class, it is a datum reporting the magnitude the quality attained. The temperature market is worked end to end and still does not instantiate it, which is the evidence that listing is not what keeps this class empty.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:AtmosphericPressure": {
+      "reason": "A quality instance, empty for the reason recorded on wx:AirTemperature.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:DewPoint": {
+      "reason": "A quality instance, empty for the reason recorded on wx:AirTemperature.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:RelativeHumidity": {
+      "reason": "A quality instance, empty for the reason recorded on wx:AirTemperature.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:WindDirection": {
+      "reason": "A quality instance, empty for the reason recorded on wx:AirTemperature. README groups this with the unlisted wind terms; that is imprecise -- a listed wind market would mint a target and a variable, not a quality instance, exactly as the listed temperature market does.",
+      "justified_by": "wx:AirTemperature"
+    },
+    "wx:WindSpeed": {
+      "reason": "A quality instance. Its own scope note explains why the quality is retained at all when the underlying phenomenon is a process, which is the argument that would have to change for this class to become instantiable.",
+      "justified_by": "wx:WindSpeed"
+    },
+    "fm:Designation": {
+      "reason": "Its members are the controlled designations declared in src/. An example minting its own would sit outside the disjointness block that makes the set exhaustive, so instantiating this class in example data is a modelling error rather than a gap.",
+      "justified_by": "fm:Designation"
+    },
+    "fm:MeasurementUnit": {
+      "reason": "Its members are the vendored QUDT unit individuals. An example names unit:DEG_F; minting a unit of its own would bypass the dimension-vector checks that every unit comparison depends on.",
+      "justified_by": "fm:MeasurementUnit"
+    }
+  },
+
+  "unlisted": {
+    "wx:AirMotion": {
+      "reason": "Wind as a process. Of 354 series in Kalshi's Climate and Weather categories none is a wind market, so there is no settlement to write an example around. Nothing structural bars it, unlike the wind qualities: wx:Rainfall shows a weather process is assertable once a market makes one worth recording.",
+      "checked": "2026-08-23"
+    }
+  },
+
+  "unwritten": {
+    "fm:InformationBearingEntity": {
+      "reason": "The material carrier of an information content entity -- a printed report, a disk. The examples record what documents say, never the object they are inscribed on, and no competency question asks about carriers."
+    },
+    "ksh:Exchange": {
+      "reason": "Kalshi itself. Every example takes the exchange as ambient rather than naming it, because no check and no competency question needs the organisation as a relatum. Its child ksh:DesignatedContractMarket does carry a schema individual."
+    },
+    "ksh:MarketRules": {
+      "reason": "The examples carry the settlement source and the protocol, which is what the checks compare; the rules document that states them in prose has no property pointing at it that anything reads."
+    },
+    "wx:AirMass": {
+      "reason": "A portion of air uniform over hundreds of kilometres. Synoptic structure of this scale plays no part in a single-site daily settlement, which is the only thing modelled so far."
+    },
+    "wx:Atmosphere": {
+      "reason": "The whole gaseous envelope. Nothing in a site-scale settlement needs the planet-scale object as a relatum; wx:PortionOfAir would be the term an example reached for first."
+    },
+    "wx:DeterministicForecast": {
+      "reason": "Every worked forecast is probabilistic, because the probability is what the market comparison needs. A single-valued forecast is expressible and simply has not been written."
+    },
+    "wx:EnsembleMember": {
+      "reason": "The synthetic dataset states each model's probability directly rather than deriving it from perturbed members, so no individual run appears. Modelling ensemble internals would mean generating them."
+    },
+    "wx:ForecastLeadTime": {
+      "reason": "The examples carry lead time as wx:leadTimeHours, a literal on the forecast, which is what the derived-value check reads. The interval individual this class describes is never minted."
+    },
+    "wx:ForecastZone": {
+      "reason": "Kalshi settles on a site, not a zone, so the worked markets have no use for a fiat forecast area. A zone-settled market would instantiate it."
+    },
+    "wx:MeasurementFunction": {
+      "reason": "The function borne by an instrument. The examples model the protocol and the site, never the instrument, because replacing a station must not change the target -- so the thing bearing the function is deliberately out of the settlement path."
+    },
+    "wx:NamedStormDesignation": {
+      "reason": "Depends on a tropical cyclone example existing, which depends on the contested storm modelling below."
+    },
+    "wx:PortionOfAir": {
+      "reason": "The bearer that atmospheric qualities inhere in. Since none of those qualities is instantiated, nothing yet needs the bearer; wx:PortionOfPrecipitate shows the analogous class is assertable once a process is recorded."
+    },
+    "wx:SnowDepth": {
+      "reason": "A precipitation depth, and wx:PrecipitationDepth is directly instantiated by the rain example, so nothing structural bars this. It needs a snow market worked through, which has not been done."
+    },
+    "wx:Snowfall": {
+      "reason": "The sibling of wx:Rainfall, which the rain example does instantiate. Wants a snow market worked through."
+    },
+    "wx:Storm": {
+      "reason": "Contested on its own terms, not merely unlisted: docs/design-notes.md records the process-versus-object argument as unresolved. Writing an example would settle a modelling question by fiat, which is why none exists."
+    },
+    "wx:Thunderstorm": {
+      "reason": "Inherits the unresolved argument on wx:Storm."
+    },
+    "wx:TropicalCyclone": {
+      "reason": "Inherits the unresolved argument on wx:Storm. Its scope note argues the process reading at length; the argument is defensible and contested, and an example would read as having settled it."
+    }
+  }
+}
