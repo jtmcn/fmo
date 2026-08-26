@@ -9,7 +9,6 @@ Run: python3 scripts/test_shape_drift.py
 
 from __future__ import annotations
 
-import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -36,75 +35,85 @@ def with_edit(find: str, replace: str) -> Path:
     return tmp
 
 
-# (name, rule exercised, find, replace, {(shape, verdict)}, detail fragment)
+# (name, rule exercised, find, replace, {(shape, verdict, rule)}, detail fragment)
 CASES = [
     ("a node shape switched off", "deactivated-set",
      "teh:TargetShape a sh:NodeShape ;",
      "teh:TargetShape a sh:NodeShape ;\n    sh:deactivated true ;",
-     {("teh:TargetShape", "WEAKENED")}, "switched off"),
+     {("teh:TargetShape", "WEAKENED", "deactivated-set")}, "switched off"),
+
+    ("a property shape switched off", "deactivated-set",
+     "        sh:path wx:underProtocol ;", "        sh:path wx:underProtocol ;\n        sh:deactivated true ;",
+     {("teh:TargetShape", "WEAKENED", "deactivated-set")}, "switched off"),
 
     ("a node shape removed", "shape-removed",
      "teh:ProtocolShape a sh:NodeShape ;", "teh:Unused a sh:NodeShape ;",
-     {("teh:ProtocolShape", "WEAKENED"), ("teh:Unused", "CHANGED")}, "removed"),
+     {("teh:ProtocolShape", "WEAKENED", "shape-removed"), ("teh:Unused", "CHANGED", "shape-added")}, "removed"),
 
     ("a node shape added", "shape-added",
      "teh:ProtocolShape a sh:NodeShape ;",
      "teh:Extra a sh:NodeShape ; sh:targetClass fm:Document .\n\nteh:ProtocolShape a sh:NodeShape ;",
-     {("teh:Extra", "CHANGED")}, "added"),
+     {("teh:Extra", "CHANGED", "shape-added")}, "added"),
 
     ("targetClass removed", "target-removed",
      "    sh:targetClass ksh:Market ;", "",
-     {("teh:MarketShape", "WEAKENED")}, "matches no focus nodes"),
+     {("teh:MarketShape", "WEAKENED", "target-removed")}, "matches no focus nodes"),
 
     ("targetClass narrowed to a subclass", "target-narrowed",
      "    sh:targetClass ksh:Market ;", "    sh:targetClass ksh:WeatherMarket ;",
-     {("teh:MarketShape", "WEAKENED")}, "narrowed"),
+     {("teh:MarketShape", "WEAKENED", "target-narrowed")}, "narrowed"),
 
     ("targetClass widened to a superclass", "target-changed",
      "    sh:targetClass fm:ProbabilityAssignment ;",
      "    sh:targetClass fm:InformationContentEntity ;",
-     {("teh:ProbabilityShape", "CHANGED")}, "targetClass"),
+     {("teh:ProbabilityShape", "CHANGED", "target-changed")}, "targetClass"),
 
     ("a required path removed", "path-removed",
      "        sh:path ksh:marketTicker ;", "        sh:path ksh:ignoredTicker ;",
-     {("teh:MarketShape", "WEAKENED"), ("teh:MarketShape", "CHANGED")}, "ksh:marketTicker"),
+     {("teh:MarketShape", "WEAKENED", "path-removed"), ("teh:MarketShape", "CHANGED", "path-added")},
+     "ksh:marketTicker"),
 
     ("minCount lowered", "min-weakened",
      "        sh:path fm:statedAs ;\n        sh:minCount 1 ;",
      "        sh:path fm:statedAs ;\n        sh:minCount 0 ;",
-     {("teh:ProtocolShape", "WEAKENED")}, "minCount 1 -> 0"),
+     {("teh:ProtocolShape", "WEAKENED", "min-weakened")}, "minCount 1 -> 0"),
+
+    ("minCount removed", "min-weakened",
+     "        sh:path fm:statedAs ;\n        sh:minCount 1 ;",
+     "        sh:path fm:statedAs ;",
+     {("teh:ProtocolShape", "WEAKENED", "min-weakened")}, "minCount 1 -> None"),
 
     ("minCount raised", "min-changed",
      "        sh:path fm:statedAs ;\n        sh:minCount 1 ;",
      "        sh:path fm:statedAs ;\n        sh:minCount 2 ;",
-     {("teh:ProtocolShape", "CHANGED")}, "minCount 1 -> 2"),
+     {("teh:ProtocolShape", "CHANGED", "min-changed")}, "minCount 1 -> 2"),
 
     ("maxCount raised", "max-weakened",
      "        sh:path ksh:expressesProposition ;\n        sh:minCount 1 ; sh:maxCount 1 ;",
      "        sh:path ksh:expressesProposition ;\n        sh:minCount 1 ; sh:maxCount 2 ;",
-     {("teh:MarketShape", "WEAKENED")}, "maxCount 1 -> 2"),
+     {("teh:MarketShape", "WEAKENED", "max-weakened")}, "maxCount 1 -> 2"),
 
     ("maxCount removed", "max-weakened",
      "        sh:path ksh:expressesProposition ;\n        sh:minCount 1 ; sh:maxCount 1 ;",
      "        sh:path ksh:expressesProposition ;\n        sh:minCount 1 ;",
-     {("teh:MarketShape", "WEAKENED")}, "maxCount 1 -> None"),
+     {("teh:MarketShape", "WEAKENED", "max-weakened")}, "maxCount 1 -> None"),
 
     ("maxCount lowered", "max-changed",
      "        sh:path fm:hasComparator ;\n        sh:minCount 1 ; sh:maxCount 1 ;",
      "        sh:path fm:hasComparator ;\n        sh:minCount 1 ; sh:maxCount 0 ;",
-     {("teh:PropositionShape", "CHANGED")}, "maxCount 1 -> 0"),
+     {("teh:PropositionShape", "CHANGED", "max-changed")}, "maxCount 1 -> 0"),
 
     ("a value constraint removed", "value-removed",
      "        sh:class wx:WeatherObservationTarget ;", "",
-     {("teh:PropositionShape", "WEAKENED")}, "class constraint removed"),
+     {("teh:PropositionShape", "WEAKENED", "value-removed")}, "class constraint removed"),
 
     ("a value constraint changed", "value-changed",
      "        sh:class wx:WeatherObservationTarget ;", "        sh:class fm:ObservationTarget ;",
-     {("teh:PropositionShape", "CHANGED")}, "class"),
+     {("teh:PropositionShape", "CHANGED", "value-changed")}, "class"),
 
     ("severity lowered", "severity-weakened",
      "        sh:path wx:underProtocol ;", "        sh:path wx:underProtocol ;\n        sh:severity sh:Warning ;",
-     {("teh:TargetShape", "WEAKENED")}, "severity"),
+     {("teh:TargetShape", "WEAKENED", "severity-weakened")}, "severity"),
 ]
 
 # severity-changed, deactivated-cleared and path-added need a mutated BASELINE
@@ -112,18 +121,19 @@ CASES = [
 REVERSE_CASES = [
     ("severity raised", "severity-changed",
      "        sh:path wx:underProtocol ;", "        sh:path wx:underProtocol ;\n        sh:severity sh:Warning ;",
-     {("teh:TargetShape", "CHANGED")}, "severity"),
+     {("teh:TargetShape", "CHANGED", "severity-changed")}, "severity"),
     ("a shape switched back on", "deactivated-cleared",
      "teh:TargetShape a sh:NodeShape ;", "teh:TargetShape a sh:NodeShape ;\n    sh:deactivated true ;",
-     {("teh:TargetShape", "CHANGED")}, "cleared"),
+     {("teh:TargetShape", "CHANGED", "deactivated-cleared")}, "cleared"),
     ("a path added", "path-added",
      "        sh:path ksh:marketTicker ;", "        sh:path ksh:ignoredTicker ;",
-     {("teh:MarketShape", "CHANGED"), ("teh:MarketShape", "WEAKENED")}, "ksh:marketTicker"),
+     {("teh:MarketShape", "CHANGED", "path-added"), ("teh:MarketShape", "WEAKENED", "path-removed")},
+     "ksh:marketTicker"),
 ]
 
 
 def _check(name, rule, got, expected, fragment) -> list[str]:
-    seen = {(v["shape"], v["verdict"]) for v in got}
+    seen = {(v["shape"], v["verdict"], v["rule"]) for v in got}
     if seen != expected:
         return [f"[{name}] verdicts {sorted(seen)} != expected {sorted(expected)}"]
     if not any(fragment in v["detail"] for v in got):
@@ -234,6 +244,19 @@ def test_refuses_unmodelled() -> list[str]:
             problems.append(f"duplicate-path refusal is the wrong error: {exc}")
         else:
             print("  ok   [refuses unmodelled] duplicate sh:path")
+
+    duplicated_target = with_edit(
+        "    sh:targetClass ksh:Market ;",
+        "    sh:targetClass ksh:Market ;\n    sh:targetClass fm:Proposition ;",
+    )
+    try:
+        S.facts(duplicated_target)
+        problems.append("two sh:targetClass values on one shape collapsed silently")
+    except SystemExit as exc:
+        if "sh:targetClass" not in str(exc):
+            problems.append(f"duplicate-targetClass refusal is the wrong error: {exc}")
+        else:
+            print("  ok   [refuses unmodelled] duplicate sh:targetClass")
     return problems
 
 

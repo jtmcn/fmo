@@ -101,6 +101,11 @@ def _constraints(g: Graph, prop: BNode) -> dict:
     # default as a removal -- reporting a weakening that did not happen.
     severity = next(g.objects(prop, SH.severity), None)
     out["severity"] = curie(severity) if severity is not None else "sh:Violation"
+    # Recorded explicitly, same reasoning as node-level deactivated below: an
+    # unmodelled property-level sh:deactivated used to switch a constraint off
+    # while facts() only read the predicate at the shape's own subject.
+    deactivated = next(g.objects(prop, SH.deactivated), None)
+    out["deactivated"] = bool(deactivated) and str(deactivated).lower() == "true"
     return out
 
 
@@ -138,7 +143,18 @@ def facts(path: Path = SHAPES) -> dict[str, dict]:
     _refuse_unmodelled(g)
     out: dict[str, dict] = {}
     for shape in g.subjects(RDF.type, SH.NodeShape):
-        target = next(g.objects(shape, SH.targetClass), None)
+        targets = list(g.objects(shape, SH.targetClass))
+        if len(targets) > 1:
+            # Same defect class as two property shapes on one sh:path below: an
+            # arbitrary pick drops the rest, and removing one of several targets
+            # would then read as no change at all.
+            raise SystemExit(
+                f"FAIL: {curie(shape)} has more than one sh:targetClass: "
+                f"{', '.join(sorted(curie(t) for t in targets))}. "
+                f"Only one can be represented in the signature, and dropping "
+                f"the rest would hide a weakening from the digest."
+            )
+        target = targets[0] if targets else None
         paths: dict[str, dict] = {}
         for prop in g.objects(shape, SH.property):
             path = next(g.objects(prop, SH.path), None)
@@ -233,6 +249,16 @@ def _verdict(shape: str, verdict: str, detail: str, rule: str) -> dict:
 
 def _compare_path(shape: str, path: str, old: dict, new: dict) -> list[dict]:
     out = []
+    # Same rule names as the node-level check in compare(): switched off is
+    # switched off, whether the predicate sits on the shape or on one property.
+    if new.get("deactivated") and not old.get("deactivated"):
+        out.append(_verdict(
+            shape, "WEAKENED",
+            f"{path}: sh:deactivated true: the property is switched off and enforces nothing",
+            "deactivated-set"))
+    elif old.get("deactivated") and not new.get("deactivated"):
+        out.append(_verdict(shape, "CHANGED", f"{path}: sh:deactivated cleared", "deactivated-cleared"))
+
     old_min, new_min = old.get("minCount"), new.get("minCount")
     if old_min is not None and (new_min is None or new_min < old_min):
         out.append(_verdict(shape, "WEAKENED",
@@ -340,7 +366,11 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
 
 def main() -> int:
     if "--compare" in sys.argv:
-        baseline = Path(sys.argv[sys.argv.index("--compare") + 1])
+        idx = sys.argv.index("--compare") + 1
+        if idx >= len(sys.argv):
+            print("FAIL: --compare requires a BASELINE.json path", file=sys.stderr)
+            return 1
+        baseline = Path(sys.argv[idx])
         if not baseline.is_file():
             print(f"FAIL: no baseline at {baseline}", file=sys.stderr)
             return 1
