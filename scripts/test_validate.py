@@ -220,7 +220,11 @@ ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;
         """    wx:underProtocol ex:TWCDailyTempProtocol ;""",
         """    wx:underProtocol ex:TWCDailyTempProtocol ;
     wx:undeclaredProbe "probe" ;""",
-        "uses undeclared property",
+        # The filename, not just the message: reading each example file separately
+        # is the whole reason this check is exempt from the meta sweep, and a
+        # rewrite onto the merged graph would still say "uses undeclared property".
+        "kxhighny-2026-08-15.ttl uses undeclared property: "
+        "https://w3id.org/forecast-market-ontology/weather#undeclaredProbe",
     ),
     (
         # Exercises check_bfo_grounding.
