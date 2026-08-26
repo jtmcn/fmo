@@ -69,8 +69,12 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   One call per *check* is not enough: an aggregate counter over several traversals
   stays non-zero when one of them empties, which is the original lead-time bug
   wearing a guard. `scripts/test_meta.py` (`make meta`) enforces both by running
-  every `check_*` against the schema with no example data. Inline check bodies in
-  `main()` are invisible to that sweep — write checks as `check_*` functions.
+  every `check_*` against a graph that empties its traversal: the schema with no
+  example data for a data-dependent check, an empty graph for one whose population
+  is the schema itself. Both sets are named in code; guessing wrong reads as a pass.
+  Only a `check_*` function is visible to that sweep, so `main()` parses and
+  dispatches and holds no check of its own — six once did, and none of the six
+  guarded a zero count.
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional

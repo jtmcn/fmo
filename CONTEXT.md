@@ -166,7 +166,8 @@ asserts the matching check fails with the right message — one check, one defec
 `scripts/test_shapes.py` (`make shapes-negative`) proves properties of the SHACL shapes
 themselves: vacuity, dead `sh:class`, and that each shape's required-property mutants are
 attributed to the shape under test. `scripts/test_meta.py` (`make meta`) proves every
-check function fails on an empty graph, so a check with nothing to check cannot pass.
+check function fails when handed a graph that empties its traversal, so a check with
+nothing to check cannot pass.
 _Avoid_: "test" bare — it reads as any of the three, and they fail for different reasons.
 
 **Competency question** (CQ): a question the ontology must answer, numbered 1–8. Most are
@@ -225,5 +226,12 @@ seed. A diff there means the generator changed, never the data.
 
 ## Open naming decisions
 
-None. Add here rather than settling one in a commit message — an ambiguity resolved in
+1. **module.** §4 gives the word one meaning: an ontology file in `src/`. Design work on
+   `scripts/` needs the other one — a thing with an interface and an implementation —
+   and the two collide exactly where precision matters, which is the shape of the
+   `ksh:EventGrouping` trap. Candidates: keep **module** for `src/` and say **check**,
+   **checker** or **runner** for the Python; or qualify both as *ontology module* and
+   *code module*. Unsettled on purpose: pick it deliberately, not inside a refactor.
+
+Add here rather than settling one in a commit message — an ambiguity resolved in
 a commit message is an ambiguity that comes back.
