@@ -50,6 +50,7 @@ SCHEMA_READING = {
     "check_branch_disjointness": "its population is the minted classes",
     "check_documentation": "its population is the minted terms",
     "check_defined_terms": "schema IRIs are in scope too, so example data cannot empty it",
+    "check_designation_disjointness": "its population is the subclasses of fm:Designation",
 }
 
 # Checks that read files off disk rather than the graph they are handed. No graph
@@ -59,7 +60,6 @@ SCHEMA_READING = {
 NOT_SWEEPABLE = {
     "check_context_terms": "reads PROSE_FILES, not the example graph",
     "check_declared_properties": "re-parses the example files itself, not the graph handed to it",
-    "check_designation_disjointness": "reads the modules; still guards by hand rather than coverage()",
 }
 
 
