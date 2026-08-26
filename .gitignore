@@ -5,3 +5,5 @@ robot.jar
 .venv/
 .DS_Store
 viz/src/data.js
+.claude/worktrees/
+.claude/settings.local.json
