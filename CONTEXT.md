@@ -189,6 +189,14 @@ for a future fact), **unlisted** (no Kalshi market exists to model), and **unwri
 > residual category are not the same set, and using one for both is how the count that
 > matters gets read as the count that cannot move.
 
+**Ledger**: a checked-in JSON file recording, per item, why something is not proved
+the usual way — `queries/axiom-expectations.json` for axioms with no reasoner case,
+`queries/class-coverage-expectations.json` for classes no example exercises. Both fail
+on an item in neither state, and both fail on an entry naming something that no longer
+exists, because a stale exemption reads as authoritative and is not.
+_Avoid_: "the exemptions file", "the allowlist" — nothing here grants permission; an
+entry records a reason and is checked.
+
 **Competency question** (CQ): a question the ontology must answer, numbered 1–8. Most are
 a `queries/cqNN-*.rq` plus its `.expected`, and an empty result set **fails** — but CQ3 is
 `make competency` (a reasoner re-derivation, no query file) and CQ6 is two queries. Say

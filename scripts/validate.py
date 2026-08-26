@@ -55,6 +55,10 @@ go wrong when hand-authoring a BFO application ontology:
  12. The trading layer settles what it says it settles: a match outputs one yes lot and
      one no lot of equal quantity, and a payout pays the side its resolution determined,
      to the holder whose obligation it realizes, at one dollar a contract.
+ 13. Every minted class no example instantiates is classified in
+     queries/class-coverage-expectations.json with a reason, and the ledger is made to
+     shrink: an entry for a class an example now reaches, or for one that no longer
+     exists, fails. No count is pinned.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -93,7 +97,7 @@ BRANCHES = {
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from registry import (  # noqa: E402
-    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, MODULES, ONTOLOGY_PREFIXES, OUR_NS,
+    CONTEXT_PREFIXES, EXAMPLE_PREFIXES, IRI_TO_PREFIX, MODULES, OUR_NS,
     PROSE_FILES, ROOT, SRC, examples,
 )
 
@@ -1170,10 +1174,12 @@ COVERAGE_CATEGORIES = ("unassertable", "unlisted", "unwritten")
 
 
 def prefixed(term: URIRef) -> str:
-    for prefix, ns in ONTOLOGY_PREFIXES.items():
-        if str(term).startswith(ns):
-            return f"{prefix}:{str(term)[len(ns):]}"
-    return str(term)
+    """IRI to `wx:Thing`, over registry's shared map rather than a second one."""
+    text = str(term)
+    for full, short in IRI_TO_PREFIX.items():
+        if text.startswith(full):
+            return short + text[len(full):]
+    return text
 
 
 def check_class_coverage(g: Graph, ex: Graph) -> None:
@@ -1200,11 +1206,13 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
         reached |= ancestors(g, term)
 
     ledger = json.loads(COVERAGE_LEDGER.read_text(encoding="utf-8"))
-    classified = {
-        name: (category, entry)
-        for category in COVERAGE_CATEGORIES
-        for name, entry in ledger.get(category, {}).items()
-    }
+    classified: dict[str, tuple[str, dict]] = {}
+    for category in COVERAGE_CATEGORIES:
+        for name, entry in ledger.get(category, {}).items():
+            if name in classified:
+                fail(f"classified twice: {name} -- in {classified[name][0]} and "
+                     f"{category}, and only one reason can be the real one")
+            classified[name] = (category, entry)
 
     for cls in our_classes:
         if cls in reached or cls in schema_instantiated:
@@ -1213,8 +1221,11 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
             fail(f"unexercised and not classified: {prefixed(cls)} -- "
                  f"add it to {COVERAGE_LEDGER.name} under one of {', '.join(COVERAGE_CATEGORIES)}")
 
+    # Deliberately no coverage() call on this loop, unlike every other traversal here:
+    # an empty ledger is the goal state, not a broken one, and it cannot pass in
+    # silence anyway -- with nothing classified, the loop above fails on all 27.
     by_name = {prefixed(cls): cls for cls in our_classes}
-    for name, (category, _entry) in sorted(classified.items()):
+    for name, (category, entry) in sorted(classified.items()):
         cls = by_name.get(name)
         if cls is None:
             fail(f"ledger names a class that does not exist: {name} -- "
@@ -1228,18 +1239,21 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
         # so it names where that argument is written. A reword that deletes the note
         # leaves the entry citing nothing, and reads as settled while it does.
         if category == "unassertable":
-            justifier = by_name.get(_entry.get("justified_by", ""))
+            justifier = by_name.get(entry.get("justified_by", ""))
             if justifier is None:
                 fail(f"unassertable entry names no declared justification: {name}")
             elif not any(g.objects(justifier, SKOS.scopeNote)):
                 fail(f"justification carries no scope note: {prefixed(justifier)} -- "
                      f"cited by {name}, so its argument is no longer written down")
+        # unlisted rests on what Kalshi listed on one day, which nothing here can
+        # re-check. The date is the whole claim; without it the entry is undated
+        # hearsay about a set that changes weekly.
+        if category == "unlisted" and not entry.get("checked"):
+            fail(f"unlisted entry carries no check date: {name} -- "
+                 f"say when the series list was read")
 
-    # Advisory, never a failure, and reported as two figures rather than one. A class
-    # only the schema can instantiate is not a gap an example could ever close, so
-    # folding it into a single number gives a figure that cannot reach 98 however much
-    # example data is written. Direct and closure are both kept: direct alone conflates
-    # an abstract parent exercised through a child with a class nothing can express.
+    # Advisory, never a failure. Split because a class only the schema can instantiate
+    # is not a gap any example could close. See docs/adr/0001-classify-unexercised-classes.md.
     direct = sum(1 for c in our_classes if c in instantiated)
     closure = sum(1 for c in our_classes if c in reached)
     schema_only = sum(1 for c in our_classes if c in schema_instantiated and c not in reached)
@@ -1250,6 +1264,10 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     notes.append(
         f"{schema_only} further class(es) only the schema can instantiate, so no "
         f"example file can reach them"
+    )
+    notes.append(
+        f"{len(our_classes) - closure - schema_only} class(es) an example could reach "
+        f"and does not, each classified in {COVERAGE_LEDGER.name}"
     )
 
     coverage("class coverage", len(our_classes),
@@ -1474,7 +1492,6 @@ def main() -> int:
 
     our_classes = minted_classes(g)
     notes.append(f"{len(our_classes)} minted classes")
-
 
     # 6. Dimensional coherence.
     #
