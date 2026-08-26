@@ -52,7 +52,6 @@ SCHEMA_READING = {
     "check_bridged_grounding": "its population is the bridged QUDT classes",
     "check_branch_disjointness": "its population is the minted classes",
     "check_documentation": "its population is the minted terms",
-    "check_defined_terms": "schema IRIs are in scope too, so example data cannot empty it",
     "check_designation_disjointness": "its population is the subclasses of fm:Designation",
 }
 
@@ -197,6 +196,7 @@ def main() -> int:
     # vacuously -- which is also the obvious way to silence a real failure. The
     # claim is that the schema is its population, so on the schema with no example
     # data every one of its traversals must still count something.
+    misfiled = len(failures)
     for name in sorted(set(SCHEMA_READING) & set(names)):
         fn = getattr(V, name)
         V.failures.clear()
@@ -214,8 +214,9 @@ def main() -> int:
                 f"no example data, so it is data-dependent and the sweep hands it the "
                 f"empty graph its guard needs to be tested with"
             )
-    print(f"  ok   [SCHEMA_READING] {len(SCHEMA_READING)} check(s) still count "
-          f"with no example data")
+    if len(failures) == misfiled:
+        print(f"  ok   [SCHEMA_READING] {len(SCHEMA_READING)} check(s) still count "
+              f"with no example data")
 
     # A stale or misspelled key is inert rather than dangerous -- the misfiling that
     # would matter is caught above -- but it means a check nobody classified is being

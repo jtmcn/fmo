@@ -95,6 +95,27 @@ CASES = [
         "prose checks: nothing to check",
     ),
     (
+        "CONTEXT.md backticking no term at all",
+        "scripts/validate.py",
+        """CONTEXT_TERM = re.compile(rf"(?<!~)`({'|'.join(CONTEXT_PREFIXES)}):""",
+        """CONTEXT_TERM = re.compile(rf"(?<!~)`zz({'|'.join(CONTEXT_PREFIXES)}):""",
+        "prose terms: nothing to check",
+    ),
+    (
+        "CONTEXT.md backticking no repo path at all",
+        "scripts/validate.py",
+        """CONTEXT_PATH = re.compile(r"`((?:src""",
+        """CONTEXT_PATH = re.compile(r"`zz((?:src""",
+        "prose paths: nothing to check",
+    ),
+    (
+        "CONTEXT.md naming no make target at all",
+        "scripts/validate.py",
+        """CONTEXT_MAKE = re.compile(r"`make """,
+        """CONTEXT_MAKE = re.compile(r"`makezz """,
+        "prose make targets: nothing to check",
+    ),
+    (
         # Exercises check_dimensions.
         "Celsius threshold against a Fahrenheit target",
         EXAMPLE,

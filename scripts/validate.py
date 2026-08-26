@@ -1234,11 +1234,13 @@ def check_declared_properties(g: Graph) -> None:
     }
     builtin_ok = {RDF.type, RDFS.label, RDFS.subClassOf, OWL.imports, OWL.versionIRI}
     checked = 0
+    skipped = 0
     for path in EXAMPLES:
         eg = Graph()
         try:
             eg.parse(path, format="turtle")
         except Exception:  # noqa: BLE001
+            skipped += 1
             continue  # already reported by main()'s parse loop; do not lose report()
         for _, p, _ in eg:
             checked += 1
@@ -1249,6 +1251,11 @@ def check_declared_properties(g: Graph) -> None:
             if str(p).startswith("http://purl.org/dc/"):
                 continue
             fail(f"{path.name} uses undeclared property: {p}")
+    if skipped and not checked:
+        # Nothing parsed because everything was broken: main() has already said so, and
+        # a zero-coverage failure here points the operator at the wrong thing.
+        notes.append(f"declared properties: {skipped} example file(s) did not parse")
+        return
     coverage("declared properties", checked, "property use(s) checked against the declarations",
              "no example parsed, so no property use was seen")
 
@@ -1269,7 +1276,8 @@ def check_defined_terms(ex: Graph) -> None:
     for an ontology whose central rule is "the observation target carries the
     protocol" is the worst available place to lose one.
     """
-    in_scope = ("https://w3id.org/forecast-market-ontology/examples/",) + OUR_NS
+    example_ns = "https://w3id.org/forecast-market-ontology/examples/"
+    in_scope = (example_ns,) + OUR_NS
     defined = {t for t in ex.subjects() if isinstance(t, URIRef)}
     dangling = sorted(
         {
@@ -1287,10 +1295,15 @@ def check_defined_terms(ex: Graph) -> None:
         for _, _, o in ex
         if isinstance(o, URIRef) and str(o).startswith(in_scope)
     }
-    coverage("defined terms", len(referenced), "referenced IRI(s) checked for definedness",
-             "nothing in scope is referenced at all -- the modules supply IRIs here too, "
-             "so removing examples cannot empty this",
-             always=True)
+    # Counted on the example-namespace references alone. Everything in scope includes
+    # OUR_NS, which the modules populate by themselves: with examples/ deleted that
+    # count reports a healthy 116 while nothing about example data was resolved, which
+    # is the printed-a-figure-and-passed failure one level up.
+    from_examples = {o for o in referenced if str(o).startswith(example_ns)}
+    notes.append(f"defined terms: {len(referenced)} referenced IRI(s) in scope")
+    coverage("example references", len(from_examples),
+             "example-namespace IRI(s) checked for definedness",
+             "the examples reference no example individual, so nothing was resolved")
 
 
 def check_documentation(g: Graph) -> None:
