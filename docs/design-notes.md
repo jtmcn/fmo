@@ -66,6 +66,14 @@ and forecasts get bucketed into the same brackets by construction.
 
 ## Placements worth defending
 
+**The shapes classifier lives in FMO, not in the consumer.** ThermalEdge pins what
+conformance means and prints the verdict, but does not decide what "weaker" is. One
+rule settles it: a narrowed `sh:targetClass` is a weakening, because a shape with no
+focus nodes conforms — and deciding whether the new target is narrower needs the
+subsumption hierarchy, which only this repo has. A consumer modelling that itself
+would be a second implementation of FMO's semantics living downstream, which is the
+drift the pin exists to catch.
+
 **`wx:PortionOfAir` under `fiat object part`, not `object`.** BFO objects require causal unity.
 A parcel of air has none: its boundaries are ours, and the molecules disperse within days. Fiat
 object part is the honest home. `wx:Atmosphere` *is* an object — gravitational binding and

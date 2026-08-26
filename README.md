@@ -84,6 +84,7 @@ make export-check                    # production CQ mode: export passes, mismat
 make reason                          # HermiT consistency (needs robot.jar)
 make axioms                          # every axiom pinned by a case, or exempt with a reason
 make signatures                      # per-term semantic digests, for downstream pinning
+make shape-signatures                # per-shape contract signatures + weakening classifier
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
 ```
@@ -371,6 +372,20 @@ definition untouched, and the pin still reports every term matching. `semantics_
 digests the label, definition, scope notes, parents and axioms together, so it moves
 when the commitments move. A consumer tracking prose keeps pinning `definition_sha256`;
 one whose inferences depend on the axioms pins the semantic one.
+
+`make shape-signatures` does the same for `shapes/thermaledge-export.ttl`, which is
+the definition of a valid export rather than a description of a term. It publishes
+each shape's target class and per-path constraints, and classifies a change against
+a pinned baseline. The asymmetry is the point: a shape that tightens already fails a
+consumer's nightly run with a SHACL report naming the constraint, while a shape that
+loosens or disappears passes in silence. Rules name a weakening — a shape switched off with `sh:deactivated`, a shape or
+path removed, a target class narrowed or dropped, a minCount lowered, a maxCount
+raised, a value constraint removed, a severity lowered — and everything else is
+reported as changed rather than guessed at. A loosened numeric range and a widened
+`sh:in` are genuine weakenings that land in that second bucket; both still fail the
+consumer's check. A SHACL construct the signer does not model fails the signer,
+rather than being ignored. Target narrowing is in that list because a shape
+matching no focus nodes conforms, which is the bug `teh:MarketShape` shipped with.
 
 ## Open questions
 
