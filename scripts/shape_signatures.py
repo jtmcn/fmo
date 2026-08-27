@@ -230,10 +230,10 @@ def facts(path: Path = SHAPES) -> dict[str, dict]:
         target = targets[0] if targets else None
         paths: dict[str, dict] = {}
         for prop in g.objects(shape, SH.property):
-            path = _single(g, prop, SH.path, curie(shape))
-            if path is None:
+            sh_path = _single(g, prop, SH.path, curie(shape))
+            if sh_path is None:
                 continue
-            key = curie(path)
+            key = curie(sh_path)
             if key in paths:
                 raise SystemExit(
                     f"FAIL: {curie(shape)} has two property shapes on {key}. "
