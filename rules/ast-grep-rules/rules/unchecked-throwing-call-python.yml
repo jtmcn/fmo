@@ -1,0 +1,34 @@
+# project override of ast-grep's bundled unchecked-throwing-call-python:
+# this repo's checkers are fail-fast by design (see CLAUDE.md), and the
+# bundled rule's int()/float() literal patterns false-positive on
+# hardcoded constants (float("inf")) and on prose inside docstrings.
+id: unchecked-throwing-call-python
+language: Python
+severity: error
+message: "File I/O or decode call not guarded -- this repo fails fast (see CLAUDE.md)"
+note: |
+  Raised for file reads and JSON decodes in scripts where the caller has
+  not already established the file exists. Constants like float("inf")
+  and int(N) literals are excluded: those cannot raise.
+rule:
+  any:
+    - pattern: open($$$)
+    - pattern: json.loads($$$)
+    - pattern: json.load($$$)
+    - pattern: os.stat($$$)
+    - pattern: os.lstat($$$)
+    - pattern: os.remove($$$)
+    - pattern: os.unlink($$$)
+    - pattern: os.rename($$$)
+    - pattern: os.mkdir($$$)
+    - pattern: os.makedirs($$$)
+    - pattern: os.rmdir($$$)
+    - pattern: os.listdir($$$)
+    - pattern: os.access($$$)
+    - pattern: shutil.copy($$$)
+    - pattern: shutil.move($$$)
+    - pattern: shutil.rmtree($$$)
+  not:
+    inside:
+      stopBy: end
+      kind: try_statement
