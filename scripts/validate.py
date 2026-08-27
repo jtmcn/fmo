@@ -637,14 +637,16 @@ def check_protocols(g: Graph) -> None:
         # and unioning the levels rejects that correct model as ambiguous.
         levels = ([market], [grouping], list(g.objects(grouping, IN_SERIES)))
         sources: set[URIRef] = set()
+        resolved = 0
         for depth, holders in enumerate(levels):
             sources = {s for h in holders for s in g.objects(h, SETTLEMENT_SOURCE)}
             if sources:
+                resolved = depth
                 break
         if len(sources) != 1:
             # Only a market-level defect is the market's own; one resolved higher
             # belongs to the grouping, and every market under it would repeat it.
-            key = market if depth == 0 else grouping
+            key = market if resolved == 0 else grouping
             if key not in reported:
                 reported.add(key)
                 fail(
