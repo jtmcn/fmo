@@ -425,14 +425,20 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
             and _body_digest(base[name]) == _body_digest(current[name])
         ):
             continue
-        old, new = base.get(name), current.get(name)
-        if old is not None and new is None:
-            out.append(_verdict(name, "WEAKENED", "shape removed from the contract",
-                                "shape-removed"))
+        in_base = name in base
+        in_current = name in current
+        if in_current and not in_base:
+            out.append(_verdict(name, "CHANGED",
+                                "shape added to the contract", "shape-added"))
             continue
-        if new is not None and old is None:
-            out.append(_verdict(name, "CHANGED", "shape added to the contract", "shape-added"))
+        if in_base and not in_current:
+            out.append(_verdict(name, "WEAKENED",
+                                "shape removed from the contract", "shape-removed"))
             continue
+
+        # Both present from here on -- membership established above, so the
+        # dict indexing below is non-optional.
+        old, new = base[name], current[name]
 
         if new.get("deactivated") and not old.get("deactivated"):
             out.append(_verdict(
@@ -471,14 +477,17 @@ def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]
                     name, "CHANGED", f"targetClass {old_target} -> {new_target}", "target-changed"))
 
         for path in sorted(set(old["paths"]) | set(new["paths"])):
-            was, now = old["paths"].get(path), new["paths"].get(path)
-            if was is not None and now is None:
-                out.append(_verdict(name, "WEAKENED", f"{path}: path no longer constrained",
-                                    "path-removed"))
-            elif now is not None and was is None:
-                out.append(_verdict(name, "CHANGED", f"{path}: path newly constrained", "path-added"))
+            was_in = path in old["paths"]
+            now_in = path in new["paths"]
+            if now_in and not was_in:
+                out.append(_verdict(name, "CHANGED",
+                                    f"{path}: path newly constrained", "path-added"))
+            elif was_in and not now_in:
+                out.append(_verdict(name, "WEAKENED",
+                                    f"{path}: path no longer constrained", "path-removed"))
             else:
-                out.extend(_compare_path(name, path, was, now))
+                out.extend(_compare_path(name, path,
+                                         old["paths"][path], new["paths"][path]))
     return out
 
 
