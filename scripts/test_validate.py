@@ -797,6 +797,27 @@ wx:DewPoint a owl:Class ;""",
         '"wx:WindSpeed": {\n      "reason": "An injected duplicate of an unassertable entry."\n    },\n    "wx:Snowfall": {',
         "classified twice: wx:WindSpeed",
     ),
+    (
+        # A key nothing reads swallowed its entries whole. The block this injects is
+        # the one four documents say is derived and never written -- and parking a
+        # stale entry under it escaped both staleness guards, so it read as
+        # authoritative forever while the run stayed green.
+        "the ledger carrying a category nothing reads",
+        "queries/class-coverage-expectations.json",
+        '  "unlisted": {',
+        '  "schema-instantiated": {\n    "ksh:Market": {\n      "reason": "An injected entry under the one category that must never be written."\n    }\n  },\n\n  "unlisted": {',
+        "ledger has categories nothing reads: schema-instantiated",
+    ),
+    (
+        # The reason is the entry: every other field is metadata about it. An entry
+        # with none still classifies the class and silences the guard, which is a
+        # ledger recording that someone once opened the file.
+        "a ledger entry classifying a class with no reason given",
+        "queries/class-coverage-expectations.json",
+        '"reason": "Inherits the unresolved argument on wx:Storm."\n    },\n    "wx:TropicalCyclone"',
+        '"reason": "   "\n    },\n    "wx:TropicalCyclone"',
+        "classified with no reason given: wx:Thunderstorm in unwritten",
+    ),
 ]
 
 

@@ -7,10 +7,13 @@ under one of four reasons and fail the build on a class in none of them, rather 
 pinning a floor on the count.
 
 The reason is that the 36 are not one population. Nine have schema individuals and no
-example file can ever reach them. Nine more are quality classes that a forecast example
+example file can ever reach them. Seven more are quality classes that a forecast example
 must not instantiate, because "propositions, not aboutness" refuses to assert a quality
 instance standing in for a future fact — `wx:AirTemperature`'s scope note says so
-outright. Only a residue is a genuine gap. A single number over those four situations
+outright. Two others, `fm:Designation` and `fm:MeasurementUnit`, are enumeration parents
+that land in a hand-written category only because the derived rule is narrow: their
+members type to subclasses, or come from the vendored QUDT subset, rather than to the
+class itself. Only a residue is a genuine gap. A single number over those four situations
 cannot move for reasons that have nothing to do with whether the ontology is improving.
 
 ## Considered options
@@ -40,8 +43,10 @@ entries to rot — the same guard `check_axioms.py` runs against its own ledger.
 
 The four reasons are not equally verifiable, and the asymmetry is deliberate.
 `schema-instantiated` is derived at runtime and never written by hand. `unassertable`
-is pinned to the `skos:scopeNote` that states the prohibition, which catches a reword
-silently evaporating the justification. `unlisted` rests on an external fact about what
+names the `skos:scopeNote` that states the prohibition, and the check confirms a note is
+still there — enough to catch the note being deleted, not enough to catch it being
+reworded around the argument. Pinning a phrase would catch the reword and break on every
+copy-edit; existence is the weaker guarantee taken deliberately. `unlisted` rests on an external fact about what
 Kalshi lists and can only carry a check date. `unwritten` rests on the stale guard alone,
 which is the right amount for a claim that says only "nobody has done this yet".
 

@@ -77,6 +77,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
@@ -1198,6 +1199,9 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     # deliberately narrow: a class whose *children* carry the schema individuals is
     # not one of these, it just has enumerated children.
     schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
+    # Subtracted by class, not by instance, because ex carries the schema too. The
+    # assumption: no example types an individual to one of these nine. If one ever
+    # does, that class stays schema-only and its parents miss out on reached.
     instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
 
     # Exercised directly or through a subclass, via ancestors of what examples type.
@@ -1206,6 +1210,13 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
         reached |= ancestors(g, term)
 
     ledger = json.loads(COVERAGE_LEDGER.read_text(encoding="utf-8"))
+    # A key nothing reads is worse than a wrong one: entries parked under it escape
+    # both staleness guards while reading as authoritative. schema-instantiated is
+    # the one to expect, since four documents say it is derived and never written.
+    unknown = set(ledger) - {"_comment"} - set(COVERAGE_CATEGORIES)
+    if unknown:
+        fail(f"ledger has categories nothing reads: {', '.join(sorted(unknown))} -- "
+             f"schema-instantiated is derived, never written here")
     classified: dict[str, tuple[str, dict]] = {}
     for category in COVERAGE_CATEGORIES:
         for name, entry in ledger.get(category, {}).items():
@@ -1235,6 +1246,12 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
             fail(f"classified but exercised: {name} -- an example now reaches it, "
                  f"so drop it from {category} in {COVERAGE_LEDGER.name}")
             continue
+        # The reason is the entry. check_axioms refuses a blank one on its own ledger
+        # for the same reason: a category with no argument behind it is a silent pass
+        # wearing a classification.
+        if not isinstance(entry, dict) or not str(entry.get("reason", "")).strip():
+            fail(f"classified with no reason given: {name} in {category}")
+            continue
         # unassertable is the only category claiming the ontology refuses the class,
         # so it names where that argument is written. A reword that deletes the note
         # leaves the entry citing nothing, and reads as settled while it does.
@@ -1248,9 +1265,12 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
         # unlisted rests on what Kalshi listed on one day, which nothing here can
         # re-check. The date is the whole claim; without it the entry is undated
         # hearsay about a set that changes weekly.
-        if category == "unlisted" and not entry.get("checked"):
-            fail(f"unlisted entry carries no check date: {name} -- "
-                 f"say when the series list was read")
+        if category == "unlisted":
+            try:
+                date.fromisoformat(str(entry.get("checked", "")))
+            except ValueError:
+                fail(f"unlisted entry carries no check date: {name} -- "
+                     f"say when the series list was read, as YYYY-MM-DD")
 
     # Advisory, never a failure. Split because a class only the schema can instantiate
     # is not a gap any example could close. See docs/adr/0001-classify-unexercised-classes.md.
