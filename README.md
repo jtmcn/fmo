@@ -266,7 +266,10 @@ boundaries and model runs an export omits — so conformance there showed only t
 shapes were satisfiable by something richer than the thing they describe.
 
 `make export-check` runs production CQ mode both ways: the export fixture must pass and the
-target-mismatch fixture must fail. In production mode a query with no entry in
+target-mismatch fixture must fail **on CQ2 specifically**. It also fails CQ4, so asserting
+only that it failed would keep passing after the CQ2 floor was lost — the mismatch is a
+broken forecast/market join, and CQ2 is the question that names that join. In production
+mode a query with no entry in
 `queries/production-expectations.json` fails, which keeps "empty is a failure" the default
 and makes every exemption a visible edit with a stated reason. Only CQ2 and CQ4 are floors:
 CQ1 needs `wx:atSite` and the day's boundary instants, which an export does not carry, so it
