@@ -99,7 +99,11 @@ def discover(robot: list[str]) -> int:
 
 
 def verify(robot: list[str]) -> int:
-    ledger = load_ledger()
+    try:
+        ledger = load_ledger()
+    except L.LedgerError as exc:
+        print(f"FAIL: {exc}", file=sys.stderr)
+        return 1
     pinned, exempt = ledger.get("pinned", {}), ledger.get("exempt", {})
     sites = axioms.all_sites()
     failures: list[str] = []
@@ -116,9 +120,10 @@ def verify(robot: list[str]) -> int:
               file=sys.stderr)
         return 1
 
-    # The shared set arithmetic; only the sentences are ours. `pinned` values are
-    # case names rather than reasons, and a named case is never blank, so
-    # BLANK_REASON only ever fires on `exempt` -- which is what it did before.
+    # The shared set arithmetic; only the sentences are ours. audit() is
+    # category-blind and these two categories are not symmetric: `pinned` values are
+    # case names, so a blank one is "pinned by a case that does not exist", reported
+    # below. Rendering BLANK_REASON only for `exempt` keeps that, as at base.
     rows = ([L.Entry(key, "pinned", str(name)) for key, name in pinned.items()]
             + [L.Entry(key, "exempt", str(reason)) for key, reason in exempt.items()])
     for f in L.audit(sites, rows):
@@ -135,7 +140,7 @@ def verify(robot: list[str]) -> int:
                 f"ledger names an axiom that no longer exists: {f.name}\n"
                 f"      it reads as a decision about today's ontology, and is not one"
             )
-        elif f.kind == L.BLANK_REASON:
+        elif f.kind == L.BLANK_REASON and f.category == "exempt":
             failures.append(f"exempt with no reason given: {f.name}")
 
     # The claim that a case proves an axiom is itself checked, or the ledger is

@@ -125,8 +125,11 @@ def main() -> int:
     if data is not None:
         for f in L.audit({qf.stem for qf in query_files}, expectation_rows(expectations)):
             if f.kind == L.STALE_UNKNOWN:
-                print(f"  FAIL [{f.name}]: production-expectations.json names a query "
-                      f"that does not exist")
+                # Named for the file, not the query: there IS no such query, and a
+                # "FAIL [cq...]" line would be counted as a rejection by the
+                # --negatives sweep, which reads config breakage as a fixture verdict.
+                print(f"  FAIL [production-expectations.json]: names a query that "
+                      f"does not exist: {f.name}")
                 failures += 1
             # BLANK_REASON is deliberately not rendered here: the per-query chain
             # below reports it after the shape checks, so a malformed entry names

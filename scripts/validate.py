@@ -75,7 +75,6 @@ Exit code is non-zero if any check fails. Run: python3 scripts/validate.py
 from __future__ import annotations
 
 import inspect
-import json
 import re
 import sys
 from collections.abc import Callable
