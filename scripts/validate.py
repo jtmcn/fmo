@@ -100,6 +100,7 @@ BRANCHES = {
 }
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ledger as L  # noqa: E402
 from registry import (  # noqa: E402
     CONTEXT_PREFIXES, EXAMPLE_PREFIXES, IRI_TO_PREFIX, MODULES, OUR_NS,
     PROSE_FILES, ROOT, SRC, examples,
@@ -1320,48 +1321,56 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     for term in instantiated:
         reached |= ancestors(g, term)
 
-    ledger = json.loads(COVERAGE_LEDGER.read_text(encoding="utf-8"))
+    ledger = L.load(COVERAGE_LEDGER)
     # A key nothing reads is worse than a wrong one: entries parked under it escape
     # both staleness guards while reading as authoritative. schema-instantiated is
     # the one to expect, since four documents say it is derived and never written.
-    unknown = set(ledger) - {"_comment"} - set(COVERAGE_CATEGORIES)
+    unknown = set(ledger) - set(COVERAGE_CATEGORIES)
     if unknown:
         fail(f"ledger has categories nothing reads: {', '.join(sorted(unknown))} -- "
              f"schema-instantiated is derived, never written here")
+
     classified: dict[str, tuple[str, dict]] = {}
+    rows: list[L.Entry] = []
     for category in COVERAGE_CATEGORIES:
         for name, entry in ledger.get(category, {}).items():
-            if name in classified:
-                fail(f"classified twice: {name} -- in {classified[name][0]} and "
-                     f"{category}, and only one reason can be the real one")
-            classified[name] = (category, entry)
+            reason = entry.get("reason", "") if isinstance(entry, dict) else ""
+            rows.append(L.Entry(name, category, reason))
+            classified.setdefault(name, (category, entry))
 
-    for cls in our_classes:
-        if cls in reached or cls in schema_instantiated:
-            continue
-        if prefixed(cls) not in classified:
-            fail(f"unexercised and not classified: {prefixed(cls)} -- "
-                 f"add it to {COVERAGE_LEDGER.name} under one of {', '.join(COVERAGE_CATEGORIES)}")
-
-    # Deliberately no coverage() call on this loop, unlike every other traversal here:
-    # an empty ledger is the goal state, not a broken one, and it cannot pass in
-    # silence anyway -- with nothing classified, the loop above fails on all 27.
+    # The population is the UNEXERCISED classes, so a row goes stale two ways and
+    # the universe tells them apart. An empty population is the goal state here,
+    # not a failure, so EMPTY_POPULATION is not rendered -- and no coverage() call
+    # guards this traversal, unlike every other one, for the same reason.
     by_name = {prefixed(cls): cls for cls in our_classes}
+    unexercised = {prefixed(cls) for cls in our_classes
+                   if cls not in reached and cls not in schema_instantiated}
+    for f in L.audit(unexercised, rows, universe=set(by_name)):
+        if f.kind == L.DUPLICATE:
+            fail(f"classified twice: {f.name} -- in {f.other} and "
+                 f"{f.category}, and only one reason can be the real one")
+        elif f.kind == L.UNCOVERED:
+            fail(f"unexercised and not classified: {f.name} -- "
+                 f"add it to {COVERAGE_LEDGER.name} under one of {', '.join(COVERAGE_CATEGORIES)}")
+        elif f.kind == L.STALE_UNKNOWN:
+            fail(f"ledger names a class that does not exist: {f.name} -- "
+                 f"renamed or retired, so its entry in {f.category} is stale")
+        elif f.kind == L.STALE_LEFT:
+            fail(f"classified but exercised: {f.name} -- an example now reaches it, "
+                 f"so drop it from {f.category} in {COVERAGE_LEDGER.name}")
+        elif f.kind == L.BLANK_REASON:
+            # A category with no argument behind it is a silent pass wearing a
+            # classification. check_axioms refuses a blank one for the same reason.
+            fail(f"classified with no reason given: {f.name} in {f.category}")
+
+    # Per-entry verification stays here: the four reasons are not equally verifiable
+    # and ADR-0001 makes that asymmetry deliberate.
     for name, (category, entry) in sorted(classified.items()):
-        cls = by_name.get(name)
-        if cls is None:
-            fail(f"ledger names a class that does not exist: {name} -- "
-                 f"renamed or retired, so its entry in {category} is stale")
+        # Stale rows and blank ones are already reported; re-checking them here would
+        # say twice that one entry is wrong, which the old `continue` chain avoided.
+        if name not in unexercised or not isinstance(entry, dict):
             continue
-        if cls in reached or cls in schema_instantiated:
-            fail(f"classified but exercised: {name} -- an example now reaches it, "
-                 f"so drop it from {category} in {COVERAGE_LEDGER.name}")
-            continue
-        # The reason is the entry. check_axioms refuses a blank one on its own ledger
-        # for the same reason: a category with no argument behind it is a silent pass
-        # wearing a classification.
-        if not isinstance(entry, dict) or not str(entry.get("reason", "")).strip():
-            fail(f"classified with no reason given: {name} in {category}")
+        if not str(entry.get("reason", "")).strip():
             continue
         # unassertable is the only category claiming the ontology refuses the class,
         # so it names where that argument is written. A reword that deletes the note

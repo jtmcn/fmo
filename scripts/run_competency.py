@@ -27,13 +27,13 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
 from rdflib import Graph, Literal, URIRef
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ledger as L  # noqa: E402
 from registry import IRI_TO_PREFIX, MODULES, QUERIES, SRC, examples, exports, negatives  # noqa: E402
 
 
@@ -72,9 +72,21 @@ def load_graph(data: Path | None = None) -> Graph:
 
 
 def load_production_expectations() -> dict:
-    path = QUERIES / "production-expectations.json"
-    with path.open() as handle:
-        return {k: v for k, v in json.load(handle).items() if not k.startswith("_")}
+    return L.load(QUERIES / "production-expectations.json")
+
+
+def expectation_rows(expectations: dict) -> list[L.Entry]:
+    """Flatten into ledger rows. The category is implicit in which key is set --
+    this file is the one of the three that is not shaped category -> name."""
+    # A non-dict entry keeps its row rather than raising here: the per-query chain
+    # below is what reports a malformed entry, and with the message that names it.
+    return [
+        L.Entry(stem,
+                "may_be_empty" if isinstance(rule, dict) and rule.get("may_be_empty")
+                else "min_rows",
+                rule.get("why", "") if isinstance(rule, dict) else "")
+        for stem, rule in expectations.items()
+    ]
 
 
 def render(results) -> str:
@@ -108,14 +120,17 @@ def main() -> int:
         return 1
 
     failures = 0
-    # The other direction. Every query needs an entry, checked below -- but an entry
-    # naming no query went unnoticed, and a stale exemption reads as a decision about
-    # today's query set. Both other ledgers guard this; CONTEXT.md states the rule for
-    # all three, and this was the one that did not have it.
-    for stale in sorted(set(expectations) - {qf.stem for qf in query_files}):
-        print(f"  FAIL [{stale}]: production-expectations.json names a query that "
-              f"does not exist")
-        failures += 1
+    # UNCOVERED is rendered per query below, where the row count is in hand, so only
+    # staleness is read here. That direction is the one this ledger did not have.
+    if data is not None:
+        for f in L.audit({qf.stem for qf in query_files}, expectation_rows(expectations)):
+            if f.kind == L.STALE_UNKNOWN:
+                print(f"  FAIL [{f.name}]: production-expectations.json names a query "
+                      f"that does not exist")
+                failures += 1
+            # BLANK_REASON is deliberately not rendered here: the per-query chain
+            # below reports it after the shape checks, so a malformed entry names
+            # its real problem rather than a missing 'why' it also has.
     for qf in query_files:
         expected_file = qf.with_suffix(".expected")
         try:

@@ -190,10 +190,16 @@ for a future fact), **unlisted** (no Kalshi market exists to model), and **unwri
 > matters gets read as the count that cannot move.
 
 **Ledger**: a checked-in JSON file recording, per item, why something is not proved
-the usual way — `queries/axiom-expectations.json` for axioms with no reasoner case,
-`queries/class-coverage-expectations.json` for classes no example exercises. Both fail
-on an item in neither state, and both fail on an entry naming something that no longer
-exists, because a stale exemption reads as authoritative and is not.
+the usual way. Three: `queries/axiom-expectations.json` for axioms with no reasoner
+case, `queries/class-coverage-expectations.json` for classes no example exercises, and
+`queries/production-expectations.json` for the per-query floors in production mode.
+All three fail on an item in no category, and all three fail on an entry naming
+something that no longer exists, because a stale exemption reads as authoritative and
+is not — `production-expectations.json` was written without that second guard, which
+is why the arithmetic now lives in `scripts/ledger.py` rather than in this paragraph.
+The three files do not share a *shape*; each flattens its own into `ledger.Entry` rows.
+Per-entry verification stays with each checker, because the reasons are not equally
+verifiable (`docs/adr/0001-classify-unexercised-classes.md`).
 _Avoid_: "the exemptions file", "the allowlist" — nothing here grants permission; an
 entry records a reason and is checked.
 
