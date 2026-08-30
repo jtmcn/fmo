@@ -77,8 +77,10 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+from typing import NamedTuple
 
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
 from rdflib.namespace import SKOS
@@ -162,6 +164,70 @@ def coverage(name: str, count: int, detail: str, on_empty: str = "",
     if count == 0 and (always or EXAMPLES):
         fail(f"{name}: nothing to check, so this check proved nothing"
              + (f" -- {on_empty}" if on_empty else ""))
+
+
+GRAPHS = ("schema", "data")
+POPULATIONS = ("data", "schema", "example-files", "unsweepable")
+
+
+class Check(NamedTuple):
+    fn: Callable[..., None]
+    takes: tuple[str, ...]
+    population: str
+    reason: str
+
+    @property
+    def name(self) -> str:
+        return self.fn.__name__
+
+
+CHECKS: list[Check] = []
+
+
+def check(*, takes: tuple[str, ...], population: str = "data", reason: str = ""):
+    """Register a check for dispatch and for test_meta.py's sweep.
+
+    Registering is the point. main() dispatched from three hand-written tuples
+    while test_meta swept dir(V), and nothing reconciled them: a well-formed
+    check that main() never called passed `make meta` AND `make validate`. The
+    sweep proved a check fails when its traversal empties; nothing proved it ran.
+
+    Two facts, because they are two facts and they do not coincide. `takes` names
+    the graphs main() hands it -- "schema" is the modules, "data" is the modules
+    plus the example files. `population` names what has to go away for the check
+    to traverse nothing, which is the lever the sweep needs:
+
+      data           the example data; the default, and the common case
+      schema         the modules themselves, so the sweep needs an empty graph
+      example-files  re-read off disk, so EXAMPLES is the lever, not the graph
+      unsweepable    no lever empties it; exempt by name, in code
+
+    check_declared_properties takes the schema and reads the example files;
+    check_context_terms takes both graphs and reads neither. Deriving one from
+    the other would misfile both.
+
+    `population` other than "data" carries a reason, the way test_meta's three
+    dicts did -- exempting by name in code beats exempting by judgement at
+    review time. The claim is not taken on trust either: test_meta re-runs every
+    "schema" check against the schema and fails one that empties anyway.
+    """
+    if population not in POPULATIONS:
+        raise ValueError(f"unknown population {population!r}, expected one of {POPULATIONS}")
+    if population != "data" and not reason:
+        raise ValueError(f"population={population!r} needs a reason")
+    unknown = sorted(set(takes) - set(GRAPHS))
+    if unknown:
+        raise ValueError(f"unknown graph(s) {unknown} in takes, expected from {GRAPHS}")
+    if not takes:
+        raise ValueError("takes must name at least one graph")
+
+    def register(fn: Callable[..., None]) -> Callable[..., None]:
+        if any(c.name == fn.__name__ for c in CHECKS):
+            raise ValueError(f"{fn.__name__} is registered twice")
+        CHECKS.append(Check(fn, tuple(takes), population, reason))
+        return fn
+
+    return register
 
 
 def is_ours(term) -> bool:
@@ -282,6 +348,7 @@ VALUE_PROPS = (URIRef(FM + "floorValue"), URIRef(FM + "capValue"),
                URIRef(FM + "realizedValue"), SETTLEMENT_VALUE)
 
 
+@check(takes=("data",))
 def check_dimensions(g: Graph) -> None:
     """Check unit coherence across each proposition/target/datum chain.
 
@@ -301,6 +368,10 @@ def check_dimensions(g: Graph) -> None:
     Dimensional equality remains necessary but not sufficient in general: snowfall
     depth and liquid precipitation are both lengths, percent and degrees are both
     dimensionless. This catches unit mistakes, not quantity confusions.
+
+    Checked on dimension vectors rather than quantity kinds because QUDT's
+    quantity-kind links are uneven -- pressure units point at ForcePerArea, not
+    Pressure -- while every unit carries exactly one dimension vector.
     """
 
     def dim(unit_iri):
@@ -437,6 +508,7 @@ FIRST_INSTANT = URIRef(BFO + "BFO_0000222")
 INSTANT_DT = URIRef(FM + "instantDateTime")
 
 
+@check(takes=("data",))
 def check_lead_times(g: Graph) -> None:
     """wx:leadTimeHours is derived, so verify it against what it is derived from.
 
@@ -500,6 +572,7 @@ def check_lead_times(g: Graph) -> None:
     coverage("lead times", checked, "checked against issuance and interval start")
 
 
+@check(takes=("data",))
 def check_current_assessments(g: Graph) -> None:
     """At most one assessment per proposition may rest on a live record.
 
@@ -530,6 +603,7 @@ def check_current_assessments(g: Graph) -> None:
              "the assessesProposition chain is broken")
 
 
+@check(takes=("data",))
 def check_scores(g: Graph) -> None:
     """A stored Brier score is derived, so check it against its inputs.
 
@@ -595,6 +669,7 @@ def check_scores(g: Graph) -> None:
              "the usesScoringRule or scoresAssignment chain is broken")
 
 
+@check(takes=("data",))
 def check_protocols(g: Graph) -> None:
     """A target names its protocol, and the exchange settles on that same protocol.
 
@@ -684,6 +759,7 @@ def check_protocols(g: Graph) -> None:
              "the settlementSource or sourceProtocol chain is broken")
 
 
+@check(takes=("data",))
 def check_grouping_coherence(g: Graph) -> None:
     """An event grouping's markets partition the values of ONE target.
 
@@ -800,6 +876,7 @@ def check_grouping_coherence(g: Graph) -> None:
              "the inEventGrouping or expressesProposition chain is broken")
 
 
+@check(takes=("data",))
 def check_payouts(g: Graph) -> None:
     """A payout pays the side the resolution determined, the holder who held it, what it owes.
 
@@ -927,6 +1004,7 @@ def check_payouts(g: Graph) -> None:
              "voided or scalar; the trading layer is unexercised again")
 
 
+@check(takes=("data",))
 def check_trades(g: Graph) -> None:
     """A match outputs two lots: opposite sides, equal quantity.
 
@@ -976,6 +1054,8 @@ def check_trades(g: Graph) -> None:
              "the trading layer is unexercised again")
 
 
+@check(takes=("schema", "data"), population="unsweepable",
+       reason="reads PROSE_FILES, not the example graph")
 def check_context_terms(g: Graph, ex: Graph) -> None:
     """The prose files name terms, and no tool but this one reads them.
 
@@ -1052,6 +1132,8 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
              always=True)
 
 
+@check(takes=("schema",), population="schema",
+       reason="its population is the subclasses of fm:Designation")
 def check_designation_disjointness(g: Graph) -> None:
     """Every subclass of fm:Designation is in an owl:AllDisjointClasses block.
 
@@ -1093,6 +1175,7 @@ def check_designation_disjointness(g: Graph) -> None:
     )
 
 
+@check(takes=("data",))
 def check_forecast_market_join(g: Graph) -> None:
     """The join the ontology exists for: one proposition, both probabilities.
 
@@ -1122,6 +1205,7 @@ def check_forecast_market_join(g: Graph) -> None:
     )
 
 
+@check(takes=("data",))
 def check_forecast_targets(g: Graph) -> None:
     """A forecast's target is the subject of the propositions it scores.
 
@@ -1185,6 +1269,9 @@ def prefixed(term: URIRef) -> str:
     return text
 
 
+@check(takes=("schema", "data"), population="schema",
+       reason="its population is the minted classes; example data changes which are "
+              "exercised, never how many are traversed")
 def check_class_coverage(g: Graph, ex: Graph) -> None:
     """Every unexercised minted class is classified, with a reason.
 
@@ -1298,6 +1385,8 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
              always=True)
 
 
+@check(takes=("schema",), population="schema",
+       reason="its population is the minted classes, which example data cannot empty")
 def check_bfo_grounding(g: Graph) -> None:
     """Every minted class reaches bfo:entity, and lands in a known BFO branch."""
     our_classes = minted_classes(g)
@@ -1322,6 +1411,8 @@ def check_bfo_grounding(g: Graph) -> None:
             notes.append(f"  {count:3d}  {name}")
 
 
+@check(takes=("schema",), population="schema",
+       reason="its population is the bridged QUDT classes")
 def check_bridged_grounding(g: Graph) -> None:
     """External classes we bridge into the hierarchy must be grounded too.
 
@@ -1344,6 +1435,7 @@ def check_bridged_grounding(g: Graph) -> None:
              always=True)
 
 
+@check(takes=("schema",), population="schema", reason="its population is the minted classes")
 def check_branch_disjointness(g: Graph) -> None:
     """No minted class is both a continuant and an occurrent."""
     our_classes = minted_classes(g)
@@ -1357,6 +1449,8 @@ def check_branch_disjointness(g: Graph) -> None:
              always=True)
 
 
+@check(takes=("schema",), population="example-files",
+       reason="re-parses the example files itself, not the graph handed to it")
 def check_declared_properties(g: Graph) -> None:
     """Every property an example uses is declared in the modules.
 
@@ -1396,6 +1490,7 @@ def check_declared_properties(g: Graph) -> None:
              "no example parsed, so no property use was seen")
 
 
+@check(takes=("data",))
 def check_defined_terms(ex: Graph) -> None:
     """Individuals and schema terms the examples reference are defined somewhere.
 
@@ -1442,6 +1537,7 @@ def check_defined_terms(ex: Graph) -> None:
              "the examples reference no example individual, so nothing was resolved")
 
 
+@check(takes=("schema",), population="schema", reason="its population is the minted terms")
 def check_documentation(g: Graph) -> None:
     """Every minted class and property carries rdfs:label and skos:definition.
 
@@ -1515,33 +1611,11 @@ def main() -> int:
     our_classes = minted_classes(g)
     notes.append(f"{len(our_classes)} minted classes")
 
-    # 6. Dimensional coherence.
-    #
-    # Checked on dimension vectors rather than quantity kinds because QUDT's
-    # quantity-kind links are uneven (pressure units point at ForcePerArea, not
-    # Pressure), while every unit carries exactly one dimension vector.
-    #
-    # Dimension equality is necessary, not sufficient: snowfall depth and liquid
-    # precipitation are both lengths, and percent and degrees are both dimensionless.
-    # This catches unit-system mistakes, not quantity confusions.
-    for check in (check_dimensions, check_lead_times, check_current_assessments,
-                  check_scores, check_grouping_coherence, check_protocols,
-                  check_payouts, check_trades, check_forecast_market_join,
-                  check_forecast_targets):
-        run_check(check, ex)
-
-    # Schema-reading, so these take g rather than ex: what they check is a property
-    # of the modules, and no example data can change the answer.
-    for check in (check_bfo_grounding, check_bridged_grounding,
-                  check_branch_disjointness, check_documentation,
-                  check_designation_disjointness):
-        run_check(check, g)
-    run_check(check_class_coverage, g, ex)
-
-    # Reads the example files itself, to name the file an undeclared property came from.
-    run_check(check_declared_properties, g)
-    run_check(check_defined_terms, ex)
-    run_check(check_context_terms, g, ex)
+    # 6. Every registered check, in definition order. Derived rather than retyped:
+    # the three tuples that lived here were a second statement of what runs.
+    graphs = {"schema": g, "data": ex}
+    for registered in CHECKS:
+        run_check(registered.fn, *[graphs[name] for name in registered.takes])
 
     return report()
 

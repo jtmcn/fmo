@@ -9,8 +9,13 @@ enforces the rule for all of them, including checks nobody has written yet.
 Which graph empties a traversal depends on what the check reads: data-dependent
 checks get the schema with no example data, schema-reading checks get an empty
 graph, and a check that re-reads the example files off disk gets an example file
-with no triples. Getting this wrong reads as a pass, so the sets are named in
-code -- and the schema-reading claim is then run rather than trusted.
+with no triples. Getting this wrong reads as a pass, so each check declares its
+population on validate.py's @check -- and the schema-reading claim is then run
+rather than trusted.
+
+The sweep runs validate.CHECKS, not dir(V), and asserts the two agree. Reading
+dir(V) while main() dispatched from hand-written tuples is how a check could
+exist, pass this file, and never run.
 
 The assertion is on coverage_log, not on failures: "the check failed somehow" is
 satisfied by any unrelated guard inside it, so a check could lose its coverage()
@@ -21,7 +26,6 @@ Run: python3 scripts/test_meta.py
 
 from __future__ import annotations
 
-import inspect
 import sys
 import tempfile
 from pathlib import Path
@@ -42,35 +46,27 @@ def schema_only() -> Graph:
     return g
 
 
-# Checks whose traversal empties when the EXAMPLE DATA goes away are swept against
-# the schema. Checks that read the modules never empty that way -- their population
-# is the schema itself -- so sweeping them needs a graph with nothing in it at all.
-# Skipping them instead, as this file once did, exempts them from the one rule the
-# sweep exists to enforce.
-SCHEMA_READING = {
-    "check_bfo_grounding": "its population is the minted classes, which example data cannot empty",
-    "check_bridged_grounding": "its population is the bridged QUDT classes",
-    "check_branch_disjointness": "its population is the minted classes",
-    "check_documentation": "its population is the minted terms",
-    "check_designation_disjointness": "its population is the subclasses of fm:Designation",
-    "check_class_coverage": "its population is the minted classes; example data changes "
-                            "which are exercised, never how many are traversed",
-}
-
-# Reads the example files off disk rather than the graph it is handed, so no graph
-# empties its traversal. EXAMPLES is the lever instead -- pointed at a file with no
-# triples, not emptied, since coverage() disarms its own guard when there are no
-# example files at all and that would read as a pass for the check being swept.
-EXAMPLE_READING = {
-    "check_declared_properties": "re-parses the example files itself, not the graph handed to it",
-}
-
-# Its population is the prose files: no graph empties it, and EXAMPLES is not a lever
-# either, because its guards pass always=True. Exempting by name, in code, beats
-# exempting by judgement at review time.
-NOT_SWEEPABLE = {
-    "check_context_terms": "reads PROSE_FILES, not the example graph",
-}
+# The three name->reason dicts that used to live here are now `population` on
+# validate.py's @check, beside the check they describe. They said the same things:
+#
+#   population="data"           swept against the schema, where only the example
+#                               data has gone away. The default and the common case.
+#   population="schema"         its population is the modules, which example data
+#                               cannot empty, so sweeping it needs a graph with
+#                               nothing in it at all. Skipping such a check instead,
+#                               as this file once did, exempts it from the one rule
+#                               the sweep exists to enforce.
+#   population="example-files"  reads the example files off disk rather than the
+#                               graph it is handed, so EXAMPLES is the lever --
+#                               pointed at a file with no triples, not emptied,
+#                               since coverage() disarms its own guard when there
+#                               are no example files at all and that would read as
+#                               a pass for the check being swept.
+#   population="unsweepable"    no lever empties it. Exempting by name, in code,
+#                               beats exempting by judgement at review time.
+#
+# Two lists kept in step by hand became one fact stated once. What did NOT move is
+# the part that matters: the claim is still run rather than trusted, below.
 
 
 def coverage_guard_direction() -> list[str]:
@@ -117,6 +113,17 @@ def main() -> int:
     if not names:
         print("FAIL: found no check_* functions in validate.py")
         return 1
+    if not V.CHECKS:
+        print("FAIL: validate.py registered no checks, so main() dispatches nothing")
+        return 1
+
+    # Registration is the single statement of what runs, so it must be complete:
+    # an unregistered check is swept here and dispatched nowhere.
+    registered = {c.name for c in V.CHECKS}
+    for orphan in sorted(set(names) - registered):
+        failures.append(
+            f"{orphan} is not registered with @check, so main() never dispatches it "
+            f"-- it would pass this sweep and never run")
 
     schema = schema_only()
     # An example file that exists and holds nothing. Held for the process: the
@@ -125,26 +132,28 @@ def main() -> int:
     empty_example = Path(tmp.name) / "empty.ttl"
     empty_example.write_text("", encoding="utf-8")
 
-    for name in names:
-        fn = getattr(V, name)
+    for registration in V.CHECKS:
+        name, fn = registration.name, registration.fn
         V.failures.clear()
         V.notes.clear()
         V.coverage_log.clear()
-        if name in NOT_SWEEPABLE:
-            print(f"  --   [{name}] exempt: {NOT_SWEEPABLE[name]}")
+        if registration.population == "unsweepable":
+            print(f"  --   [{name}] exempt: {registration.reason}")
             continue
         # A schema-reading check needs an empty graph; anything else is swept against
         # the schema, where only the example data has gone away.
-        schema_reading = name in SCHEMA_READING
-        example_reading = name in EXAMPLE_READING
+        schema_reading = registration.population == "schema"
+        example_reading = registration.population == "example-files"
         g = Graph() if schema_reading else schema
         given = ("an empty graph and no example files" if schema_reading else
                  "an example file with no triples" if example_reading else
                  "a graph with no example data")
         # Checks take one graph or two (schema, examples); pass the same one for
         # each parameter, so a two-argument check is tested rather than TypeError-ing
-        # and reading as a coverage failure.
-        arity = len(inspect.signature(fn).parameters)
+        # and reading as a coverage failure. The count comes from the registration
+        # rather than the signature: one fact, and a signature that disagrees with
+        # what main() hands it fails loudly here instead of silently there.
+        arity = len(registration.takes)
         saved_examples = V.EXAMPLES
         if example_reading:
             V.EXAMPLES = [empty_example]
@@ -193,41 +202,38 @@ def main() -> int:
 
     failures.extend(coverage_guard_direction())
 
-    # The classification is run, not trusted. A data-dependent check filed under
-    # SCHEMA_READING gets an empty graph, empties trivially and passes the sweep
-    # vacuously -- which is also the obvious way to silence a real failure. The
-    # claim is that the schema is its population, so on the schema with no example
-    # data every one of its traversals must still count something.
+    # The classification is run, not trusted. A data-dependent check declaring
+    # population="schema" gets an empty graph, empties trivially and passes the
+    # sweep vacuously -- which is also the obvious way to silence a real failure.
+    # Moving the declaration onto @check moved where the claim is written, not
+    # whether it is believed. The claim is that the schema is its population, so
+    # on the schema with no example data every traversal must still count something.
+    schema_reading = [c for c in V.CHECKS if c.population == "schema"]
     misfiled = len(failures)
-    for name in sorted(set(SCHEMA_READING) & set(names)):
-        fn = getattr(V, name)
+    for registration in schema_reading:
+        name, fn = registration.name, registration.fn
         V.failures.clear()
         V.notes.clear()
         V.coverage_log.clear()
         try:
-            fn(*[schema] * len(inspect.signature(fn).parameters))
+            fn(*[schema] * len(registration.takes))
         except Exception as exc:  # noqa: BLE001
             failures.append(f"{name} raised {type(exc).__name__}: {exc} on the schema")
             continue
         empty = [n for n, count in V.coverage_log if count == 0]
         if empty:
             failures.append(
-                f"{name} is filed under SCHEMA_READING but {empty} empties on a graph with "
-                f"no example data, so it is data-dependent and the sweep hands it the "
-                f"empty graph its guard needs to be tested with"
+                f'{name} declares population="schema" but {empty} empties on a graph '
+                f"with no example data, so it is data-dependent and the sweep hands it "
+                f"the empty graph its guard needs to be tested with"
             )
     if len(failures) == misfiled:
-        print(f"  ok   [SCHEMA_READING] {len(SCHEMA_READING)} check(s) still count "
+        print(f'  ok   [population="schema"] {len(schema_reading)} check(s) still count '
               f"with no example data")
 
-    # A stale or misspelled key is inert rather than dangerous -- the misfiling that
-    # would matter is caught above -- but it means a check nobody classified is being
-    # swept as data-dependent by default.
-    for label, names_set in (("SCHEMA_READING", SCHEMA_READING),
-                             ("EXAMPLE_READING", EXAMPLE_READING),
-                             ("NOT_SWEEPABLE", NOT_SWEEPABLE)):
-        for stale in sorted(set(names_set) - set(names)):
-            failures.append(f"{label} names {stale}, which is not a check in validate.py")
+    # The stale-key guard that stood here is gone, and deliberately: a classification
+    # written as a decorator argument cannot name a check that does not exist, because
+    # it is applied to the function. The failure it caught is now unrepresentable.
 
     # A smoke alarm, not a proof: a mention is not a test, and check_lead_times
     # was mentioned here while its zero-coverage hole went unnoticed for a

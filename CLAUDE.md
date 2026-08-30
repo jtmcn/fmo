@@ -85,9 +85,18 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   example data for a data-dependent check, an empty graph and no `EXAMPLES` for one
   whose population is the schema itself — which is what proves its `always=True` —
   and an example file holding nothing for one that re-reads `examples/` off disk.
-  The sets are named in code, and the schema-reading claim is then run rather than
-  read: a data-dependent check misfiled there empties trivially and would otherwise
-  pass vacuously.
+  Which of the three a check needs is `population=` on its `@check` decorator, and
+  the schema-reading claim is then run rather than read: a data-dependent check
+  misfiled there empties trivially and would otherwise pass vacuously.
+- **Every check registers itself with `@check(takes=…, population=…)`.** `takes`
+  names the graphs `main()` hands it; `population` names what has to go away for its
+  traversal to empty. The two correlate and do not coincide, so both are declared.
+  Dispatch is derived from the registry, never retyped: `main()` once held three
+  hand-written tuples while `make meta` swept `dir(V)`, and a well-formed check that
+  `main()` never called passed both. `test_meta.py` now runs `validate.CHECKS` and
+  fails on a `check_*` that is not registered.
+  `coverage(always=)` is *not* derived from `population` — it is per call, not per
+  check, and `check_class_coverage` has three traversals of which one is schema-wide.
   Only a `check_*` function is visible to that sweep, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
   guarded a zero count. What is left inline is advisory and can never fail: the

@@ -1178,6 +1178,19 @@ def main() -> int:
         "check_trades records no coverage()",
         script="scripts/test_meta.py",
     ))
+    # Dispatch used to be three hand-written tuples in main() while test_meta swept
+    # dir(V), and nothing reconciled them: a well-formed check main() never called
+    # passed `make meta` AND `make validate`. Deleting a registration is that bug
+    # exactly -- the function still parses, still sweeps, and never runs.
+    results.append(run_case(
+        "a check that is defined but never registered for dispatch",
+        "scripts/validate.py",
+        """@check(takes=("data",))
+def check_payouts(g: Graph) -> None:""",
+        """def check_payouts(g: Graph) -> None:""",
+        "check_payouts is not registered with @check",
+        script="scripts/test_meta.py",
+    ))
     # test_shapes.py printed its assertion count without asserting it, so an
     # sh:minCount dropped from the export contract shrank the matrix from 14 to 13
     # and the suite still said OK -- the shape it exists to prove stopped being
