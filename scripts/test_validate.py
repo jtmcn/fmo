@@ -1165,6 +1165,20 @@ def main() -> int:
         "FAIL [cq02-probability-gap.rq]",
         "scripts/run_competency.py --exports",
     ))
+    # Both other ledgers fail on an entry naming something gone; this one did not,
+    # so a stale exemption sat there reading as a decision about today's query set.
+    results.append(run_case(
+        "a production expectation naming a query that does not exist",
+        "queries/production-expectations.json",
+        """  "cq02-probability-gap": {""",
+        """  "cq99-retired": {
+    "may_be_empty": true,
+    "why": "a stale entry, left behind after its query was deleted"
+  },
+  "cq02-probability-gap": {""",
+        "names a query that does not exist",
+        script="scripts/run_competency.py --exports",
+    ))
 
     # test_meta.py asserted `if V.failures:` -- "the check failed somehow", which any
     # unrelated guard inside it satisfies. Two checks passed that sweep on their own
