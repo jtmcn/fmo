@@ -108,6 +108,14 @@ def main() -> int:
         return 1
 
     failures = 0
+    # The other direction. Every query needs an entry, checked below -- but an entry
+    # naming no query went unnoticed, and a stale exemption reads as a decision about
+    # today's query set. Both other ledgers guard this; CONTEXT.md states the rule for
+    # all three, and this was the one that did not have it.
+    for stale in sorted(set(expectations) - {qf.stem for qf in query_files}):
+        print(f"  FAIL [{stale}]: production-expectations.json names a query that "
+              f"does not exist")
+        failures += 1
     for qf in query_files:
         expected_file = qf.with_suffix(".expected")
         try:
