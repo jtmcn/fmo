@@ -809,6 +809,18 @@ wx:DewPoint a owl:Class ;""",
         "ledger has categories nothing reads: schema-instantiated",
     ),
     (
+        # One underscore wide. ledger.load() strips the `_comment` header, and
+        # stripping every underscore key instead -- which looks like tidier
+        # de-duplication -- hides the block from the guard above entirely, which is
+        # exactly the escape hatch that guard exists to close.
+        "the ledger parking a category behind an underscore",
+        "queries/class-coverage-expectations.json",
+        '  "unlisted": {',
+        '  "_schema-instantiated": {\n    "ksh:Market": {\n      "reason": "An injected'
+        ' entry hidden behind the comment prefix."\n    }\n  },\n\n  "unlisted": {',
+        "ledger has categories nothing reads: _schema-instantiated",
+    ),
+    (
         # The reason is the entry: every other field is metadata about it. An entry
         # with none still classifies the class and silences the guard, which is a
         # ledger recording that someone once opened the file.
@@ -1036,6 +1048,90 @@ PIN_CASES = [
 ]
 
 
+def ledger_cases() -> list[str]:
+    """Direct assertions on scripts/ledger.py, in process.
+
+    check_axioms.py is the one call site no target can run here -- it skips
+    without ROBOT, so a subprocess case expecting failure would see exit 0 and
+    fail for the wrong reason. Review found a real defect in exactly that blind
+    spot: audit() is category-blind, so a blank `pinned` value emitted
+    BLANK_REASON and check_axioms rendered it as "exempt with no reason given"
+    for an entry that is pinned.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import ledger as L  # noqa: PLC0415
+
+    out: list[str] = []
+
+    def want(label: str, kinds: set[str], findings: list) -> None:
+        got = {f.kind for f in findings}
+        if got != kinds:
+            out.append(f"ledger.audit {label}: expected {sorted(kinds)}, got {sorted(got)}")
+        else:
+            print(f"  ok   [ledger] {label}")
+
+    rows = [L.Entry("a", "one", "why"), L.Entry("b", "two", "why")]
+    want("clean", set(), L.audit({"a", "b"}, rows))
+    want("uncovered", {L.UNCOVERED}, L.audit({"a", "b", "c"}, rows))
+    want("stale", {L.STALE_UNKNOWN}, L.audit({"a"}, rows))
+    want("duplicate", {L.DUPLICATE},
+         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("a", "two", "w")]))
+    want("blank reason", {L.BLANK_REASON}, L.audit({"a"}, [L.Entry("a", "one", "  ")]))
+    want("empty population", {L.EMPTY_POPULATION, L.STALE_UNKNOWN}, L.audit(set(), rows))
+    want("universe splits staleness", {L.STALE_LEFT},
+         L.audit({"b"}, rows, universe={"a", "b"}))
+    want("universe, gone entirely", {L.STALE_UNKNOWN, L.UNCOVERED},
+         L.audit({"z"}, [L.Entry("a", "one", "w")], universe={"z"}))
+
+    # A blank reason on a row whose name is stale is reported once, as stale --
+    # the population is fully covered here so nothing else can account for it.
+    want("stale beats blank", {L.STALE_UNKNOWN},
+         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("x", "one", "")]))
+
+    # The check_axioms regression: a blank `pinned` value must not be rendered as
+    # an exempt-with-no-reason, because a pinned value is a case name.
+    blank_pinned = [f for f in L.audit({"a"}, [L.Entry("a", "pinned", "")])
+                    if f.kind == L.BLANK_REASON and f.category == "exempt"]
+    if blank_pinned:
+        out.append("a blank `pinned` value renders as an exempt-with-no-reason")
+    else:
+        print("  ok   [ledger] a blank pinned value is not reported as exempt")
+
+    # KINDS is exercised in full, so a kind added without a case fails here.
+    seen_kinds = set()
+    for pop, rows_, uni in (
+        ({"a", "b", "c"}, rows, None),
+        ({"a"}, [L.Entry("a", "one", ""), L.Entry("a", "two", "w")], None),
+        (set(), rows, None),
+        ({"b"}, rows, {"a", "b"}),
+    ):
+        seen_kinds |= {f.kind for f in L.audit(pop, rows_, universe=uni)}
+    if seen_kinds != set(L.KINDS):
+        out.append(f"ledger cases exercise {sorted(seen_kinds)}, not all of {sorted(L.KINDS)}")
+    else:
+        print("  ok   [ledger] every finding kind is exercised")
+
+    # load() strips the comment header and nothing else.
+    import json as _json  # noqa: PLC0415
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "l.json"
+        path.write_text(_json.dumps({"_comment": "x", "_hidden": {}, "real": {}}))
+        keys = set(L.load(path))
+        if keys != {"_hidden", "real"}:
+            out.append(f"ledger.load stripped the wrong keys: {sorted(keys)}")
+        else:
+            print("  ok   [ledger] load strips _comment and keeps other underscore keys")
+        missing = Path(tmp) / "nope.json"
+        try:
+            L.load(missing)
+            out.append("ledger.load accepted a missing file")
+        except L.LedgerError:
+            print("  ok   [ledger] a missing ledger raises LedgerError, not SystemExit")
+        except SystemExit:
+            out.append("ledger.load raised SystemExit, which validate.py cannot catch")
+    return out
+
+
 def copy_tree(tmp: str) -> Path:
     work = Path(tmp) / "fmo"
     shutil.copytree(
@@ -1185,6 +1281,12 @@ def main() -> int:
     # retained guards, so their coverage() calls could have been deleted outright and
     # `make meta` stayed green. This mutation is that exact shape: a check with no
     # coverage() call and a failure from somewhere else.
+    print("\n  -- ledger --")
+    ledger_problems = ledger_cases()
+    for problem in ledger_problems:
+        print(f"  FAIL [ledger]: {problem}")
+    results.append(not ledger_problems)
+
     print("\n  -- meta --")
     results.append(run_case(
         "a check that fails for reasons unrelated to its coverage",

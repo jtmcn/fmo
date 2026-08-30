@@ -41,8 +41,9 @@ import json
 from pathlib import Path
 from typing import Iterable, NamedTuple
 
-# Every way a ledger can be wrong about its population, named so a caller renders
-# the ones it can produce and a new kind cannot be silently ignored.
+# Every way a ledger can be wrong about its population. Each call site renders the
+# kinds it can produce; KINDS is what the ledger cases in test_validate.py assert
+# they have all exercised, so a new kind arrives with a test rather than silently.
 EMPTY_POPULATION = "empty-population"
 DUPLICATE = "duplicate"
 UNCOVERED = "uncovered"
@@ -68,21 +69,30 @@ class Finding(NamedTuple):
     other: str = ""
 
 
-def load(path: Path) -> dict:
-    """Read a ledger, dropping `_comment` and any other underscore key.
+class LedgerError(Exception):
+    """A ledger that cannot be read. An Exception, not SystemExit, so validate.py's
+    per-check handler records it as one check's failure and the rest still run."""
 
-    The three files stripped this three ways -- implicitly, by subtracting
-    {"_comment"}, and by startswith("_"). One loader means no fourth variant.
+
+def load(path: Path) -> dict:
+    """Read a ledger, dropping exactly the `_comment` header.
+
+    Exactly `_comment`, not every key starting with an underscore. Stripping the
+    whole prefix looks like tidier de-duplication and is a widening: it hides an
+    unrecognised category from check_class_coverage's "categories nothing reads"
+    guard, whose own comment explains why that matters -- "entries parked under it
+    escape both staleness guards while reading as authoritative". A block named
+    `_schema-instantiated` would have been invisible, one underscore wide.
     """
     if not path.is_file():
-        raise SystemExit(f"FAIL: no ledger at {path}")
+        raise LedgerError(f"no ledger at {path}")
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise SystemExit(f"FAIL: ledger at {path} is not valid JSON: {exc}") from exc
+        raise LedgerError(f"ledger at {path} is not valid JSON: {exc}") from exc
     if not isinstance(raw, dict):
-        raise SystemExit(f"FAIL: ledger at {path} is not a JSON object")
-    return {k: v for k, v in raw.items() if not k.startswith("_")}
+        raise LedgerError(f"ledger at {path} is not a JSON object")
+    return {k: v for k, v in raw.items() if k != "_comment"}
 
 
 def audit(
@@ -114,9 +124,10 @@ def audit(
     pop = set(population)
     out: list[Finding] = []
     # Reported, not returned early: with an empty population every row is stale, and
-    # that is worth saying too. Whether it is a failure is the caller's -- for
-    # check_class_coverage an empty population is the goal state, for check_axioms
-    # it means the enumerator broke.
+    # that is worth saying too. No site renders it today -- check_axioms and
+    # run_competency refuse an empty population before calling, and for
+    # check_class_coverage an empty ledger is the goal state -- so this is available
+    # to a caller that wants it, not a guard any caller currently relies on.
     if not pop:
         out.append(Finding(EMPTY_POPULATION))
 
