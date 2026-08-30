@@ -184,13 +184,15 @@ class Check(NamedTuple):
 CHECKS: list[Check] = []
 
 
-def check(*, takes: tuple[str, ...], population: str = "data", reason: str = ""):
+def check(*, takes: tuple[str, ...], population: str = "data",
+          reason: str = "") -> Callable[[Callable[..., None]], Callable[..., None]]:
     """Register a check for dispatch and for test_meta.py's sweep.
 
-    Registering is the point. main() dispatched from three hand-written tuples
-    while test_meta swept dir(V), and nothing reconciled them: a well-formed
-    check that main() never called passed `make meta` AND `make validate`. The
-    sweep proved a check fails when its traversal empties; nothing proved it ran.
+    Registering is the point. main() dispatched from two hand-written tuples and
+    four loose run_check calls while test_meta swept dir(V), and nothing
+    reconciled them: a well-formed check that main() never called passed
+    `make meta` AND `make validate`. The sweep proved a check fails when its
+    traversal empties; nothing proved it ran.
 
     Two facts, because they are two facts and they do not coincide. `takes` names
     the graphs main() hands it -- "schema" is the modules, "data" is the modules
@@ -220,6 +222,13 @@ def check(*, takes: tuple[str, ...], population: str = "data", reason: str = "")
         raise ValueError(f"unknown graph(s) {unknown} in takes, expected from {GRAPHS}")
     if not takes:
         raise ValueError("takes must name at least one graph")
+    # Order and duplicates matter and the sweep cannot see either: it passes the same
+    # graph for every parameter, so takes=("data","schema") on a two-graph check runs
+    # green here and hands main() the arguments the wrong way round.
+    if len(set(takes)) != len(takes):
+        raise ValueError(f"takes repeats a graph: {takes}")
+    if list(takes) != [g for g in GRAPHS if g in takes]:
+        raise ValueError(f"takes must be in {GRAPHS} order, got {tuple(takes)}")
 
     def register(fn: Callable[..., None]) -> Callable[..., None]:
         if any(c.name == fn.__name__ for c in CHECKS):
@@ -1612,8 +1621,10 @@ def main() -> int:
     notes.append(f"{len(our_classes)} minted classes")
 
     # 6. Every registered check, in definition order. Derived rather than retyped:
-    # the three tuples that lived here were a second statement of what runs.
-    graphs = {"schema": g, "data": ex}
+    # what lived here was a second statement of what runs.
+    # Keyed off GRAPHS so the two cannot drift -- a literal here would be the second
+    # statement of one fact this change exists to remove.
+    graphs = dict(zip(GRAPHS, (g, ex), strict=True))
     for registered in CHECKS:
         run_check(registered.fn, *[graphs[name] for name in registered.takes])
 

@@ -91,13 +91,18 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 - **Every check registers itself with `@check(takes=…, population=…)`.** `takes`
   names the graphs `main()` hands it; `population` names what has to go away for its
   traversal to empty. The two correlate and do not coincide, so both are declared.
-  Dispatch is derived from the registry, never retyped: `main()` once held three
-  hand-written tuples while `make meta` swept `dir(V)`, and a well-formed check that
-  `main()` never called passed both. `test_meta.py` now runs `validate.CHECKS` and
-  fails on a `check_*` that is not registered.
-  `coverage(always=)` is *not* derived from `population` — it is per call, not per
-  check, and `check_class_coverage` has three traversals of which one is schema-wide.
-  Only a `check_*` function is visible to that sweep, so `main()` parses and
+  Dispatch is derived from the registry, never retyped: `main()` once held two
+  hand-written tuples and four loose `run_check` calls while `make meta` swept
+  `dir(V)`, and a well-formed check that `main()` never called passed both.
+  `test_meta.py` now runs `validate.CHECKS` and fails on a `check_*` that is not
+  registered.
+  `coverage(always=)` is *not* derived from `population`. It is an argument to a
+  *call*, and a check has one per traversal, so a single check can hold traversals
+  of different kinds — `check_class_coverage` has three loops and deliberately
+  guards only one, because an empty ledger is its goal state. Today every check
+  happens to be uniform, which is exactly when a derived second statement of the
+  fact looks safe and silently stops being so.
+  Only a registered function is dispatched or swept, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
   guarded a zero count. What is left inline is advisory and can never fail: the
   minted-class count. The instantiation figures moved into `check_class_coverage`,
