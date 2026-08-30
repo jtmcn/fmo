@@ -197,6 +197,20 @@ exists, because a stale exemption reads as authoritative and is not.
 _Avoid_: "the exemptions file", "the allowlist" — nothing here grants permission; an
 entry records a reason and is checked.
 
+**Pin**: a checked-in file recording what a contract currently *is*, so that changing
+it has to be noticed. Not a ledger: a ledger records why something is *not* proved the
+usual way, a pin proves something directly, and a pin carries no reasons. Two kinds,
+and they differ in what a verdict costs:
+- **FMO's pin** — `shapes/thermaledge-export.pin.json`, written by
+  `make shape-signatures-update` and audited by `make shape-signatures`. FMO's record
+  of its own export contract; any verdict fails the build, weakened or merely changed.
+- **A consumer's pin** — held by the consumer, never here. `--compare` serves those and
+  exits 0 whatever it finds, because what a verdict is worth is the consumer's call.
+
+_Avoid_: "the baseline" bare — `--compare` takes a consumer's, `--audit` takes FMO's,
+and the two differ in exactly the thing worth saying. Say whose. _Avoid_ also "the
+lockfile": nothing is being held at a version.
+
 **Competency question** (CQ): a question the ontology must answer, numbered 1–8. Most are
 a `queries/cqNN-*.rq` plus its `.expected`, and an empty result set **fails** — but CQ3 is
 `make competency` (a reasoner re-derivation, no query file) and CQ6 is two queries. Say

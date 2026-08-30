@@ -10,6 +10,7 @@ CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
+SHAPEPIN := shapes/thermaledge-export.pin.json
 
 PY      := poetry run python3
 
@@ -21,7 +22,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -132,11 +133,18 @@ axioms:
 signatures:
 	$(PY) scripts/term_signatures.py --check
 
-## Per-shape structured signatures for downstream consumers to pin against, and
-## the classifier that says whether a change weakened the export contract.
+## Per-shape structured signatures for downstream consumers to pin against, FMO's
+## own pin on the export contract, and the classifier behind both. --check runs
+## first: an unreproducible signature makes the audit's verdict meaningless.
 shape-signatures:
 	$(PY) scripts/shape_signatures.py --check
+	$(PY) scripts/shape_signatures.py --audit $(SHAPEPIN)
 	$(PY) scripts/test_shape_drift.py
+
+## Re-pin the export contract after an intended shapes change. Review the diff
+## before committing, like cq-update.
+shape-signatures-update:
+	$(PY) scripts/shape_signatures.py --update $(SHAPEPIN)
 
 ## Competency question 3: weaken an assertion and confirm the reasoner re-derives it.
 ## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
