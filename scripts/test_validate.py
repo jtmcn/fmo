@@ -1095,8 +1095,13 @@ def main() -> int:
     # validate_shapes.py is a third checker with its own negative cases below. Without
     # it in the baseline, a shapes edit that makes the CLEAN tree violate TargetShape
     # would let those cases "pass": non-zero exit, right message, wrong reason.
+    # The audit is a fourth, and the same argument is sharper for it: a stale pin --
+    # editing the shapes file and forgetting `make shape-signatures-update` -- already
+    # fails the clean tree, and plausibly emits the very value-changed the pin case
+    # greps for, so that case would report ok for the wrong reason.
     for script in ("scripts/validate.py", "scripts/run_competency.py",
-                   "scripts/validate_shapes.py --examples"):
+                   "scripts/validate_shapes.py --examples",
+                   f"scripts/shape_signatures.py --audit {SHAPE_PIN}"):
         proc = subprocess.run(
             [sys.executable, *script.split()], cwd=ROOT, capture_output=True, text=True,
         )
@@ -1105,7 +1110,7 @@ def main() -> int:
             print(proc.stdout + proc.stderr)
             baseline_ok = False
         else:
-            print(f"  ok   [baseline: {Path(script).name} passes on clean tree]")
+            print(f"  ok   [baseline: {Path(script.split()[0]).name} passes on clean tree]")
     if not baseline_ok:
         return 1
 

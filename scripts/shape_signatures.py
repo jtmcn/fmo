@@ -396,7 +396,7 @@ def _compare_path(shape: str, path: str, old: dict, new: dict) -> list[dict]:
     return out
 
 
-def _check_baseline(base: dict) -> None:
+def _check_baseline(base: dict, label: str = "baseline") -> None:
     """Refuse a malformed pin with the message every other failure here uses.
 
     --compare reads a caller-supplied path, the one genuinely external input to
@@ -404,20 +404,20 @@ def _check_baseline(base: dict) -> None:
     bare KeyError traceback rather than a FAIL line naming the file's problem.
     """
     if not isinstance(base, dict):
-        raise SystemExit("FAIL: baseline must be a JSON object of shape name -> facts")
+        raise SystemExit(f"FAIL: {label} must be a JSON object of shape name -> facts")
     for name, body in base.items():
         if not isinstance(body, dict):
-            raise SystemExit(f"FAIL: baseline entry {name} is not an object")
+            raise SystemExit(f"FAIL: {label} entry {name} is not an object")
         missing = sorted({"targetClass", "paths"} - set(body))
         if missing:
             raise SystemExit(
-                f"FAIL: baseline entry {name} is missing {', '.join(missing)}")
+                f"FAIL: {label} entry {name} is missing {', '.join(missing)}")
         if not isinstance(body["paths"], dict):
-            raise SystemExit(f"FAIL: baseline entry {name} has a non-object 'paths'")
+            raise SystemExit(f"FAIL: {label} entry {name} has a non-object 'paths'")
         for path, constraints in body["paths"].items():
             if not isinstance(constraints, dict):
                 raise SystemExit(
-                    f"FAIL: baseline entry {name} path {path} is not an object")
+                    f"FAIL: {label} entry {name} path {path} is not an object")
 
 
 def compare(base: dict, current: dict, below: dict[str, set[str]]) -> list[dict]:
@@ -531,8 +531,13 @@ def load_pin(path: Path, label: str = "pin") -> dict:
     except json.JSONDecodeError as exc:
         raise SystemExit(f"FAIL: {label} at {path} is not valid JSON: {exc}") from exc
     if not isinstance(raw, dict):
-        raise SystemExit("FAIL: baseline must be a JSON object of shape name -> facts")
-    return {k: v for k, v in raw.items() if not k.startswith("_")}
+        raise SystemExit(f"FAIL: {label} must be a JSON object of shape name -> facts")
+    stripped = {k: v for k, v in raw.items() if not k.startswith("_")}
+    # Validated here as well as in compare(), so the message says whose file it is:
+    # --audit reads FMO's pin and must not report it as "the baseline". compare()
+    # keeps its own call for callers that build a baseline without going through here.
+    _check_baseline(stripped, label)
+    return stripped
 
 
 def _pin_path(flag: str, arg: str = "PIN.json") -> Path | None:
@@ -542,7 +547,9 @@ def _pin_path(flag: str, arg: str = "PIN.json") -> Path | None:
     as a BASELINE, and a consumer reading that should not be told about PIN.json.
     """
     idx = sys.argv.index(flag) + 1
-    if idx >= len(sys.argv):
+    # A following flag is a missing path, not a path named "--check": taking it
+    # literally reports "no pin at --check", which describes the wrong mistake.
+    if idx >= len(sys.argv) or sys.argv[idx].startswith("--"):
         print(f"FAIL: {flag} requires a {arg} path", file=sys.stderr)
         return None
     return Path(sys.argv[idx])
@@ -564,9 +571,13 @@ def main() -> int:
             print("FAIL: no shapes signed, so the pin would assert nothing",
                   file=sys.stderr)
             return 1
-        pin.write_text(
-            json.dumps({"_comment": PIN_COMMENT, **first}, indent=2) + "\n",
-            encoding="utf-8")
+        try:
+            pin.write_text(
+                json.dumps({"_comment": PIN_COMMENT, **first}, indent=2) + "\n",
+                encoding="utf-8")
+        except OSError as exc:
+            print(f"FAIL: cannot write the pin to {pin}: {exc}", file=sys.stderr)
+            return 1
         print(f"OK: pinned {len(first)} shape signature(s) to {pin}")
         return 0
 
@@ -575,10 +586,22 @@ def main() -> int:
         if pin is None:
             return 1
         base = load_pin(pin)
+        current = facts()
+        # Neither side may be empty. Comparing nothing to nothing prints OK having
+        # asserted nothing, which is the vacuity `make meta` exists to reject -- and
+        # --check running first in the Makefile is a guard living somewhere else.
+        if not base:
+            print(f"FAIL: {pin} holds no shape signatures, so the audit asserted nothing",
+                  file=sys.stderr)
+            return 1
+        if not current:
+            print("FAIL: no shapes signed, so the audit compared nothing",
+                  file=sys.stderr)
+            return 1
         # Any verdict fails, not only a WEAKENED one: a loosened numeric range
         # classifies as value-changed, and that is the weakening this pin exists
         # to catch. See docs/adr/0002-pin-the-export-contract.md.
-        verdicts = compare(base, facts(), subclass_map())
+        verdicts = compare(base, current, subclass_map())
         if verdicts:
             print(f"FAIL: the export contract moved ({len(verdicts)} verdict(s)):",
                   file=sys.stderr)

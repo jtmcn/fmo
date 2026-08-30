@@ -50,6 +50,11 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 - **Version bumps touch all four modules** — `owl:versionIRI` and `owl:versionInfo` in
   `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status line in
   `README.md`.
+- **Editing `shapes/thermaledge-export.ttl` means re-pinning.** `make shape-signatures`
+  audits it against `shapes/thermaledge-export.pin.json` and fails on *any* verdict,
+  weakened or merely changed — a widened numeric range is the second kind and is the
+  hole the pin was added for. Run `make shape-signatures-update` and review the diff;
+  the pin is generated, never hand-edited. See `docs/adr/0002-pin-the-export-contract.md`.
 - **`src/imports/bfo-core.ttl` is vendored unmodified.** Never edit it.
   `src/imports/qudt-subset.ttl` is generated — edit `scripts/extract_qudt_subset.py` and
   run `make qudt` instead.
