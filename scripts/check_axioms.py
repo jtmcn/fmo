@@ -45,6 +45,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import axioms  # noqa: E402
+import ledger as L  # noqa: E402
 import test_reason as T  # noqa: E402
 from registry import ROOT, SRC  # noqa: E402
 
@@ -52,10 +53,7 @@ LEDGER = ROOT / "queries" / "axiom-expectations.json"
 
 
 def load_ledger() -> dict:
-    if not LEDGER.exists():
-        print(f"FAIL: no ledger at {LEDGER.relative_to(ROOT)}", file=sys.stderr)
-        raise SystemExit(1)
-    return json.loads(LEDGER.read_text(encoding="utf-8"))
+    return L.load(LEDGER)
 
 
 def case_by_name(name: str) -> tuple | None:
@@ -118,25 +116,27 @@ def verify(robot: list[str]) -> int:
               file=sys.stderr)
         return 1
 
-    both = sorted(set(pinned) & set(exempt))
-    for key in both:
-        failures.append(f"in both pinned and exempt, so the ledger does not say which: {key}")
-
-    for key in sorted(set(sites) - set(pinned) - set(exempt)):
-        failures.append(
-            f"axiom in neither pinned nor exempt: {key}\n"
-            f"      write a case for it, or record in {LEDGER.name} why it has none"
-        )
-
-    for key in sorted((set(pinned) | set(exempt)) - set(sites)):
-        failures.append(
-            f"ledger names an axiom that no longer exists: {key}\n"
-            f"      it reads as a decision about today's ontology, and is not one"
-        )
-
-    for key, reason in sorted(exempt.items()):
-        if not str(reason).strip():
-            failures.append(f"exempt with no reason given: {key}")
+    # The shared set arithmetic; only the sentences are ours. `pinned` values are
+    # case names rather than reasons, and a named case is never blank, so
+    # BLANK_REASON only ever fires on `exempt` -- which is what it did before.
+    rows = ([L.Entry(key, "pinned", str(name)) for key, name in pinned.items()]
+            + [L.Entry(key, "exempt", str(reason)) for key, reason in exempt.items()])
+    for f in L.audit(sites, rows):
+        if f.kind == L.DUPLICATE:
+            failures.append(
+                f"in both pinned and exempt, so the ledger does not say which: {f.name}")
+        elif f.kind == L.UNCOVERED:
+            failures.append(
+                f"axiom in neither pinned nor exempt: {f.name}\n"
+                f"      write a case for it, or record in {LEDGER.name} why it has none"
+            )
+        elif f.kind == L.STALE_UNKNOWN:
+            failures.append(
+                f"ledger names an axiom that no longer exists: {f.name}\n"
+                f"      it reads as a decision about today's ontology, and is not one"
+            )
+        elif f.kind == L.BLANK_REASON:
+            failures.append(f"exempt with no reason given: {f.name}")
 
     # The claim that a case proves an axiom is itself checked, or the ledger is
     # prose asserting a relationship nothing verifies -- the bug this file exists for.
