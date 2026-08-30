@@ -134,12 +134,13 @@ signatures:
 	$(PY) scripts/term_signatures.py --check
 
 ## Per-shape structured signatures for downstream consumers to pin against, FMO's
-## own pin on the export contract, and the classifier behind both. --check runs
-## first: an unreproducible signature makes the audit's verdict meaningless.
+## own pin on the export contract, and the classifier behind both. Audit last:
+## an unreproducible signature or a broken classifier makes its verdict meaningless,
+## so both are proved before the verdict is believed.
 shape-signatures:
 	$(PY) scripts/shape_signatures.py --check
-	$(PY) scripts/shape_signatures.py --audit $(SHAPEPIN)
 	$(PY) scripts/test_shape_drift.py
+	$(PY) scripts/shape_signatures.py --audit $(SHAPEPIN)
 
 ## Re-pin the export contract after an intended shapes change. Review the diff
 ## before committing, like cq-update.
