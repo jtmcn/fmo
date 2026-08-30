@@ -1178,7 +1178,7 @@ def main() -> int:
         "check_trades records no coverage()",
         script="scripts/test_meta.py",
     ))
-    # Dispatch used to be three hand-written tuples in main() while test_meta swept
+    # Dispatch used to be hand-written tuples in main() while test_meta swept
     # dir(V), and nothing reconciled them: a well-formed check main() never called
     # passed `make meta` AND `make validate`. Deleting a registration is that bug
     # exactly -- the function still parses, still sweeps, and never runs.

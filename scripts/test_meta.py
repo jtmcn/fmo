@@ -124,6 +124,14 @@ def main() -> int:
         failures.append(
             f"{orphan} is not registered with @check, so main() never dispatches it "
             f"-- it would pass this sweep and never run")
+    # And the other direction, so the docstring's "asserts the two agree" is true: a
+    # second `def` of the same name without a decorator shadows the attribute while
+    # the first stays registered and dispatched, so what runs is not what is read.
+    for c in V.CHECKS:
+        if getattr(V, c.name, None) is not c.fn:
+            failures.append(
+                f"{c.name} is registered but is not validate.{c.name}, so the function "
+                f"dispatched is not the one this sweep reads")
 
     schema = schema_only()
     # An example file that exists and holds nothing. Held for the process: the
@@ -243,7 +251,7 @@ def main() -> int:
         if name not in suite:
             failures.append(f"{name} is named nowhere in test_validate.py")
 
-    print(f"\n{len(names)} check(s) examined")
+    print(f"\n{len(V.CHECKS)} registered check(s) examined")
     if failures:
         print(f"\nFAILED ({len(failures)}):", file=sys.stderr)
         for f in failures:
