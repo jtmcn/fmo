@@ -322,10 +322,37 @@ def test_baseline_is_not_trusted() -> list[str]:
     return problems
 
 
+def test_subclass_map_refuses_an_empty_hierarchy() -> list[str]:
+    """subclass_map's traversal, guarded like every traversal in validate.py.
+
+    An empty hierarchy does not fail on its own: membership doubles as "is this
+    class declared", so every target-changed silently becomes target-undeclared
+    WEAKENED -- a wrong reason on a real failure. Now that `make shape-signatures`
+    audits FMO's own pin, that reason reaches a build. Run it empty rather than
+    reading the guard.
+    """
+    problems: list[str] = []
+    saved = S.MODULES
+    try:
+        S.MODULES = []
+        try:
+            S.subclass_map()
+            problems.append("subclass_map accepted a hierarchy with no classes")
+        except SystemExit as exc:
+            if "no classes declared" not in str(exc):
+                problems.append(f"the empty-hierarchy refusal is the wrong error: {exc}")
+            else:
+                print("  ok   [subclass_map] an empty hierarchy fails, not misclassifies")
+    finally:
+        S.MODULES = saved
+    return problems
+
+
 def main() -> int:
     problems = (
         test_facts_shape() + test_refuses_unmodelled() + test_classifier()
         + test_baseline_is_not_trusted()
+        + test_subclass_map_refuses_an_empty_hierarchy()
         + test_every_rule_is_claimed() + test_no_false_positives()
     )
     for p in problems:

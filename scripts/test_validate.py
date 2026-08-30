@@ -1017,6 +1017,24 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
 ]
 
 
+SHAPE_PIN = "shapes/thermaledge-export.pin.json"
+
+# The hole the pin exists to close. Before it, widening this range passed
+# validate, shapes, shapes-negative, shape-signatures, export-check and cq: the
+# classifier was written and pointed at nothing. Note the expected rule --
+# a loosened numeric range is CHANGED, not WEAKENED, so an audit failing only on
+# weakenings would still miss it.
+PIN_CASES = [
+    (
+        "a weakened export contract against an unchanged pin",
+        "shapes/thermaledge-export.ttl",
+        """sh:minInclusive 0 ; sh:maxInclusive 1 ;""",
+        """sh:minInclusive -99 ; sh:maxInclusive 99 ;""",
+        "value-changed",
+    ),
+]
+
+
 def copy_tree(tmp: str) -> Path:
     work = Path(tmp) / "fmo"
     shutil.copytree(
@@ -1107,6 +1125,12 @@ def main() -> int:
     results += [
         run_case(*case, script="scripts/run_competency.py")
         for case in COMPETENCY_CASES
+    ]
+
+    print("\n  -- export contract pin --")
+    results += [
+        run_case(*case, script=f"scripts/shape_signatures.py --audit {SHAPE_PIN}")
+        for case in PIN_CASES
     ]
 
     print("\n  -- production sweeps --")
