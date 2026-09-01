@@ -1020,16 +1020,17 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
 SHAPE_PIN = "shapes/thermaledge-export.pin.json"
 
 # The hole the pin exists to close. Before it, widening this range passed
-# validate, shapes, shapes-negative, shape-signatures, export-check and cq: the
-# classifier was written and pointed at nothing. Note the expected rule --
-# a loosened numeric range is CHANGED, not WEAKENED, so an audit failing only on
-# weakenings would still miss it.
+# all eleven non-Java targets: the classifier was written and pointed at nothing.
+# The bound is chosen to stay inside what the negative fixtures probe -- they inject
+# 1.52 and 7.41, so a grosser widening like -99..99 fails two of them and proves
+# nothing about the pin. Note the expected rule -- a loosened numeric range is
+# CHANGED, not WEAKENED, so an audit failing only on weakenings would still miss it.
 PIN_CASES = [
     (
         "a weakened export contract against an unchanged pin",
         "shapes/thermaledge-export.ttl",
         """sh:minInclusive 0 ; sh:maxInclusive 1 ;""",
-        """sh:minInclusive -99 ; sh:maxInclusive 99 ;""",
+        """sh:minInclusive -1 ; sh:maxInclusive 1.5 ;""",
         "value-changed",
     ),
 ]
@@ -1044,6 +1045,16 @@ def copy_tree(tmp: str) -> Path:
     return work
 
 
+def _checker_name(script: str) -> str:
+    """The checker's filename, from a string that may carry its arguments.
+
+    `Path(script).name` takes the last token, so a script string like
+    `shape_signatures.py --audit shapes/thermaledge-export.pin.json` names the pin
+    rather than the checker that read it.
+    """
+    return Path(script.split()[0]).name
+
+
 def expect_failure(work: Path, script: str, name: str, expect: str) -> bool:
     proc = subprocess.run(
         [sys.executable, *script.split()],
@@ -1052,7 +1063,7 @@ def expect_failure(work: Path, script: str, name: str, expect: str) -> bool:
     output = proc.stdout + proc.stderr
 
     if proc.returncode == 0:
-        print(f"  FAIL [{name}]: {Path(script).name} passed but should have failed")
+        print(f"  FAIL [{name}]: {_checker_name(script)} passed but should have failed")
         return False
     if expect not in output:
         print(f"  FAIL [{name}]: exited non-zero but message missing")
@@ -1110,7 +1121,7 @@ def main() -> int:
             print(proc.stdout + proc.stderr)
             baseline_ok = False
         else:
-            print(f"  ok   [baseline: {Path(script.split()[0]).name} passes on clean tree]")
+            print(f"  ok   [baseline: {_checker_name(script)} passes on clean tree]")
     if not baseline_ok:
         return 1
 

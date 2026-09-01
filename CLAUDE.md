@@ -54,7 +54,9 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   audits it against `shapes/thermaledge-export.pin.json` and fails on *any* verdict,
   weakened or merely changed — a widened numeric range is the second kind and is the
   hole the pin was added for. Run `make shape-signatures-update` and review the diff;
-  the pin is generated, never hand-edited. See `docs/adr/0002-pin-the-export-contract.md`.
+  the pin is generated, never hand-edited — the audit enforces that, refusing a
+  body whose stored digest disagrees with its own facts and a `_comment` that has
+  drifted from `PIN_COMMENT`. See `docs/adr/0002-pin-the-export-contract.md`.
 - **`src/imports/bfo-core.ttl` is vendored unmodified.** Never edit it.
   `src/imports/qudt-subset.ttl` is generated — edit `scripts/extract_qudt_subset.py` and
   run `make qudt` instead.
