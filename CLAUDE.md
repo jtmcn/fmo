@@ -81,13 +81,19 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   One call per *check* is not enough: an aggregate counter over several traversals
   stays non-zero when one of them empties, which is the original lead-time bug
   wearing a guard. `scripts/test_meta.py` (`make meta`) enforces both by running
-  every `check_*` against something that empties its traversal: the schema with no
-  example data for a data-dependent check, an empty graph and no `EXAMPLES` for one
-  whose population is the schema itself — which is what proves its `always=True` —
-  and an example file holding nothing for one that re-reads `examples/` off disk.
+  every *registered* check against something that empties its traversal: the schema
+  with no example data for a `data` check, an empty graph and no `EXAMPLES` for a
+  `schema` one — which is what proves its `always=True` — and an example file
+  holding nothing for an `example-files` check that re-reads `examples/` off disk.
   Which of the three a check needs is `population=` on its `@check` decorator, and
   the schema-reading claim is then run rather than read: a data-dependent check
   misfiled there empties trivially and would otherwise pass vacuously.
+  There is a fourth value, `unsweepable`, and it is an opt-out from this rule
+  rather than a fourth way of applying it: the sweep prints `exempt` and never
+  calls the check. Only `check_context_terms` uses it, because it reads neither
+  graph it is handed. Nothing verifies an `unsweepable` reason, so a new one is
+  the thing to argue about in review — it is the one way to register a check that
+  `make meta` will not run.
 - **Every check registers itself with `@check(takes=…, population=…)`.** `takes`
   names the graphs `main()` hands it; `population` names what has to go away for its
   traversal to empty. The two correlate and do not coincide, so both are declared.
@@ -96,11 +102,16 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   `dir(V)`, and a well-formed check that `main()` never called passed both.
   `test_meta.py` now runs `validate.CHECKS` and fails on a `check_*` that is not
   registered.
-  `coverage(always=)` is *not* derived from `population`. It is an argument to a
-  *call*, and a check has one per traversal, so a single check can hold traversals
-  of different kinds — `check_class_coverage` has three loops and deliberately
-  guards only one, because an empty ledger is its goal state. Today every check
-  happens to be uniform, which is exactly when a derived second statement of the
+  `coverage(always=)` is *not* derived from `population`, though today it could
+  be: `always=True` holds for exactly the `schema` and `unsweepable` checks, and
+  is uniform within every one of them. The reason is that the two facts are not
+  the same shape. `population` is one fact per check; `always=` is an argument to
+  a *call*, and a check's `coverage()` calls are not in correspondence with its
+  traversals — `check_class_coverage` has five loops and six comprehensions
+  behind a single guarded `coverage()`, deliberately leaving the rest unguarded
+  because an empty ledger is its goal state. A registration carries no per-call
+  fact to derive from, so deriving `always=` would mean inventing one. That the
+  correlation is perfect today is exactly when a derived second statement of a
   fact looks safe and silently stops being so.
   Only a registered function is dispatched or swept, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
