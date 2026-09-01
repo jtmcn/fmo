@@ -1110,9 +1110,12 @@ def main() -> int:
     # editing the shapes file and forgetting `make shape-signatures-update` -- already
     # fails the clean tree, and plausibly emits the very value-changed the pin case
     # greps for, so that case would report ok for the wrong reason.
+    # test_meta.py is a fifth: two cases below run it, and a meta failure on the
+    # clean tree would let both report ok on a non-zero exit they did not cause.
     for script in ("scripts/validate.py", "scripts/run_competency.py",
                    "scripts/validate_shapes.py --examples",
-                   f"scripts/shape_signatures.py --audit {SHAPE_PIN}"):
+                   f"scripts/shape_signatures.py --audit {SHAPE_PIN}",
+                   "scripts/test_meta.py"):
         proc = subprocess.run(
             [sys.executable, *script.split()], cwd=ROOT, capture_output=True, text=True,
         )
@@ -1190,6 +1193,17 @@ def check_payouts(g: Graph) -> None:""",
         """def check_payouts(g: Graph) -> None:""",
         "check_payouts is not registered with @check",
         script="scripts/test_meta.py",
+    ))
+    # Deriving dispatch from the registry made an empty registry a clean exit 0 --
+    # retyping it could not, because the tuples were literals. `make meta` catches
+    # this, but that is a guard in another target, and validate.py reporting OK
+    # having run nothing is the vacuity every coverage() call refuses.
+    results.append(run_case(
+        "a validate run with no checks registered at all",
+        "scripts/validate.py",
+        """        CHECKS.append(Check(fn, tuple(takes), population, reason))""",
+        """        pass  # registration removed""",
+        "no checks registered, so this run proved nothing",
     ))
     # test_shapes.py printed its assertion count without asserting it, so an
     # sh:minCount dropped from the export contract shrank the matrix from 14 to 13

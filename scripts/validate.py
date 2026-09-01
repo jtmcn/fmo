@@ -74,6 +74,7 @@ Exit code is non-zero if any check fails. Run: python3 scripts/validate.py
 
 from __future__ import annotations
 
+import inspect
 import json
 import re
 import sys
@@ -212,6 +213,10 @@ def check(*, takes: tuple[str, ...], population: str = "data",
     dicts did -- exempting by name in code beats exempting by judgement at
     review time. The claim is not taken on trust either: test_meta re-runs every
     "schema" check against the schema and fails one that empties anyway.
+
+    What no guard here can settle is whether a one-graph check names the graph it
+    actually wants: takes=("schema",) on a check that needs the example data has
+    the right arity and the right order, and answers only to its own zero count.
     """
     if population not in POPULATIONS:
         raise ValueError(f"unknown population {population!r}, expected one of {POPULATIONS}")
@@ -233,6 +238,14 @@ def check(*, takes: tuple[str, ...], population: str = "data",
     def register(fn: Callable[..., None]) -> Callable[..., None]:
         if any(c.name == fn.__name__ for c in CHECKS):
             raise ValueError(f"{fn.__name__} is registered twice")
+        # At import, not at dispatch. test_meta compares arity to len(takes) when it
+        # calls the check -- but it skips an "unsweepable" one before calling, so for
+        # that population the mismatch surfaced as a TypeError from main() instead.
+        params = len(inspect.signature(fn).parameters)
+        if params != len(takes):
+            raise ValueError(
+                f"{fn.__name__} takes {len(takes)} graph(s) but its signature has "
+                f"{params} parameter(s)")
         CHECKS.append(Check(fn, tuple(takes), population, reason))
         return fn
 
@@ -1620,8 +1633,16 @@ def main() -> int:
     our_classes = minted_classes(g)
     notes.append(f"{len(our_classes)} minted classes")
 
-    # 6. Every registered check, in definition order. Derived rather than retyped:
+    # Every registered check, in definition order. Derived rather than retyped:
     # what lived here was a second statement of what runs.
+    # The registry's own zero-guard, and the same argument coverage() makes: a run
+    # that checked nothing must not report OK. Retyping the dispatch made this
+    # structurally impossible -- the tuples were literals -- and deriving it makes
+    # an empty CHECKS a clean exit 0. `make meta` would catch it, but that is a
+    # guard living in another target.
+    if not CHECKS:
+        fail("no checks registered, so this run proved nothing")
+        return report()
     # Keyed off GRAPHS so the two cannot drift -- a literal here would be the second
     # statement of one fact this change exists to remove.
     graphs = dict(zip(GRAPHS, (g, ex), strict=True))

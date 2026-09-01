@@ -123,7 +123,7 @@ def main() -> int:
     for orphan in sorted(set(names) - registered):
         failures.append(
             f"{orphan} is not registered with @check, so main() never dispatches it "
-            f"-- it would pass this sweep and never run")
+            f"-- it would have passed the old dir(V) sweep and never run")
     # And the other direction, so the docstring's "asserts the two agree" is true: a
     # second `def` of the same name without a decorator shadows the attribute while
     # the first stays registered and dispatched, so what runs is not what is read.
@@ -159,8 +159,9 @@ def main() -> int:
         # Checks take one graph or two (schema, examples); pass the same one for
         # each parameter, so a two-argument check is tested rather than TypeError-ing
         # and reading as a coverage failure. The count comes from the registration
-        # rather than the signature: one fact, and a signature that disagrees with
-        # what main() hands it fails loudly here instead of silently there.
+        # rather than the signature: one fact. A signature disagreeing with what
+        # main() hands it fails in @check at import -- earlier than here, and unlike
+        # here it also covers the "unsweepable" checks this loop skips.
         arity = len(registration.takes)
         saved_examples = V.EXAMPLES
         if example_reading:
@@ -250,6 +251,43 @@ def main() -> int:
     for name in names:
         if name not in suite:
             failures.append(f"{name} is named nowhere in test_validate.py")
+
+    # The decorator's own refusals. Every one of them raises at import, which is
+    # why nothing else here runs them: a tree that imports is a tree where they all
+    # passed. They are the "new check => new negative test" rule applied to the
+    # registration itself, and the order and duplicate guards especially -- those
+    # exist because the sweep CANNOT catch a wrong-way-round takes, since it passes
+    # the same graph for every parameter.
+    def _refused(what: str, expect: str, **kwargs) -> None:
+        try:
+            V.check(**kwargs)(lambda *a: None)
+        except ValueError as exc:
+            if expect in str(exc):
+                print(f"  ok   [@check] refuses {what}")
+            else:
+                failures.append(f"@check refused {what} with the wrong message: {exc}")
+        else:
+            failures.append(f"@check accepted {what}")
+
+    _refused("a population it does not define", "unknown population",
+             takes=("data",), population="invented", reason="r")
+    _refused("a non-default population with no reason", "needs a reason",
+             takes=("data",), population="schema")
+    _refused("a graph that is not a graph", "unknown graph",
+             takes=("weather",))
+    _refused("taking no graph at all", "at least one graph", takes=())
+    _refused("a repeated graph", "repeats a graph", takes=("data", "data"))
+    _refused("takes out of GRAPHS order", "must be in", takes=("data", "schema"))
+    # Arity is checked when the function is applied, so it needs a real signature.
+    try:
+        V.check(takes=("schema", "data"))(lambda g: None)
+    except ValueError as exc:
+        if "parameter(s)" in str(exc):
+            print("  ok   [@check] refuses a signature that disagrees with takes")
+        else:
+            failures.append(f"@check refused a bad arity with the wrong message: {exc}")
+    else:
+        failures.append("@check accepted a signature that disagrees with takes")
 
     print(f"\n{len(V.CHECKS)} registered check(s) examined")
     if failures:
