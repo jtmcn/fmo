@@ -10,6 +10,8 @@ Run: python3 scripts/test_validate.py
 
 from __future__ import annotations
 
+import contextlib
+import io
 import shutil
 import subprocess
 import sys
@@ -806,7 +808,9 @@ wx:DewPoint a owl:Class ;""",
         "queries/class-coverage-expectations.json",
         '  "unlisted": {',
         '  "schema-instantiated": {\n    "ksh:Market": {\n      "reason": "An injected entry under the one category that must never be written."\n    }\n  },\n\n  "unlisted": {',
-        "ledger has categories nothing reads: schema-instantiated",
+        # The guard is ledger.load()'s now, not check_class_coverage's, so a fourth
+        # ledger inherits it rather than needing someone to remember it.
+        "has categories nothing reads: schema-instantiated",
     ),
     (
         # One underscore wide. ledger.load() strips the `_comment` header, and
@@ -818,7 +822,7 @@ wx:DewPoint a owl:Class ;""",
         '  "unlisted": {',
         '  "_schema-instantiated": {\n    "ksh:Market": {\n      "reason": "An injected'
         ' entry hidden behind the comment prefix."\n    }\n  },\n\n  "unlisted": {',
-        "ledger has categories nothing reads: _schema-instantiated",
+        "has categories nothing reads: _schema-instantiated",
     ),
     (
         # The reason is the entry: every other field is metadata about it. An entry
@@ -1071,26 +1075,26 @@ def ledger_cases() -> list[str]:
             print(f"  ok   [ledger] {label}")
 
     rows = [L.Entry("a", "one", "why"), L.Entry("b", "two", "why")]
-    want("clean", set(), L.audit({"a", "b"}, rows))
-    want("uncovered", {L.UNCOVERED}, L.audit({"a", "b", "c"}, rows))
-    want("stale", {L.STALE_UNKNOWN}, L.audit({"a"}, rows))
+    want("clean", set(), L.audit({"a", "b"}, rows, handles=L.KINDS))
+    want("uncovered", {L.UNCOVERED}, L.audit({"a", "b", "c"}, rows, handles=L.KINDS))
+    want("stale", {L.STALE_UNKNOWN}, L.audit({"a"}, rows, handles=L.KINDS))
     want("duplicate", {L.DUPLICATE},
-         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("a", "two", "w")]))
-    want("blank reason", {L.BLANK_REASON}, L.audit({"a"}, [L.Entry("a", "one", "  ")]))
-    want("empty population", {L.EMPTY_POPULATION, L.STALE_UNKNOWN}, L.audit(set(), rows))
+         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("a", "two", "w")], handles=L.KINDS))
+    want("blank reason", {L.BLANK_REASON}, L.audit({"a"}, [L.Entry("a", "one", "  ")], handles=L.KINDS))
+    want("empty population", {L.EMPTY_POPULATION, L.STALE_UNKNOWN}, L.audit(set(), rows, handles=L.KINDS))
     want("universe splits staleness", {L.STALE_LEFT},
-         L.audit({"b"}, rows, universe={"a", "b"}))
+         L.audit({"b"}, rows, universe={"a", "b"}, handles=L.KINDS))
     want("universe, gone entirely", {L.STALE_UNKNOWN, L.UNCOVERED},
-         L.audit({"z"}, [L.Entry("a", "one", "w")], universe={"z"}))
+         L.audit({"z"}, [L.Entry("a", "one", "w")], universe={"z"}, handles=L.KINDS))
 
     # A blank reason on a row whose name is stale is reported once, as stale --
     # the population is fully covered here so nothing else can account for it.
     want("stale beats blank", {L.STALE_UNKNOWN},
-         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("x", "one", "")]))
+         L.audit({"a"}, [L.Entry("a", "one", "w"), L.Entry("x", "one", "")], handles=L.KINDS))
 
     # The check_axioms regression: a blank `pinned` value must not be rendered as
     # an exempt-with-no-reason, because a pinned value is a case name.
-    blank_pinned = [f for f in L.audit({"a"}, [L.Entry("a", "pinned", "")])
+    blank_pinned = [f for f in L.audit({"a"}, [L.Entry("a", "pinned", "")], handles=L.KINDS)
                     if f.kind == L.BLANK_REASON and f.category == "exempt"]
     if blank_pinned:
         out.append("a blank `pinned` value renders as an exempt-with-no-reason")
@@ -1105,7 +1109,7 @@ def ledger_cases() -> list[str]:
         (set(), rows, None),
         ({"b"}, rows, {"a", "b"}),
     ):
-        seen_kinds |= {f.kind for f in L.audit(pop, rows_, universe=uni)}
+        seen_kinds |= {f.kind for f in L.audit(pop, rows_, universe=uni, handles=L.KINDS)}
     if seen_kinds != set(L.KINDS):
         out.append(f"ledger cases exercise {sorted(seen_kinds)}, not all of {sorted(L.KINDS)}")
     else:
@@ -1129,6 +1133,119 @@ def ledger_cases() -> list[str]:
             print("  ok   [ledger] a missing ledger raises LedgerError, not SystemExit")
         except SystemExit:
             out.append("ledger.load raised SystemExit, which validate.py cannot catch")
+
+        # A category the caller never reads, refused by load() rather than by one
+        # call site remembering to. This is the hole that let an entry parked under
+        # `deferred` in axiom-expectations.json pass check_axioms with OK.
+        parked = Path(tmp) / "parked.json"
+        parked.write_text(_json.dumps({"pinned": {}, "deferred": {"x": "parked"}}))
+        try:
+            L.load(parked, ("pinned", "exempt"))
+            out.append("ledger.load accepted a category the caller does not read")
+        except L.LedgerError as exc:
+            if "categories nothing reads" not in str(exc):
+                out.append(f"the unread-category refusal is the wrong error: {exc}")
+            else:
+                print("  ok   [ledger] load refuses a category the caller does not read")
+
+    # A kind the caller says nothing about must raise, not be dropped: an absent
+    # `elif` computes the finding and discards it, which is the defect this kernel
+    # was extracted to stop wearing the kernel's own clothes.
+    try:
+        L.audit({"a"}, [L.Entry("b", "one", "w")], handles=(L.UNCOVERED,))
+        out.append("audit() dropped a finding kind the caller does not handle")
+    except L.LedgerError as exc:
+        if "says nothing about that kind" not in str(exc):
+            out.append(f"the undecided-kind refusal is the wrong error: {exc}")
+        else:
+            print("  ok   [ledger] a kind the caller does not handle raises, not drops")
+
+    out += axiom_cases()
+    return out
+
+
+def axiom_cases() -> list[str]:
+    """check_axioms.verify()'s own rendering, in process.
+
+    This is the one call site no target on a JDK-less machine can run: without
+    ROBOT it SKIPS, so a subprocess case expecting failure sees exit 0 and passes
+    for the wrong reason. That is precisely where the BLANK_REASON defect lived --
+    audit() is category-blind, and check_axioms rendered a blank `pinned` value as
+    "exempt with no reason given" for an entry that is pinned.
+
+    ledger_cases() above proves audit() carries the category through. These prove
+    check_axioms RENDERS it, which is a different claim: the scoping fix is one
+    `and f.category == "exempt"` clause, and dropping it would leave every target
+    green. Two module globals are stubbed -- fires_without is the only Java-touching
+    call, and load_ledger's replacement is what puts a mutated ledger in front of it.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import check_axioms as C  # noqa: PLC0415
+    import ledger as L  # noqa: PLC0415
+    import axioms  # noqa: PLC0415
+
+    out: list[str] = []
+    sites = sorted(axioms.all_sites())
+    if not sites:
+        return ["axiom_cases found no axiom sites, so it verified nothing"]
+    real = L.load(C.LEDGER, C.CATEGORIES)
+    pinned, exempt = real.get("pinned", {}), real.get("exempt", {})
+
+    def verdict(label: str, ledger: dict, expect: str) -> None:
+        buf = io.StringIO()
+        saved_load, saved_fires = L.load, C.fires_without
+        try:
+            L.load = lambda *a, **k: ledger
+            C.fires_without = lambda *a, **k: False   # every pin holds; no Java
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                rc = C.verify([])
+        finally:
+            L.load, C.fires_without = saved_load, saved_fires
+        output = buf.getvalue()
+        if rc == 0:
+            out.append(f"check_axioms [{label}]: exited 0; the ledger defect passed")
+        elif expect not in output:
+            out.append(f"check_axioms [{label}]: wrong message, wanted {expect!r}")
+        else:
+            print(f"  ok   [check_axioms] {label}")
+
+    gone = "core.ttl: an axiom that was deleted three releases ago"
+    verdict("a ledger naming an axiom that no longer exists",
+            {"pinned": pinned, "exempt": {**exempt, gone: "stale"}},
+            "ledger names an axiom that no longer exists")
+    verdict("an axiom in neither block",
+            {"pinned": pinned, "exempt": {k: v for k, v in exempt.items()
+                                          if k != sorted(exempt)[0]}},
+            "axiom in neither pinned nor exempt")
+    verdict("an axiom in both blocks",
+            {"pinned": {**pinned, sorted(exempt)[0]: sorted(pinned.values())[0]},
+             "exempt": exempt},
+            "in both pinned and exempt")
+    verdict("an exempt entry with no reason",
+            {"pinned": pinned, "exempt": {**exempt, sorted(exempt)[0]: "   "}},
+            "exempt with no reason given")
+    # The regression itself: a blank `pinned` value is a case name that does not
+    # exist, and must not be rendered as an exempt-with-no-reason.
+    blank_pin = sorted(exempt)[0]
+    verdict("a pinned entry whose case name is blank",
+            {"pinned": {**pinned, blank_pin: "   "},
+             "exempt": {k: v for k, v in exempt.items() if k != blank_pin}},
+            "pinned by a case that does not exist")
+    buf = io.StringIO()
+    saved_load, saved_fires = L.load, C.fires_without
+    try:
+        L.load = lambda *a, **k: {"pinned": {**pinned, blank_pin: "   "},
+                                  "exempt": {k: v for k, v in exempt.items()
+                                             if k != blank_pin}}
+        C.fires_without = lambda *a, **k: False
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            C.verify([])
+    finally:
+        L.load, C.fires_without = saved_load, saved_fires
+    if "exempt with no reason given" in buf.getvalue():
+        out.append("a blank `pinned` value is still rendered as exempt-with-no-reason")
+    else:
+        print("  ok   [check_axioms] a blank pinned value is not called exempt")
     return out
 
 
@@ -1276,11 +1393,6 @@ def main() -> int:
         script="scripts/run_competency.py --exports",
     ))
 
-    # test_meta.py asserted `if V.failures:` -- "the check failed somehow", which any
-    # unrelated guard inside it satisfies. Two checks passed that sweep on their own
-    # retained guards, so their coverage() calls could have been deleted outright and
-    # `make meta` stayed green. This mutation is that exact shape: a check with no
-    # coverage() call and a failure from somewhere else.
     print("\n  -- ledger --")
     ledger_problems = ledger_cases()
     for problem in ledger_problems:
@@ -1288,6 +1400,11 @@ def main() -> int:
     results.append(not ledger_problems)
 
     print("\n  -- meta --")
+    # test_meta.py asserted `if V.failures:` -- "the check failed somehow", which any
+    # unrelated guard inside it satisfies. Two checks passed that sweep on their own
+    # retained guards, so their coverage() calls could have been deleted outright and
+    # `make meta` stayed green. This mutation is that exact shape: a check with no
+    # coverage() call and a failure from somewhere else.
     results.append(run_case(
         "a check that fails for reasons unrelated to its coverage",
         "scripts/validate.py",

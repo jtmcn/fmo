@@ -1320,14 +1320,11 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     for term in instantiated:
         reached |= ancestors(g, term)
 
-    ledger = L.load(COVERAGE_LEDGER)
-    # A key nothing reads is worse than a wrong one: entries parked under it escape
-    # both staleness guards while reading as authoritative. schema-instantiated is
-    # the one to expect, since four documents say it is derived and never written.
-    unknown = set(ledger) - set(COVERAGE_CATEGORIES)
-    if unknown:
-        fail(f"ledger has categories nothing reads: {', '.join(sorted(unknown))} -- "
-             f"schema-instantiated is derived, never written here")
+    # The categories guard is load()'s now, so a fourth ledger inherits it rather
+    # than needing someone to remember it -- which is how check_axioms came to be
+    # without it. schema-instantiated is the key to expect here, since four
+    # documents say it is derived and never written.
+    ledger = L.load(COVERAGE_LEDGER, COVERAGE_CATEGORIES)
 
     classified: dict[str, tuple[str, dict]] = {}
     rows: list[L.Entry] = []
@@ -1344,7 +1341,9 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     by_name = {prefixed(cls): cls for cls in our_classes}
     unexercised = {prefixed(cls) for cls in our_classes
                    if cls not in reached and cls not in schema_instantiated}
-    for f in L.audit(unexercised, rows, universe=set(by_name)):
+    for f in L.audit(unexercised, rows, universe=set(by_name),
+                     handles=(L.DUPLICATE, L.UNCOVERED, L.STALE_UNKNOWN, L.STALE_LEFT,
+                              L.BLANK_REASON, L.EMPTY_POPULATION)):
         if f.kind == L.DUPLICATE:
             fail(f"classified twice: {f.name} -- in {f.other} and "
                  f"{f.category}, and only one reason can be the real one")

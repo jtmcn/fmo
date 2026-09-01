@@ -55,14 +55,35 @@ KINDS = (EMPTY_POPULATION, DUPLICATE, UNCOVERED, STALE_UNKNOWN, STALE_LEFT, BLAN
 
 
 class Entry(NamedTuple):
-    """One ledger row, flattened out of whatever shape its file happens to have."""
+    """One ledger row, flattened out of whatever shape its file happens to have.
+
+    `value` is whatever the file puts beside the name, and it is NOT always a
+    reason: axiom-expectations' `pinned` values are case names, so a blank one
+    means "pinned by a case that does not exist" rather than "no reason given".
+    Calling this field `reason` is what let BLANK_REASON be rendered as
+    "exempt with no reason given" for an entry that is pinned. audit() is
+    category-blind on purpose, so the caller decides what a blank value means for
+    each of its categories.
+    """
 
     name: str
     category: str
-    reason: str
+    value: str
 
 
 class Finding(NamedTuple):
+    """One thing wrong with a ledger. What the last two fields hold depends on kind:
+
+      kind      what is wrong, from KINDS
+      name      the item, blank only for EMPTY_POPULATION
+      category  the row's category; for DUPLICATE, the SECOND one seen
+      other     the FIRST category seen, and only for DUPLICATE
+
+    The order matters where it is rendered -- "in {other} and {category}" reads as
+    the order the file lists them -- and a caller that swapped them would produce a
+    sentence that is wrong in a way no test would catch.
+    """
+
     kind: str
     name: str = ""
     category: str = ""
@@ -74,15 +95,23 @@ class LedgerError(Exception):
     per-check handler records it as one check's failure and the rest still run."""
 
 
-def load(path: Path) -> dict:
+def load(path: Path, categories: Iterable[str] | None = None) -> dict:
     """Read a ledger, dropping exactly the `_comment` header.
 
     Exactly `_comment`, not every key starting with an underscore. Stripping the
     whole prefix looks like tidier de-duplication and is a widening: it hides an
-    unrecognised category from check_class_coverage's "categories nothing reads"
-    guard, whose own comment explains why that matters -- "entries parked under it
-    escape both staleness guards while reading as authoritative". A block named
-    `_schema-instantiated` would have been invisible, one underscore wide.
+    unrecognised category from the `categories` guard below, and that guard exists
+    because entries parked under a key nothing reads escape both staleness checks
+    while reading as authoritative. A block named `_schema-instantiated` would have
+    been invisible, one underscore wide.
+
+    `categories`, when given, is every top-level key the caller will actually read.
+    A key outside it is refused here rather than ignored. This lives in the kernel
+    and not at one call site because it is the same hole the underscore widening
+    opened: check_class_coverage had the guard and check_axioms did not, so an
+    entry parked under `deferred` in axiom-expectations.json passed with OK. A
+    caller whose file is not category-keyed -- production-expectations, whose
+    categories are implicit in which key an entry sets -- passes nothing.
     """
     if not path.is_file():
         raise LedgerError(f"no ledger at {path}")
@@ -92,13 +121,22 @@ def load(path: Path) -> dict:
         raise LedgerError(f"ledger at {path} is not valid JSON: {exc}") from exc
     if not isinstance(raw, dict):
         raise LedgerError(f"ledger at {path} is not a JSON object")
-    return {k: v for k, v in raw.items() if k != "_comment"}
+    out = {k: v for k, v in raw.items() if k != "_comment"}
+    if categories is not None:
+        unknown = sorted(set(out) - set(categories))
+        if unknown:
+            raise LedgerError(
+                f"ledger at {path.name} has categories nothing reads: "
+                f"{', '.join(unknown)} -- entries parked under one escape both "
+                f"staleness guards while reading as authoritative")
+    return out
 
 
 def audit(
     population: Iterable[str],
     entries: Iterable[Entry],
     *,
+    handles: Iterable[str],
     universe: Iterable[str] | None = None,
 ) -> list[Finding]:
     """Check a ledger's rows against the population they claim to classify.
@@ -119,15 +157,28 @@ def audit(
     example has since started exercising -- and the second is the ledger shrinking
     as intended, which is a different sentence. Callers whose population is the
     whole set pass nothing and get STALE_UNKNOWN for both.
+
+    `handles` names every kind the caller has DECIDED about -- rendered here, or
+    rendered elsewhere, or deliberately ignored. Producing one outside it raises,
+    because the alternative is an `elif` that is simply absent: the finding is
+    computed, dropped, and the run reports OK. That is the shape of the defect
+    this kernel was extracted to stop, so it must not be reachable through the
+    kernel itself, and it is how a seventh KIND forces every call site to look.
     """
+    unknown = sorted(set(handles) - set(KINDS))
+    if unknown:
+        raise LedgerError(f"audit() asked to handle unknown kind(s): {', '.join(unknown)}")
     rows = list(entries)
     pop = set(population)
     out: list[Finding] = []
     # Reported, not returned early: with an empty population every row is stale, and
-    # that is worth saying too. No site renders it today -- check_axioms and
-    # run_competency refuse an empty population before calling, and for
-    # check_class_coverage an empty ledger is the goal state -- so this is available
-    # to a caller that wants it, not a guard any caller currently relies on.
+    # that is worth saying too. No site renders it as a failure, and that is a
+    # decision rather than an oversight: check_axioms and run_competency refuse an
+    # empty population first, with sentences of their own that say more than this
+    # kind can; check_class_coverage reaches it in its GOAL state -- no unexercised
+    # class left -- and lists it in `handles` to say so. That listing is the only
+    # thing keeping this kind honest, so if it is ever dropped from `handles`
+    # everywhere, drop it from KINDS too rather than leaving a finding nothing reads.
     if not pop:
         out.append(Finding(EMPTY_POPULATION))
 
@@ -148,5 +199,11 @@ def audit(
     # and reporting both would say twice that one entry is wrong.
     out += [Finding(BLANK_REASON, row.name, row.category)
             for row in rows
-            if row.name in pop and not str(row.reason).strip()]
+            if row.name in pop and not str(row.value).strip()]
+
+    undecided = sorted({f.kind for f in out} - set(handles))
+    if undecided:
+        raise LedgerError(
+            f"audit() produced {', '.join(undecided)} and the caller says nothing "
+            f"about that kind, so the finding would be computed and dropped")
     return out
