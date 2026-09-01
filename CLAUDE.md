@@ -110,9 +110,17 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   traversals — `check_class_coverage` has five loops and six comprehensions
   behind a single guarded `coverage()`, deliberately leaving the rest unguarded
   because an empty ledger is its goal state. A registration carries no per-call
-  fact to derive from, so deriving `always=` would mean inventing one. That the
-  correlation is perfect today is exactly when a derived second statement of a
-  fact looks safe and silently stops being so.
+  fact to derive from, so deriving `always=` would mean inventing one — and a
+  check taking both graphs could want `always=True` on its schema traversal and
+  `always=False` on its data one, which a derived value makes unrepresentable.
+  Restating the fact is safe here because `make meta` enforces the correlation by
+  *running* it, not by reading it: a `population="schema"` check is swept against
+  an empty graph with `EXAMPLES` cleared, so an `always=False` on one of its calls
+  gates the guard on example data that is not there — the check passes, and the
+  sweep fails it by name. Flipping `check_bfo_grounding` confirms it. The reverse
+  direction is a stricter guard, not a weaker one, so nothing hides there. Same
+  "run rather than trusted" mechanism the schema claim itself rests on: this
+  duplication is checked, not merely correlated.
   Only a registered function is dispatched or swept, so `main()` parses and
   dispatches and holds no check of its own — six once did, and none of the six
   guarded a zero count. What is left inline is advisory and can never fail: the
