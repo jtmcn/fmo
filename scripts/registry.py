@@ -60,6 +60,10 @@ PROSE_FILES = [
     ROOT / "CONTEXT.md",
     ROOT / "README.md",
     ROOT / "docs" / "design-notes.md",
+    # ADRs accumulate load-bearing claims and were unchecked prose. This brings
+    # their term, path and target references under the same checks; the behavioural
+    # claims an ADR makes still answer to nothing but review.
+    *sorted((ROOT / "docs" / "adr").glob("*.md")),
 ]
 
 

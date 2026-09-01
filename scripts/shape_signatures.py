@@ -96,6 +96,10 @@ def curie(node) -> str:
 
 
 def shapes_graph(path: Path = SHAPES) -> Graph:
+    # Every pin-side failure gets a FAIL line; without this the shapes side is the
+    # one input that still answers with an rdflib traceback.
+    if not path.is_file():
+        raise SystemExit(f"FAIL: no shapes file at {path}")
     g = Graph()
     g.parse(path, format="turtle")
     return g
@@ -312,8 +316,9 @@ def subclass_map() -> dict[str, set[str]]:
                     stack.append(child)
         below[parent] = seen
     # The one traversal here, guarded like every traversal in validate.py. An
-    # empty map does not fail: it silently reclassifies every target-changed as
-    # target-undeclared WEAKENED, so a real failure reports the wrong reason.
+    # empty map does not fail on its own: it silently reclassifies every
+    # target-changed as target-undeclared WEAKENED, so a real failure reports the
+    # wrong reason. Hence the guard below.
     if not below:
         raise SystemExit(
             "FAIL: no classes declared in the modules, so target narrowing "
@@ -513,7 +518,7 @@ PIN_COMMENT = (
 )
 
 
-def load_pin(path: Path, label: str = "pin") -> dict:
+def load_pin(path: Path, label: str = "pin", header: str | None = None) -> dict:
     """Read a pin, dropping the `_comment` header before compare() indexes it.
 
     Underscore keys are this repo's JSON-comment idiom: production-expectations
@@ -523,6 +528,12 @@ def load_pin(path: Path, label: str = "pin") -> dict:
 
     `label` is the word the caller's flag uses -- README documents --compare's
     argument as a BASELINE, and its messages should keep saying so.
+
+    `header`, when given, is the exact `_comment` the file must carry. Only FMO's
+    own pin has one this tool wrote, so only --audit passes it: a consumer's
+    baseline carries the consumer's comment, or none. Without this the header
+    that says DO NOT HAND-EDIT can drift from PIN_COMMENT with nothing failing,
+    since the stripping happens before anything reads it.
     """
     if not path.is_file():
         raise SystemExit(f"FAIL: no {label} at {path}")
@@ -532,6 +543,10 @@ def load_pin(path: Path, label: str = "pin") -> dict:
         raise SystemExit(f"FAIL: {label} at {path} is not valid JSON: {exc}") from exc
     if not isinstance(raw, dict):
         raise SystemExit(f"FAIL: {label} must be a JSON object of shape name -> facts")
+    if header is not None and raw.get("_comment") != header:
+        raise SystemExit(
+            f"FAIL: {label} at {path} does not carry the generated header; "
+            f"regenerate it with `make shape-signatures-update`")
     stripped = {k: v for k, v in raw.items() if not k.startswith("_")}
     # Validated here as well as in compare(), so the message says whose file it is:
     # --audit reads FMO's pin and must not report it as "the baseline". compare()
@@ -585,7 +600,7 @@ def main() -> int:
         pin = _pin_path("--audit")
         if pin is None:
             return 1
-        base = load_pin(pin)
+        base = load_pin(pin, header=PIN_COMMENT)
         current = facts()
         # Neither side may be empty. Comparing nothing to nothing prints OK having
         # asserted nothing, which is the vacuity `make meta` exists to reject -- and
@@ -597,6 +612,21 @@ def main() -> int:
         if not current:
             print("FAIL: no shapes signed, so the audit compared nothing",
                   file=sys.stderr)
+            return 1
+        # The pin is generated, so a body whose stored digest disagrees with its own
+        # facts was edited by hand. compare()'s equal-digest check recomputes rather
+        # than trusting this field, which stops a stale digest SUPPRESSING a verdict
+        # -- it does not stop a hand-edit MANUFACTURING a verdict's absence, which is
+        # what weakening the shapes file and editing the pin to match does.
+        edited = sorted(
+            name for name, body in base.items()
+            if body.get("sha256") != _body_digest(body))
+        if edited:
+            print(f"FAIL: {pin} was hand-edited; {len(edited)} shape(s) carry a "
+                  f"digest that does not match their own facts: {', '.join(edited)}",
+                  file=sys.stderr)
+            print("Regenerate it with `make shape-signatures-update` and review "
+                  "the diff.", file=sys.stderr)
             return 1
         # Any verdict fails, not only a WEAKENED one: a loosened numeric range
         # classifies as value-changed, and that is the weakening this pin exists

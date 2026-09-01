@@ -9,6 +9,8 @@ Run: python3 scripts/test_shape_drift.py
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -348,11 +350,126 @@ def test_subclass_map_refuses_an_empty_hierarchy() -> list[str]:
     return problems
 
 
+def _pin_file(body: dict) -> Path:
+    """A scratch pin holding exactly `body`, written the way --update writes one."""
+    tmp = Path(tempfile.mkdtemp()) / "pin.json"
+    tmp.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")
+    return tmp
+
+
+def _cli(argv: list[str], facts=None) -> tuple[int, str]:
+    """One shape_signatures CLI branch, run in process, with its output captured.
+
+    In process rather than by subprocess because the guards under test are about
+    inputs the CLI reads, and half of them need facts() to return nothing --
+    which through a subprocess would mean copying the tree to empty the shapes
+    file. `facts` replaces it directly instead.
+    """
+    out, err = io.StringIO(), io.StringIO()
+    saved_argv, saved_facts = sys.argv, S.facts
+    try:
+        sys.argv = ["shape_signatures.py", *argv]
+        if facts is not None:
+            S.facts = facts
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            try:
+                rc = S.main()
+            except SystemExit as exc:
+                # load_pin and shapes_graph refuse with SystemExit; the CLI branches
+                # return 1. Both are failures, and this suite judges the message.
+                return 1, str(exc)
+    finally:
+        sys.argv, S.facts = saved_argv, saved_facts
+    return rc, out.getvalue() + err.getvalue()
+
+
+def test_cli_guards() -> list[str]:
+    """Every refusal the pin side can produce, each with nothing else guarding it.
+
+    These were added in review, which makes them exactly the code most likely to
+    be silently inverted later: a guard nothing runs is a guard nothing keeps.
+    `make meta` sweeps validate.py's checks and does not reach this file, so the
+    equivalent discipline is written out here.
+    """
+    problems: list[str] = []
+    real = S.facts()
+    good = {"_comment": S.PIN_COMMENT, **json.loads(json.dumps(real))}
+    missing = Path(tempfile.mkdtemp()) / "absent.json"
+    not_json = _pin_file({})
+    not_json.write_text("{ this is not json", encoding="utf-8")
+
+    hand_edited = json.loads(json.dumps(good))
+    body = hand_edited["teh:ProbabilityShape"]
+    # The exact attack the digest guard exists to stop: weaken the pinned bound so
+    # it matches a weakened shapes file, and leave the generated sha256 in place.
+    body["paths"]["fm:probabilityValue"]["minInclusive"] = "-1"
+
+    wrong_header = json.loads(json.dumps(good))
+    wrong_header["_comment"] = "hand-written, and nothing noticed"
+
+    cases = [
+        ("a flag taken as the pin path", ["--audit", "--check"], None,
+         "requires a PIN.json path"),
+        ("a pin that is not there", ["--audit", str(missing)], None, "no pin at"),
+        ("a pin that is not valid JSON", ["--audit", str(not_json)], None,
+         "is not valid JSON"),
+        ("a pin that is not an object", ["--audit", str(_pin_file([]))], None,
+         "must be a JSON object"),
+        ("a pin holding no signatures", ["--audit", str(_pin_file({"_comment": S.PIN_COMMENT}))],
+         None, "holds no shape signatures"),
+        ("an audit with no shapes to compare", ["--audit", str(_pin_file(good))],
+         dict, "the audit compared nothing"),
+        ("a pin edited by hand to match a weakened shapes file",
+         ["--audit", str(_pin_file(hand_edited))], None, "was hand-edited"),
+        ("a pin whose generated header drifted",
+         ["--audit", str(_pin_file(wrong_header))], None,
+         "does not carry the generated header"),
+        ("an update with no shapes to sign", ["--update", str(_pin_file({}))],
+         dict, "the pin would assert nothing"),
+        ("an update the filesystem refuses",
+         ["--update", str(missing.parent / "no-such-dir" / "pin.json")], None,
+         "cannot write the pin"),
+    ]
+    for name, argv, facts, expect in cases:
+        rc, output = _cli(argv, facts=facts)
+        if rc == 0:
+            problems.append(f"[{name}] exited 0; the guard did not fire")
+        elif expect not in output:
+            problems.append(f"[{name}] failed with the wrong message: {output.strip()!r}")
+        else:
+            print(f"  ok   [guard] {name}")
+
+    # Reproducibility has to vary between two calls, so it cannot ride the table.
+    seq = iter([real, {k: v for k, v in list(real.items())[:1]}])
+    rc, output = _cli(["--update", str(_pin_file({}))], facts=lambda *a, **k: next(seq))
+    if rc == 0 or "not reproducible" not in output:
+        problems.append(f"[a signature that churns] rc={rc}, output={output.strip()!r}")
+    else:
+        print("  ok   [guard] a signature that churns is refused rather than pinned")
+
+    rc, output = _cli(["--check"], facts=lambda *a, **k: {})
+    if rc == 0 or "verified nothing" not in output:
+        problems.append(f"[--check with nothing signed] rc={rc}, output={output.strip()!r}")
+    else:
+        print("  ok   [guard] --check with nothing signed verifies nothing, and says so")
+
+    try:
+        S.shapes_graph(missing)
+        problems.append("shapes_graph accepted a path that is not there")
+    except SystemExit as exc:
+        if "no shapes file at" not in str(exc):
+            problems.append(f"the missing-shapes refusal is the wrong error: {exc}")
+        else:
+            print("  ok   [guard] a missing shapes file fails with a message, not a traceback")
+    return problems
+
+
 def main() -> int:
     problems = (
         test_facts_shape() + test_refuses_unmodelled() + test_classifier()
         + test_baseline_is_not_trusted()
         + test_subclass_map_refuses_an_empty_hierarchy()
+        + test_cli_guards()
         + test_every_rule_is_claimed() + test_no_false_positives()
     )
     for p in problems:

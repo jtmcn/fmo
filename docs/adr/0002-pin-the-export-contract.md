@@ -8,10 +8,18 @@ passed one. We decided FMO holds its own pin in `shapes/thermaledge-export.pin.j
 audited by `make shape-signatures`, and that the audit fails on **any** verdict.
 
 The classifier was not untested; it was undeployed. Its only caller was its own
-suite. Widening `fm:probabilityValue` from `0..1` to `-99..99` — the range guarding
+suite. Widening `fm:probabilityValue` from `0..1` to `-1..1.5` — the range guarding
 the 7.41 bug that is the reason `teh:MarketShape`'s target narrowing is a named rule
-— passed `validate`, `shapes`, `shapes-negative`, `shape-signatures`, `export-check`
-and `cq`. Six green targets over a weakened export contract.
+— passed **all eleven** non-Java targets: `validate`, `validate-negative`, `meta`,
+`shapes`, `shapes-negative`, `export-check`, `verification-data-check`,
+`diagram-check`, `cq`, `signatures` and `shape-signatures`. Eleven green targets
+over a weakened export contract.
+
+The bound matters. A gross widening such as `-99..99` is *not* the motivating case:
+`validate-negative`'s fixtures inject `1.52` and `7.41`, so a range that stops
+rejecting them fails two negative cases and `make test` goes red. A weakening is
+dangerous exactly when it stays inside what the fixtures probe — which is what
+`-1..1.5` does, and what no fixture sweep can be enumerated to cover.
 
 Any verdict rather than only a weakening, because that widening classifies as
 `value-changed` → CHANGED. Full SHACL subsumption is undecidable, so the rules name
@@ -26,11 +34,17 @@ build until someone re-pins, which is the `cq-update` discipline: a reviewed dif
 
 **Leave ownership with the consumer.** README's position, and it is right about
 *policy* — what a verdict is worth is the caller's decision, which is why
-`--compare` still exits 0 whenever it produced a report and is left untouched by
-this change. But it silently assumed someone runs `--compare`. Nobody in this repo
-did, and FMO is the party that edits the shapes file. Rejected: it makes FMO's own
-`make test` structurally unable to see FMO's own regression, and defers detection to
-a downstream nightly run that may never be pointed at the right revision.
+`--compare`'s exit codes are unchanged: it still exits 0 whenever it produced a
+report. Its input handling did change, through the shared `load_pin`, and one of
+those changes was a fix it needed: a baseline carrying a `_comment` was previously
+rejected outright, so a consumer could not feed `--update`'s own output back to
+`--compare`. Invalid JSON is now a FAIL line rather than a traceback, and
+`--compare --check` names the missing argument rather than reporting `--check` as
+the path. But it silently assumed someone runs `--compare`. Nobody in this repo
+did, and FMO is the party that edits the shapes file. Rejected: it leaves FMO's own
+`make test` unable to see a weakening that stays inside what the negative fixtures
+probe, and defers detection to a downstream nightly run that may never be pointed at
+the right revision.
 
 **Catch it structurally instead, with no baseline** — extend `test_shapes.py`'s
 mutant sweep so a dropped `sh:minCount` or a `sh:deactivated` fails without a pin.
