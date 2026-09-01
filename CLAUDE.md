@@ -135,6 +135,21 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   is pinned: the four situations are different populations, and a floor over the lot
   cannot move for reasons that have nothing to do with the model improving. See
   `docs/adr/0001-classify-unexercised-classes.md`.
+- **Every checked-in ledger goes through `scripts/ledger.py`.** A ledger records,
+  per item, why something is not proved the usual way; three exist, and each grew
+  its own copy of the same set arithmetic. The copies drifted —
+  `production-expectations.json` checked that every query had an entry and never
+  that every entry had a query, so a stale exemption read as a decision about
+  today's query set. `CONTEXT.md` §4 had stated the rule for all three, and the
+  third checker was written without it, which is the argument for a module over a
+  paragraph. A new ledger calls `ledger.audit()`, names in `handles=` every
+  finding kind it has decided about — rendering one is a decision, and so is
+  deliberately ignoring it — and passes its category keys to `ledger.load()` so a
+  key nothing reads is refused. Both refusals raise rather than pass quietly,
+  because the failure they replace was a finding computed and dropped. What the
+  kernel does *not* own is the file's shape, its wording, or its per-entry
+  verification; see `scripts/ledger.py`'s docstring for why each stays at the call
+  site.
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional

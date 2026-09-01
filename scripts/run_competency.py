@@ -112,7 +112,14 @@ def main() -> int:
 
     prefixes = (QUERIES / "prefixes.txt").read_text()
     graph = load_graph(data)
-    expectations = load_production_expectations() if data else {}
+    # LedgerError is typed so this can be a verdict. check_axioms catches it and
+    # check_class_coverage gets it through validate.py's per-check handler; this was
+    # the one site still answering a missing or malformed ledger with a traceback.
+    try:
+        expectations = load_production_expectations() if data else {}
+    except L.LedgerError as exc:
+        print(f"  FAIL [production-expectations.json]: {exc}", file=sys.stderr)
+        return 1
 
     query_files = sorted(QUERIES.glob("cq*.rq"))
     if not query_files:
@@ -120,17 +127,26 @@ def main() -> int:
         return 1
 
     failures = 0
+    # Counted apart from query failures: a stale ledger entry is not a question
+    # answering wrongly, and folding it in made the summary say "7/8 competency
+    # questions answered as expected" when all 8 were and the JSON file was the
+    # problem. Same confusion the message below is worded to avoid.
+    config_failures = 0
     # UNCOVERED is rendered per query below, where the row count is in hand, so only
     # staleness is read here. That direction is the one this ledger did not have.
     if data is not None:
-        for f in L.audit({qf.stem for qf in query_files}, expectation_rows(expectations)):
+        # UNCOVERED and BLANK_REASON are decided about, not ignored: the per-query
+        # chain below renders both, where the row count and the entry's shape are in
+        # hand. Naming them here is what stops a kind being dropped by a missing elif.
+        for f in L.audit({qf.stem for qf in query_files}, expectation_rows(expectations),
+                         handles=(L.STALE_UNKNOWN, L.UNCOVERED, L.BLANK_REASON)):
             if f.kind == L.STALE_UNKNOWN:
                 # Named for the file, not the query: there IS no such query, and a
                 # "FAIL [cq...]" line would be counted as a rejection by the
                 # --negatives sweep, which reads config breakage as a fixture verdict.
                 print(f"  FAIL [production-expectations.json]: names a query that "
                       f"does not exist: {f.name}")
-                failures += 1
+                config_failures += 1
             # BLANK_REASON is deliberately not rendered here: the per-query chain
             # below reports it after the shape checks, so a malformed entry names
             # its real problem rather than a missing 'why' it also has.
@@ -221,11 +237,14 @@ def main() -> int:
         if failures:
             print(f"{failures} quer(y/ies) not regenerated -- see the failures above",
                   file=sys.stderr)
-        return 1 if failures else 0
+        return 1 if failures or config_failures else 0
 
     total = len(query_files)
     print(f"\n{total - failures}/{total} competency questions answered as expected")
-    return 1 if failures else 0
+    if config_failures:
+        print(f"{config_failures} stale production-expectations entr(y/ies) -- "
+              f"a ledger problem, not a query one", file=sys.stderr)
+    return 1 if failures or config_failures else 0
 
 
 def _diff(expected: str, actual: str) -> list[str]:

@@ -52,8 +52,10 @@ from registry import ROOT, SRC  # noqa: E402
 LEDGER = ROOT / "queries" / "axiom-expectations.json"
 
 
-def load_ledger() -> dict:
-    return L.load(LEDGER)
+# The two blocks verify() reads. Anything else in the file is refused by load():
+# an entry parked under a third key escaped both staleness guards and passed with
+# OK, which is the check_class_coverage guard this file never had.
+CATEGORIES = ("pinned", "exempt")
 
 
 def case_by_name(name: str) -> tuple | None:
@@ -100,7 +102,7 @@ def discover(robot: list[str]) -> int:
 
 def verify(robot: list[str]) -> int:
     try:
-        ledger = load_ledger()
+        ledger = L.load(LEDGER, CATEGORIES)
     except L.LedgerError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
@@ -126,7 +128,10 @@ def verify(robot: list[str]) -> int:
     # below. Rendering BLANK_REASON only for `exempt` keeps that, as at base.
     rows = ([L.Entry(key, "pinned", str(name)) for key, name in pinned.items()]
             + [L.Entry(key, "exempt", str(reason)) for key, reason in exempt.items()])
-    for f in L.audit(sites, rows):
+    # No universe, so staleness is one kind here; EMPTY_POPULATION cannot arrive,
+    # since an empty `sites` is refused above with its own sentence.
+    for f in L.audit(sites, rows,
+                     handles=(L.DUPLICATE, L.UNCOVERED, L.STALE_UNKNOWN, L.BLANK_REASON)):
         if f.kind == L.DUPLICATE:
             failures.append(
                 f"in both pinned and exempt, so the ledger does not say which: {f.name}")
