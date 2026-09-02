@@ -30,7 +30,8 @@ it reports which axioms are load-bearing rather than which ones someone believed
 were. It is slow (a reasoner run per trial) and writes nothing; the ledger is
 edited by hand from what it prints, because the reasons are the point.
 
-Skips with a notice when ROBOT or Java is absent, like `make reason`.
+Skips with a notice when ROBOT or Java is missing or does not run, like
+`make reason`.
 """
 
 from __future__ import annotations
@@ -62,6 +63,10 @@ def case_by_name(name: str) -> tuple | None:
     return next((c for c in T.CASES if c[0] == name), None)
 
 
+class ReasonerSilent(RuntimeError):
+    """The reasoner returned no verdict, so nothing follows about the axiom."""
+
+
 def fires_without(robot: list[str], key: str, case: tuple) -> bool:
     """Does `case` still fire when `key` is deleted? False means it was pinned.
 
@@ -70,8 +75,20 @@ def fires_without(robot: list[str], key: str, case: tuple) -> bool:
     rather than returning False, which keeps "the case broke" out of the answer to
     "the case stopped firing" -- conflating those was what made the first version of
     this probe report 53 of 68 axioms load-bearing, nearly all of them spuriously.
+
+    A run that returned no verdict is the same conflation one layer down, and it was
+    still here: T.UNREADABLE used to arrive as False, i.e. as "the case stopped
+    firing", i.e. as a verified pin. With no JVM every case was unreadable and every
+    pin "held" -- 9 of 9 verified, exit 0, output identical to a real run. It raises
+    now, because the honest answer to "did the case fire?" is that we do not know.
     """
-    return T.run_case(robot, *case, drop_axiom=key, quiet=True)
+    outcome = T.run_case(robot, *case, drop_axiom=key, quiet=True)
+    if outcome == T.UNREADABLE:
+        raise ReasonerSilent(
+            f"the reasoner gave no verdict on {case[0]!r} with {key} deleted, so "
+            f"whether that axiom is load-bearing is unknown and nothing here is "
+            f"verified. Check that ROBOT and the JVM work: `make reason`.")
+    return outcome == T.FIRED
 
 
 def _probe(args: tuple) -> tuple[str, str | None]:
@@ -158,7 +175,15 @@ def verify(robot: list[str]) -> int:
             continue
         if key not in sites:
             continue
-        if fires_without(robot, key, case):
+        try:
+            still_fires = fires_without(robot, key, case)
+        except ReasonerSilent as exc:
+            # Fatal rather than one more failure line: a reasoner that cannot answer
+            # for one axiom is not answering for any of them, and every remaining
+            # `verified` would be the same false green in miniature.
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return 1
+        if still_fires:
             failures.append(
                 f"claims to be pinned but is not: {key}\n"
                 f"      deleting it leaves '{name}' still firing, so nothing here "
@@ -182,7 +207,7 @@ def verify(robot: list[str]) -> int:
 def main() -> int:
     robot = T.robot_command()
     if robot is None:
-        print("SKIP check_axioms: ROBOT or Java not found. Set ROBOT_JAR or put robot on PATH.")
+        print("SKIP check_axioms: no ROBOT that runs. Set ROBOT_JAR or put robot on PATH.")
         return 0
     if "--discover" in sys.argv:
         return discover(robot)

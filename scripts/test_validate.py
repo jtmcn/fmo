@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
 import shutil
 import subprocess
 import sys
@@ -1183,6 +1184,7 @@ def axiom_cases() -> list[str]:
     import check_axioms as C  # noqa: PLC0415
     import ledger as L  # noqa: PLC0415
     import axioms  # noqa: PLC0415
+    import test_reason as T  # noqa: PLC0415
 
     out: list[str] = []
     sites = sorted(axioms.all_sites())
@@ -1250,6 +1252,77 @@ def axiom_cases() -> list[str]:
         out.append("a blank `pinned` value is still rendered as exempt-with-no-reason")
     else:
         print("  ok   [check_axioms] a blank pinned value is not called exempt")
+
+    out += reasoner_silence_cases(C, T)
+    return out
+
+
+def reasoner_silence_cases(C, T) -> list[str]:
+    """A reasoner that cannot answer must not be read as answering "no".
+
+    These are the two halves of one defect. Detection said a JVM was there because
+    /usr/bin/java exists on every Mac and exits 1; scoring then read every failed run
+    as "the case stopped firing", which is what a pinned axiom looks like. Together
+    they made `make axioms` print `9 pinned (9 verified)` and OK with HermiT never
+    started, output a reader cannot tell from a real run.
+
+    They belong here rather than in test_reason.py because that file skips without a
+    working ROBOT -- a case about being unable to reason cannot live behind a guard
+    that needs to reason. Both halves are exercised with no JVM involved at all.
+    """
+    out: list[str] = []
+
+    # Detection. The real robot.jar is present, so robot_command takes its java
+    # branch and the fake java below is what it finds and runs.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp)
+        (fake / "java").write_text("#!/bin/sh\nexit 1\n")
+        (fake / "java").chmod(0o755)
+        saved_path = os.environ["PATH"]
+        try:
+            os.environ["PATH"] = f"{fake}{os.pathsep}{saved_path}"
+            broken = T.robot_command()
+            # The positive control. Without it a robot_command that returned None
+            # unconditionally -- say, a typo in the jar path -- would pass the case
+            # above and every reasoner target would silently skip forever.
+            (fake / "java").write_text("#!/bin/sh\nexit 0\n")
+            working = T.robot_command()
+        finally:
+            os.environ["PATH"] = saved_path
+    if broken is not None:
+        out.append("robot_command accepted a java that exits non-zero, so presence "
+                   "is still being read as usability")
+    else:
+        print("  ok   [check_axioms] a java that does not run is not a reasoner")
+    if working is None:
+        out.append("robot_command rejected a java that exits 0, so the case above "
+                   "passes for the wrong reason")
+    else:
+        print("  ok   [check_axioms] a java that runs is accepted")
+
+    # Scoring. UNREADABLE must not reach the ledger arithmetic as a verified pin.
+    for outcome, expect_zero, label in (
+        (T.UNREADABLE, False, "a reasoner giving no verdict fails rather than verifying"),
+        (T.ACCEPTED, True, "a case that stops firing still verifies its pin"),
+    ):
+        buf = io.StringIO()
+        saved = T.run_case
+        try:
+            setattr(T, "run_case", lambda *a, **k: outcome)
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                rc = C.verify(["java", "-jar", "unused"])
+        finally:
+            T.run_case = saved
+        output = buf.getvalue()
+        if expect_zero and rc != 0:
+            out.append(f"{label}: exited {rc}, so the UNREADABLE case above proves nothing")
+        elif not expect_zero and rc == 0:
+            out.append("check_axioms scored pins as verified while the reasoner "
+                       "returned no verdict -- the original false green")
+        elif not expect_zero and "no verdict" not in output:
+            out.append(f"the silent-reasoner failure is worded wrong: {output.strip()[:80]}")
+        else:
+            print(f"  ok   [check_axioms] {label}")
     return out
 
 
