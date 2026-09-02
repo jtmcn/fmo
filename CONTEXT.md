@@ -222,7 +222,9 @@ a `queries/cqNN-*.rq` plus its `.expected`, and an empty result set **fails** �
 `make competency` (a reasoner re-derivation, no query file) and CQ6 is two queries. Say
 the number, not "the query".
 
-**Reasoning**: HermiT via ROBOT — consistency and re-derivation. Skips without Java.
+**Reasoning**: HermiT via ROBOT — consistency and re-derivation. `make reason-negative`
+and `make axioms` skip without a Java that *runs*; `make reason` and `make competency`
+detect ROBOT in the Makefile by presence, so they fail instead.
 Never say "the validator caught it" about something only the reasoner catches, or the
 reverse; the split is deliberate.
 
