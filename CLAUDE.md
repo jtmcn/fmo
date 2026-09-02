@@ -13,6 +13,8 @@ for what, and which not to; consult it before naming anything in prose or in Tur
 
 ```bash
 make setup              # poetry install + fetch robot.jar if missing
+make typecheck          # static types over scripts/, via ty (pinned exactly)
+make typecheck-negative # negative tests: prove ty fails, and refuses to check nothing
 make validate           # structure, BFO grounding, disjointness, units, docs (no Java)
 make validate-negative  # negative tests: prove the validator fails when it should
 make shapes             # SHACL conformance: examples union, then each export fixture

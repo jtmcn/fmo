@@ -76,6 +76,8 @@ dereference the IRIs need the catalog, which Protégé and ROBOT both pick up au
 
 ```bash
 make setup                           # poetry install, plus robot.jar if it is missing
+make typecheck                       # static types over scripts/, via ty
+make typecheck-negative              # prove ty fails on the narrowings, and on nothing to check
 make validate                        # structure, BFO grounding, unit coherence, docs
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
@@ -139,7 +141,10 @@ that the built file fetches nothing — because a viewer that silently drops hal
 graph still renders a convincing picture.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
-`poetry run`. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
+`poetry run`. `make typecheck` runs [ty](https://github.com/astral-sh/ty) over
+`scripts/`, pinned to an exact version: ty is 0.0.x and says its diagnostics may change
+between any two releases, so a floating constraint would redden a clean tree for reasons
+that have nothing to do with this repo. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
 `PATH` — `make setup` downloads it if none of those exist, but it needs a JRE
 (`brew install openjdk`). Reasoner steps skip with a notice if ROBOT or Java is absent; the
 Python checks always run.

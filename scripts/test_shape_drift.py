@@ -350,7 +350,7 @@ def test_subclass_map_refuses_an_empty_hierarchy() -> list[str]:
     return problems
 
 
-def _pin_file(body: dict) -> Path:
+def _pin_file(body: object) -> Path:
     """A scratch pin holding exactly `body`, written the way --update writes one."""
     tmp = Path(tempfile.mkdtemp()) / "pin.json"
     tmp.write_text(json.dumps(body, indent=2) + "\n", encoding="utf-8")

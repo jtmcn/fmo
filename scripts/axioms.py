@@ -92,7 +92,10 @@ def members(g: Graph, node: Node, predicate: URIRef) -> list[Node]:
 
 
 def restriction(g: Graph, node: Node) -> str:
-    prop = curie(g, next(g.objects(node, OWL.onProperty), None))
+    # OWL requires exactly one owl:onProperty. A restriction without one is
+    # malformed, and "None" in the rendered sketch is how it shows up.
+    on_property = next(g.objects(node, OWL.onProperty), None)
+    prop = curie(g, on_property) if on_property is not None else "None"
     for label, predicate in FILLERS:
         filler = next(g.objects(node, predicate), None)
         if filler is not None:

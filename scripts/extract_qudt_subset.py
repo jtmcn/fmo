@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 from rdflib import Graph, Namespace, URIRef, RDF, RDFS, OWL, Literal
+from rdflib.term import Node
 
 QUDT = Namespace("http://qudt.org/schema/qudt/")
 UNIT = Namespace("http://qudt.org/vocab/unit/")
@@ -99,7 +100,7 @@ def main() -> int:
         print("MISSING from QUDT:\n  " + "\n  ".join(missing), file=sys.stderr)
         return 1
 
-    dim_vectors: set[URIRef] = set()
+    dim_vectors: set[Node] = set()
     for term in wanted:
         # QUDT carries each label twice, plain and @en. Keep one, preferring @en.
         labels = [o for o in src.objects(term, RDFS.label) if isinstance(o, Literal)]
