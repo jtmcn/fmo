@@ -30,8 +30,9 @@ it reports which axioms are load-bearing rather than which ones someone believed
 were. It is slow (a reasoner run per trial) and writes nothing; the ledger is
 edited by hand from what it prints, because the reasons are the point.
 
-Skips with a notice when ROBOT or Java is missing or does not run, like
-`make reason`.
+Skips with a notice when ROBOT or Java is missing or does not run -- unlike
+`make reason`, whose detection is still presence-based, so a stub java makes it
+fail rather than skip.
 """
 
 from __future__ import annotations
@@ -180,7 +181,11 @@ def verify(robot: list[str]) -> int:
         except ReasonerSilent as exc:
             # Fatal rather than one more failure line: a reasoner that cannot answer
             # for one axiom is not answering for any of them, and every remaining
-            # `verified` would be the same false green in miniature.
+            # `verified` would be the same false green in miniature. The ledger
+            # findings already in hand are reasoner-independent, so they go out too
+            # rather than waiting for a second run after the JVM is fixed.
+            for f in failures:
+                print(f"  {f}", file=sys.stderr)
             print(f"FAIL: {exc}", file=sys.stderr)
             return 1
         if still_fires:
@@ -205,9 +210,13 @@ def verify(robot: list[str]) -> int:
 
 
 def main() -> int:
-    robot = T.robot_command()
+    try:
+        robot, why = T.robot_command()
+    except T.ReasonerBroken as exc:
+        print(f"FAIL: {exc}", file=sys.stderr)
+        return 1
     if robot is None:
-        print("SKIP check_axioms: no ROBOT that runs. Set ROBOT_JAR or put robot on PATH.")
+        print(f"SKIP check_axioms: {why}")
         return 0
     if "--discover" in sys.argv:
         return discover(robot)
