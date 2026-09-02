@@ -135,12 +135,14 @@ else
 endif
 
 ## Prove the reasoner-only guards fire: the axioms validate.py cannot check.
-## Skips with a notice when ROBOT or Java is absent, like `make reason`.
+## Skips with a notice when ROBOT or Java is missing or does not run. Unlike
+## `make reason`, which detects ROBOT here by presence and so fails on a stub java.
 reason-negative:
 	$(PY) scripts/test_reason.py
 
 ## Every axiom is pinned by a reasoner case or exempt with a reason, and every
-## `pinned` claim is re-verified by deleting the axiom. Skips without ROBOT.
+## `pinned` claim is re-verified by deleting the axiom. Skips without a ROBOT that
+## runs; a $ROBOT_JAR that does not run fails instead, since naming one is a decision.
 axioms:
 	$(PY) scripts/check_axioms.py
 

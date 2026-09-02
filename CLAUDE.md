@@ -24,7 +24,7 @@ make shape-signatures   # sign the export shapes, audit them against FMO's pin
 make shape-signatures-update  # re-pin after an intended shapes change; review the diff
 make cq                 # SPARQL competency questions vs checked-in .expected
 make cq-update          # regenerate .expected — review the diff before committing
-make reason             # HermiT consistency (skips with a notice if ROBOT/Java absent)
+make reason             # HermiT consistency (needs a working JDK; fails, not skips, without one)
 make competency         # CQ3: weaken an assertion, confirm the reasoner re-derives it
 make meta               # every check must fail when it has nothing to check
 make test               # all of the above
