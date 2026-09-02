@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from types import ModuleType
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
@@ -1268,39 +1269,126 @@ def reasoner_silence_cases(C, T) -> list[str]:
 
     They belong here rather than in test_reason.py because that file skips without a
     working ROBOT -- a case about being unable to reason cannot live behind a guard
-    that needs to reason. Both halves are exercised with no JVM involved at all.
+    that needs to reason. Nothing below starts a JVM or touches the real robot.jar.
     """
     out: list[str] = []
+    out += _detection_cases(T)
+    out += _outcome_cases(T)
+    out += _scoring_cases(C, T)
+    return out
 
-    # Detection. The real robot.jar is present, so robot_command takes its java
-    # branch and the fake java below is what it finds and runs.
+
+def _detection_cases(T: ModuleType) -> list[str]:
+    """robot_command answers about a reasoner that runs, not one that exists."""
+    out: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
         fake = Path(tmp)
-        (fake / "java").write_text("#!/bin/sh\nexit 1\n")
-        (fake / "java").chmod(0o755)
-        saved_path = os.environ["PATH"]
+        (fake / "src").mkdir()
+        # A ROOT of our own holding a robot.jar of our own. The real one is
+        # gitignored, so a fresh clone that has not run `make setup` would otherwise
+        # send every probe below down the robot-on-PATH branch and these cases would
+        # answer about the machine rather than about the code.
+        (fake / "robot.jar").write_text("not a jar; the fake java never opens it")
+        java = fake / "java"
+        java.write_text("#!/bin/sh\necho 'Unable to locate a Java Runtime.' >&2\nexit 1\n")
+        java.chmod(0o755)
+        saved_path, saved_root = os.environ.get("PATH", ""), T.ROOT
+        saved_jar = os.environ.pop("ROBOT_JAR", None)
         try:
             os.environ["PATH"] = f"{fake}{os.pathsep}{saved_path}"
-            broken = T.robot_command()
+            setattr(T, "ROOT", fake)
+            broken, why = T.robot_command()
+            # A named reasoner that does not run is a typo, not an absence, and used
+            # to fail loudly on first use. Probing must not turn that into a skip.
+            os.environ["ROBOT_JAR"] = str(fake / "robot.jar")
+            try:
+                T.robot_command()
+                named = "returned instead of raising"
+            except T.ReasonerBroken as exc:
+                named = str(exc)
+            del os.environ["ROBOT_JAR"]
             # The positive control. Without it a robot_command that returned None
-            # unconditionally -- say, a typo in the jar path -- would pass the case
-            # above and every reasoner target would silently skip forever.
-            (fake / "java").write_text("#!/bin/sh\nexit 0\n")
-            working = T.robot_command()
+            # unconditionally -- say, a typo in the probe -- would pass every case
+            # above and every reasoner target would skip forever.
+            java.write_text("#!/bin/sh\nexit 0\n")
+            working, _ = T.robot_command()
         finally:
             os.environ["PATH"] = saved_path
-    if broken is not None:
-        out.append("robot_command accepted a java that exits non-zero, so presence "
-                   "is still being read as usability")
-    else:
-        print("  ok   [check_axioms] a java that does not run is not a reasoner")
-    if working is None:
-        out.append("robot_command rejected a java that exits 0, so the case above "
-                   "passes for the wrong reason")
-    else:
-        print("  ok   [check_axioms] a java that runs is accepted")
+            if saved_jar is not None:
+                os.environ["ROBOT_JAR"] = saved_jar
+            else:
+                os.environ.pop("ROBOT_JAR", None)
+            setattr(T, "ROOT", saved_root)
 
-    # Scoring. UNREADABLE must not reach the ledger arithmetic as a verified pin.
+    for ok, problem, label in (
+        (broken is None,
+         "robot_command accepted a java that exits non-zero, so presence is still "
+         "being read as usability",
+         "a java that does not run is not a reasoner"),
+        ("Unable to locate a Java Runtime" in why,
+         f"the skip reason drops what the runtime said, leaving {why!r}",
+         "the skip says what the runtime said, not just that it said something"),
+        ("returned instead of raising" not in named,
+         "a ROBOT_JAR that does not run skipped rather than failed, which turns a "
+         "typo into a green run",
+         "a named reasoner that does not run fails rather than skipping"),
+        (working is not None,
+         "robot_command rejected a java that exits 0, so every case above passes "
+         "for the wrong reason",
+         "a java that runs is accepted"),
+    ):
+        if ok:
+            print(f"  ok   [test_reason] {label}")
+        else:
+            out.append(problem)
+    return out
+
+
+def _outcome_cases(T: ModuleType) -> list[str]:
+    """run_case names all three situations, which is the half a stub cannot prove.
+
+    The scoring cases below replace run_case wholesale, so on their own they leave
+    the branch that *produces* UNREADABLE untested -- collapse it to ACCEPTED and the
+    original false green comes back with the whole suite still green. That is the bug
+    being fixed wearing the fix's own clothes, so it gets a case.
+
+    Driven by a fake ROBOT over a ROOT holding one real module: the anchors have to be
+    the genuine ones, but nothing here needs the ontology or a JVM.
+    """
+    out: list[str] = []
+    name, rel, find, replace = T.CASES[0][:4]
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp)
+        (fake / Path(rel).parent).mkdir(parents=True)
+        shutil.copy(ROOT / rel, fake / rel)
+        saved_root = T.ROOT
+        try:
+            setattr(T, "ROOT", fake)
+            for behaviour, expected, label in (
+                ("exit 1",
+                 T.UNREADABLE, "a reasoner failing without the expected report is unreadable"),
+                ("exit 0",
+                 T.ACCEPTED, "a reasoner accepting the ontology is not a case firing"),
+                ("echo inconsistent; exit 1",
+                 T.FIRED, "a reasoner reporting what the case expects is a case firing"),
+            ):
+                robot = fake / "robot.sh"
+                robot.write_text(f"#!/bin/sh\n{behaviour}\n")
+                robot.chmod(0o755)
+                got = T.run_case(["/bin/sh", str(robot)], name, rel, find, replace,
+                                 quiet=True)
+                if got != expected:
+                    out.append(f"run_case called it {got!r}, not {expected!r}: {label}")
+                else:
+                    print(f"  ok   [test_reason] {label}")
+        finally:
+            setattr(T, "ROOT", saved_root)
+    return out
+
+
+def _scoring_cases(C: ModuleType, T: ModuleType) -> list[str]:
+    """An unreadable run must not reach the ledger arithmetic as a verified pin."""
+    out: list[str] = []
     for outcome, expect_zero, label in (
         (T.UNREADABLE, False, "a reasoner giving no verdict fails rather than verifying"),
         (T.ACCEPTED, True, "a case that stops firing still verifies its pin"),
@@ -1312,7 +1400,7 @@ def reasoner_silence_cases(C, T) -> list[str]:
             with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                 rc = C.verify(["java", "-jar", "unused"])
         finally:
-            T.run_case = saved
+            setattr(T, "run_case", saved)
         output = buf.getvalue()
         if expect_zero and rc != 0:
             out.append(f"{label}: exited {rc}, so the UNREADABLE case above proves nothing")
@@ -1321,6 +1409,12 @@ def reasoner_silence_cases(C, T) -> list[str]:
                        "returned no verdict -- the original false green")
         elif not expect_zero and "no verdict" not in output:
             out.append(f"the silent-reasoner failure is worded wrong: {output.strip()[:80]}")
+        elif not expect_zero and "verified)" in output:
+            # Immediacy is the claim the comment in verify() makes. Appending the
+            # failure instead of returning would still exit 1 with the right words,
+            # and would still print a tally nothing earned.
+            out.append("check_axioms printed a pinned/verified tally after finding "
+                       "the reasoner silent")
         else:
             print(f"  ok   [check_axioms] {label}")
     return out
