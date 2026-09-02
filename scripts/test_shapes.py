@@ -40,7 +40,8 @@ import sys
 from pathlib import Path
 
 from pyshacl import validate as shacl_validate
-from rdflib import Graph, RDF, RDFS, URIRef
+from rdflib import Graph, RDF, RDFS
+from rdflib.term import Node
 from rdflib.namespace import Namespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -63,15 +64,15 @@ def base_graph() -> Graph:
     return g
 
 
-def targets(shapes: Graph) -> list[tuple[URIRef, URIRef]]:
+def targets(shapes: Graph) -> list[tuple[Node, Node]]:
     return sorted(shapes.subject_objects(SH.targetClass), key=lambda p: str(p[0]))
 
 
-def subclasses_of(schema: Graph, cls: URIRef) -> set:
+def subclasses_of(schema: Graph, cls: Node) -> set:
     return {cls} | set(schema.transitive_subjects(RDFS.subClassOf, cls))
 
 
-def ranges_of(schema: Graph, path: URIRef) -> set:
+def ranges_of(schema: Graph, path: Node) -> set:
     """Every rdfs:range the inference sees on a property, its own and inherited.
 
     A direct range read with Graph.value misses two things pyshacl's rdfs closure

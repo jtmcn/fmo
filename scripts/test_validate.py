@@ -1195,8 +1195,12 @@ def axiom_cases() -> list[str]:
         buf = io.StringIO()
         saved_load, saved_fires = L.load, C.fires_without
         try:
-            L.load = lambda *a, **k: ledger
-            C.fires_without = lambda *a, **k: False   # every pin holds; no Java
+            # setattr, not `L.load = ...`: a type checker declares a module
+            # function as its own type and refuses any rebinding of it, so the
+            # doubles below cannot be spelled as plain assignments. The restore
+            # in `finally` is an assignment because it puts the real one back.
+            setattr(L, "load", lambda *a, **k: ledger)
+            setattr(C, "fires_without", lambda *a, **k: False)  # every pin holds; no Java
             with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                 rc = C.verify([])
         finally:
@@ -1234,10 +1238,10 @@ def axiom_cases() -> list[str]:
     buf = io.StringIO()
     saved_load, saved_fires = L.load, C.fires_without
     try:
-        L.load = lambda *a, **k: {"pinned": {**pinned, blank_pin: "   "},
-                                  "exempt": {k: v for k, v in exempt.items()
-                                             if k != blank_pin}}
-        C.fires_without = lambda *a, **k: False
+        setattr(L, "load", lambda *a, **k: {"pinned": {**pinned, blank_pin: "   "},
+                                            "exempt": {k: v for k, v in exempt.items()
+                                                       if k != blank_pin}})
+        setattr(C, "fires_without", lambda *a, **k: False)
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
             C.verify([])
     finally:

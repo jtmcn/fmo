@@ -8,3 +8,8 @@ dependencies = ["rdflib>=7.1", "pyshacl>=0.26"]
 [tool.poetry]
 # Scripts only, nothing importable to install.
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "ty (==0.0.77)"
+]

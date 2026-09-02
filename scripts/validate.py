@@ -80,9 +80,11 @@ import sys
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
+from types import FunctionType
 from typing import NamedTuple
 
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
+from rdflib.term import Node
 from rdflib.namespace import SKOS
 
 BFO = "http://purl.obolibrary.org/obo/"
@@ -172,7 +174,9 @@ POPULATIONS = ("data", "schema", "example-files", "unsweepable")
 
 
 class Check(NamedTuple):
-    fn: Callable[..., None]
+    # FunctionType, not Callable: the registry reports by __name__, which is a fact
+    # about functions and not about callables.
+    fn: FunctionType
     takes: tuple[str, ...]
     population: str
     reason: str
@@ -185,8 +189,8 @@ class Check(NamedTuple):
 CHECKS: list[Check] = []
 
 
-def check(*, takes: tuple[str, ...], population: str = "data",
-          reason: str = "") -> Callable[[Callable[..., None]], Callable[..., None]]:
+def check[F: FunctionType](*, takes: tuple[str, ...], population: str = "data",
+                           reason: str = "") -> Callable[[F], F]:
     """Register a check for dispatch and for test_meta.py's sweep.
 
     Registering is the point. main() dispatched from two hand-written tuples and
@@ -235,7 +239,7 @@ def check(*, takes: tuple[str, ...], population: str = "data",
     if list(takes) != [g for g in GRAPHS if g in takes]:
         raise ValueError(f"takes must be in {GRAPHS} order, got {tuple(takes)}")
 
-    def register(fn: Callable[..., None]) -> Callable[..., None]:
+    def register(fn: F) -> F:
         if any(c.name == fn.__name__ for c in CHECKS):
             raise ValueError(f"{fn.__name__} is registered twice")
         # At import, not at dispatch. test_meta compares arity to len(takes) when it
@@ -256,7 +260,17 @@ def is_ours(term) -> bool:
     return isinstance(term, URIRef) and str(term).startswith(OUR_NS)
 
 
-def ancestors(g: Graph, cls: URIRef) -> set[URIRef]:
+def as_float(node: Node) -> float:
+    """float() of a node's lexical form, raising ValueError when it is not numeric.
+
+    Every rdflib node subclasses str, so this is what float(node) already did.
+    Spelling the str() out keeps the ValueError each caller catches and reports,
+    and lets a type checker see the one place a graph value becomes a number.
+    """
+    return float(str(node))
+
+
+def ancestors(g: Graph, cls: Node) -> set[URIRef]:
     """Named rdfs:subClassOf ancestors, ignoring anonymous restrictions."""
     seen: set[URIRef] = set()
     stack = [cls]
@@ -583,7 +597,7 @@ def check_lead_times(g: Graph) -> None:
                 f"the fm:instantDateTime scope note."
             )
             continue
-        if abs(float(stated) - actual) > 0.01:
+        if abs(as_float(stated) - actual) > 0.01:
             fail(
                 f"{forecast}: wx:leadTimeHours says {stated} but issuance "
                 f"{issued_dt.isoformat()} to interval start {start_dt.isoformat()} "
@@ -605,7 +619,7 @@ def check_current_assessments(g: Graph) -> None:
     settlement-era record is superseded, so only the later one is current.
     """
     superseded = set(g.objects(None, SUPERSEDES))
-    by_proposition: dict[URIRef, list[URIRef]] = {}
+    by_proposition: dict[Node, list[Node]] = {}
     for assessment, proposition in g.subject_objects(ASSESSES):
         records = list(g.objects(assessment, BASED_ON_RECORD))
         if records and all(r in superseded for r in records):
@@ -673,8 +687,8 @@ def check_scores(g: Graph) -> None:
         # Same reasoning as check_lead_times: an uncaught raise here costs the
         # operator every later check.
         try:
-            expected = (float(probs[0]) - outcome) ** 2
-            stated_value = float(stated)
+            expected = (as_float(probs[0]) - outcome) ** 2
+            stated_value = as_float(stated)
         except (ValueError, TypeError) as exc:
             fail(
                 f"{score}: cannot reproduce the arithmetic -- probability "
@@ -726,14 +740,14 @@ def check_protocols(g: Graph) -> None:
              "the wx:WeatherObservationTarget typing is broken")
 
     checked = 0
-    reported: set[URIRef] = set()
+    reported: set[Node] = set()
     for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
         # ksh:settlementSource attaches to a listing; a market inherits it from its
         # grouping or series unless it carries its own. Precedence, not union -- a
         # grouping overriding its series is how the 2026-08-14 migration is modelled,
         # and unioning the levels rejects that correct model as ambiguous.
         levels = ([market], [grouping], list(g.objects(grouping, IN_SERIES)))
-        sources: set[URIRef] = set()
+        sources: set[Node] = set()
         resolved = 0
         for depth, holders in enumerate(levels):
             sources = {s for h in holders for s in g.objects(h, SETTLEMENT_SOURCE)}
@@ -800,7 +814,7 @@ def check_grouping_coherence(g: Graph) -> None:
     # comparator that gates on one dict and indexes another can add a key to only
     # one and turn a validation failure into a KeyError -- keeping both under one
     # key makes that impossible.
-    COMPARATORS = {
+    COMPARATORS: dict[Node, tuple[bool, bool, Callable[..., tuple[float, bool, float, bool]]]] = {
         URIRef(FM + "Between"):            (True, True, lambda f, c: (f, True, c, True)),
         URIRef(FM + "LessThanOrEqual"):    (False, True, lambda f, c: (-inf, False, c, True)),
         URIRef(FM + "LessThan"):           (False, True, lambda f, c: (-inf, False, c, False)),
@@ -824,8 +838,8 @@ def check_grouping_coherence(g: Graph) -> None:
             fail(f"{prop}: its comparator needs a threshold value that is not stated")
             return None
         try:
-            floor_v = float(floors[0]) if floors else None
-            cap_v = float(caps[0]) if caps else None
+            floor_v = as_float(floors[0]) if floors else None
+            cap_v = as_float(caps[0]) if caps else None
         except ValueError:
             fail(f"{prop}: its threshold value is not numeric")
             return None
@@ -853,8 +867,8 @@ def check_grouping_coherence(g: Graph) -> None:
         return left and right
 
     checked = 0
-    groupings: dict[URIRef, list] = {}
-    ambiguous: set[URIRef] = set()
+    groupings: dict[Node, list] = {}
+    ambiguous: set[Node] = set()
     for market, grouping in g.subject_objects(IN_EVENT_GROUPING):
         # ksh:coversTarget is not functional and absence used to skip the check.
         # Neither zero nor two targets can be compared against, and both break the
@@ -1005,8 +1019,8 @@ def check_payouts(g: Graph) -> None:
             )
             continue
         try:
-            expected = float(quantities[0]) * CENTS_PER_CONTRACT
-            stated = float(amounts[0])
+            expected = as_float(quantities[0]) * CENTS_PER_CONTRACT
+            stated = as_float(amounts[0])
         except ValueError:
             fail(f"payout amount or contract quantity is not numeric: {payout}")
             continue
@@ -1061,7 +1075,7 @@ def check_trades(g: Graph) -> None:
             )
             continue
         try:
-            left, right = (float(q[0]) for q in quantities)
+            left, right = (as_float(q[0]) for q in quantities)
         except ValueError:
             fail(f"trade states a non-numeric contract quantity: {trade}")
             continue

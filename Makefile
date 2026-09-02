@@ -9,10 +9,12 @@ BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
+PYSCRIPTS := $(wildcard scripts/*.py)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 SHAPEPIN := shapes/thermaledge-export.pin.json
 
-PY      := poetry run python3
+PY_BIN  := poetry run
+PY      := $(PY_BIN) python3
 
 ifdef ROBOT_JAR
 ROBOT := java -jar $(ROBOT_JAR)
@@ -22,7 +24,7 @@ else
 ROBOT := $(shell command -v robot 2>/dev/null)
 endif
 
-.PHONY: all setup test validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -33,6 +35,20 @@ setup:
 		curl -fsSL -o robot.jar https://github.com/ontodev/robot/releases/latest/download/robot.jar
 	@command -v java >/dev/null || echo "NOTE: no java found; \`brew install openjdk\` to enable make reason"
 	@$(MAKE) --no-print-directory validate
+
+## Static types over the checking scripts. ty is pinned exactly in the dev group:
+## it is 0.0.x and says diagnostics may change between any two versions, so an
+## unpinned bump would redden a clean tree for reasons outside this repo.
+## Files are passed explicitly rather than left to discovery -- `ty check` over
+## nothing prints "All checks passed!" and exits 0.
+typecheck:
+	@[ -n "$(PYSCRIPTS)" ] || { echo "FAIL: no scripts/*.py to type check"; exit 1; }
+	$(PY_BIN) ty check $(PYSCRIPTS)
+
+## Negative tests for the target above: prove ty fails on the narrowings this repo
+## made, on an error nobody has made yet, and that the target refuses to check nothing.
+typecheck-negative:
+	$(PY) scripts/test_typecheck.py
 
 ## Structural checks: parsing, BFO grounding, disjointness, unit coherence, docs. No Java.
 validate:
@@ -203,7 +219,7 @@ else
 endif
 
 ## Everything.
-test: validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
+test: typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
 
 clean:
 	rm -rf $(BUILD)

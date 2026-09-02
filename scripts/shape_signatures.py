@@ -34,7 +34,8 @@ import json
 import sys
 from pathlib import Path
 
-from rdflib import BNode, Graph, Namespace, RDF, RDFS, URIRef
+from rdflib import Graph, Namespace, RDF, RDFS, URIRef
+from rdflib.term import Node
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -123,7 +124,7 @@ def _single(g: Graph, subject, predicate, where: str):
     return values[0] if values else None
 
 
-def _constraints(g: Graph, prop: BNode, where: str) -> dict:
+def _constraints(g: Graph, prop: Node, where: str) -> dict:
     out: dict = {}
     for name, predicate in SCALAR_CONSTRAINTS.items():
         value = _single(g, prop, predicate, where)
