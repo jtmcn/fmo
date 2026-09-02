@@ -17,7 +17,8 @@ bug arrived. Each case names the report it expects, and a class-level case also 
 class, because "some class is unsatisfiable" would be satisfied by an unrelated one -- the
 same attribution the SHACL mutants make on sh:minCount violations.
 
-Skips with a notice when ROBOT or Java is absent, like `make reason`.
+Skips with a notice when ROBOT or Java is missing or does not run, like
+`make reason`.
 
 Run: python3 scripts/test_reason.py
 """
@@ -146,23 +147,50 @@ ksh:TraderRole a owl:Class ;""",
 ]
 
 
+# What one case run tells us. The third is not a verdict and must never be read as
+# one: a non-zero exit whose report does not name what the case expects can be the
+# wrong inconsistency, a JVM that never started, or ROBOT itself failing. Collapsing
+# it into "the case did not fire" is what let a broken java score nine axiom pins as
+# verified, printing the same OK a real run prints.
+FIRED = "fired"
+ACCEPTED = "accepted"
+UNREADABLE = "unreadable"
+
+
 def robot_command() -> list[str] | None:
-    """Same resolution order as the Makefile: ROBOT_JAR, ./robot.jar, robot on PATH."""
+    """Same resolution order as the Makefile: ROBOT_JAR, ./robot.jar, robot on PATH.
+
+    The command is then run, not merely found. shutil.which("java") answered a
+    question nobody asked: macOS ships a /usr/bin/java stub that is present on every
+    machine and exits 1 with "Unable to locate a Java Runtime", so presence was never
+    usability. check_axioms consequently skipped nothing and reported 9 of 9 pins
+    verified against a JVM that never started. --version is the cheapest thing ROBOT
+    will do that still needs the runtime, and it proves ROBOT rather than java, which
+    is what every caller actually goes on to invoke.
+    """
     jar = os.environ.get("ROBOT_JAR")
     if not jar and (ROOT / "robot.jar").exists():
         jar = str(ROOT / "robot.jar")
     if jar:
         if not shutil.which("java"):
             return None
-        return ["java", "-jar", jar]
-    found = shutil.which("robot")
-    return [found] if found else None
+        command = ["java", "-jar", jar]
+    else:
+        found = shutil.which("robot")
+        if not found:
+            return None
+        command = [found]
+    try:
+        proc = subprocess.run([*command, "--version"], capture_output=True, text=True)
+    except OSError:
+        return None
+    return command if proc.returncode == 0 else None
 
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
              expect: str | tuple[str, ...] = "inconsistent",
              inputs: tuple[str, ...] = ("src/fmo.ttl", EXAMPLE, TRADING),
-             drop_axiom: str | None = None, quiet: bool = False) -> bool:
+             drop_axiom: str | None = None, quiet: bool = False) -> str:
     # drop_axiom lets check_axioms.py delete one axiom and re-run the case, proving
     # the case is pinned to that axiom rather than merely passing near it. It is
     # applied AFTER the text mutation, never before: deleting an axiom means
@@ -202,7 +230,7 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
         if proc.returncode == 0:
             if not quiet:
                 print(f"  FAIL [{name}]: the reasoner accepted the ontology")
-            return False
+            return ACCEPTED
         wanted = (expect,) if isinstance(expect, str) else expect
         # Both sides lower-cased: expectations get written with the IRI as it
         # appears in the source, and a case that can never match reads as a
@@ -212,16 +240,19 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
             if not quiet:
                 print(f"  FAIL [{name}]: non-zero exit, but the report is missing {missing}")
                 print("        " + output.strip().splitlines()[-1])
-            return False
+            # Deliberately not ACCEPTED. The reasoner exited non-zero, so it did not
+            # accept anything; what it did instead is unknown, and a caller asking
+            # "did the case fire?" has to be told it has no answer rather than "no".
+            return UNREADABLE
         if not quiet:
             print(f"  ok   [{name}]")
-        return True
+        return FIRED
 
 
 def main() -> int:
     robot = robot_command()
     if robot is None:
-        print("SKIP test_reason: ROBOT or Java not found. Set ROBOT_JAR or put robot on PATH.")
+        print("SKIP test_reason: no ROBOT that runs. Set ROBOT_JAR or put robot on PATH.")
         return 0
 
     # Baseline: the unmodified tree must reason cleanly, or the results below
@@ -245,7 +276,7 @@ def main() -> int:
     results = []
     for case in CASES:
         try:
-            results.append(run_case(robot, *case))
+            results.append(run_case(robot, *case) == FIRED)
         except LookupError:
             # The anchor moved. That is a broken case, not a guard that stopped
             # firing, and the two must not read alike -- run_case raises so that
