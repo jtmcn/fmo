@@ -1446,49 +1446,101 @@ UNSWEEPABLE_TARGETS = {
 }
 
 
-class Derived(NamedTuple):
-    """What the Makefile scan found, with each path's own count kept separate.
+# Handed to make so target names come back with a marker the sweep can replace with a
+# scratch directory. The database expands names, so `$(BUILD)/merged.owl` arrives
+# already resolved and there is nothing left to substitute otherwise.
+MAKE_BUILD = "@@FMO_BUILD@@"
 
-    `found` is everything, exclusions included: UNSWEEPABLE_TARGETS is audited against
-    it, and an entry audited against the already-excluded list could never be stale.
-    """
+
+class Derived(NamedTuple):
+    """What make's own database says, with each classification path counted apart."""
     found: list[str]
     direct: int
     viascript: int
     raw: int
     recipes: dict[str, str]
+    phony: set[str]
+    patterns: list[str]
+    parsed: bool
 
 
-def _reasoner_targets(makefile_text: str | None = None,
-                      users: set[str] | None = None) -> Derived:
-    """Make targets that need a reasoner, read off the Makefile rather than listed.
+def _make_database(directory: Path) -> str:
+    """make's parse of its own makefile, which is the only parse that is authoritative.
 
-    A hand-kept list is the same failure this sweep exists to catch, one level up: a
-    new reasoner target left off it is never swept, and its missing skip is discovered
-    on someone's JDK-less laptop. Same argument as validate.CHECKS -- enumerate the
-    real set and fail on what it does not account for.
-
-    A target qualifies three ways, and each covers what the others miss. Its recipe
-    may call $(call robot_cmd,...), which is how a recipe asks. Or it may run a script
-    that imports reasoner, which is how reason-negative and axioms ask -- their recipes
-    never mention ROBOT at all, and a sweep grepping only for robot_cmd would miss
-    exactly the targets that were already correct. Or it may simply name java or robot,
-    which contributes nothing today and is the case that matters most: a target added
-    later that calls `java -jar robot.jar` without asking is precisely the bug this
-    branch removed, and it would otherwise be invisible here for the same reason it was
-    invisible in the Makefile -- nobody greps for what is absent.
-
-    Recipe bodies only, deliberately. `merge`, `test` and `all` are reasoner-dependent
-    through their prerequisites and have no recipe of their own; they are aggregates
-    that delegate, their members are swept individually, and the property holds through
-    them. Following prerequisites would also have the sweep run `make test` from inside
-    `make test`.
-
-    makefile_text and users are injectable so the scan can be run against snippets that
-    do not exist on disk. Every claim in this docstring about what the scan does and
-    does not catch is a case in _derivation_cases(); a docstring is not a test.
+    `-p` prints the database, `-q` stops it running a single recipe, `-Rr` drop the
+    builtin rules and variables that would otherwise bury the file's own. Question mode
+    exits 1 whenever a target is out of date, which is the normal case here, so the
+    exit status carries no information and is ignored; a genuine failure to parse shows
+    up as a missing "# Files" section instead, which _scan_findings reports.
     """
-    text = (ROOT / "Makefile").read_text() if makefile_text is None else makefile_text
+    proc = subprocess.run(["make", "-pqRr", f"BUILD={MAKE_BUILD}"],
+                          cwd=directory, capture_output=True, text=True)
+    return proc.stdout
+
+
+def _entries(section: str) -> list[tuple[str, str, bool]]:
+    """(name, recipe, is_phony) for each target the database describes.
+
+    Blocks are blank-line separated. "# Not a target:" marks a file make knows about
+    but has no rule for, and the recipe follows a marker whose wording changed between
+    make 3.81 ("commands to execute") and 4.x ("recipe to execute") -- matched on the
+    part they share.
+    """
+    out: list[tuple[str, str, bool]] = []
+    for block in section.split("\n\n"):
+        lines = block.splitlines()
+        if not lines or any(line.startswith("# Not a target:") for line in lines):
+            continue
+        head = next((line for line in lines if line and not line.startswith(("#", "\t"))), None)
+        m = re.match(r"^([^\s:#][^:]*)\s*:(?!=)", head or "")
+        if not m:
+            continue
+        recipe, collecting = [], False
+        for line in lines:
+            if "to execute (from" in line:
+                collecting = True
+            elif collecting and line.startswith("\t"):
+                recipe.append(line)
+            elif collecting and not line.startswith("\t"):
+                collecting = False
+        phony = any("Phony target" in line for line in lines)
+        out.append((m.group(1).strip(), "\n".join(recipe), phony))
+    return out
+
+
+def _reasoner_targets(directory: Path | None = None,
+                      users: set[str] | None = None) -> Derived:
+    """Make targets that need a reasoner, taken from make's database rather than a list.
+
+    A hand-kept list is the same failure this sweep exists to catch, one level up: a new
+    reasoner target left off it is never swept, and its missing skip is discovered on
+    someone's JDK-less laptop. Same argument as validate.CHECKS -- enumerate the real
+    set and fail on what it does not account for.
+
+    Enumerated by asking make, not by reading the Makefile. A regex over the text got
+    two shapes wrong and had to refuse them by name: a target line continued with a
+    backslash parsed and then discarded every recipe line under it, and a multi-target
+    rule kept only the first name. make joins the continuation and expands `a b:` into
+    two entries before the database is printed, so both are simply correct here, and
+    the four construct refusals that stood in for handling them are gone.
+
+    A target qualifies three ways, and each covers what the others miss. Its recipe may
+    call $(call robot_cmd,...), which is how a recipe asks. Or it may run a script that
+    imports reasoner, which is how reason-negative and axioms ask -- their recipes never
+    mention ROBOT at all, and a sweep grepping only for robot_cmd would miss exactly the
+    targets that were already correct. Or it may simply name java or robot, which
+    contributes nothing today and is the case that matters most: a target added later
+    that calls `java -jar robot.jar` without asking is precisely the bug this branch
+    removed, and it would otherwise be invisible for the same reason it was invisible in
+    the Makefile -- nobody greps for what is absent.
+
+    Recipes only, deliberately. `merge`, `test` and `all` are reasoner-dependent through
+    their prerequisites and have no recipe of their own; they are aggregates that
+    delegate, their members are swept individually, and the property holds through them.
+    The database lists prerequisites too, so following them is available and declined:
+    it would have the sweep run `make test` from inside `make test`.
+    """
+    text = _make_database(directory or ROOT)
     if users is None:
         # reasoner itself counts: a recipe invoking it directly -- `make setup`, asking
         # whether to print its install note -- depends on it as surely as one running a
@@ -1499,22 +1551,18 @@ def _reasoner_targets(makefile_text: str | None = None,
             if re.search(r"^(?:import reasoner|from reasoner import)", p.read_text(), re.M)
         }
 
+    head, marker, files = text.partition("\n# Files")
+    # Pattern rules are printed above "# Files", among the implicit rules. They are
+    # reported rather than swept: `make %.out` is not a thing you can run.
+    patterns = [n for n, recipe, _ in _entries(head)
+                if "%" in n and re.search(r"\brobot\b|\bjava\b|robot_cmd", recipe)]
+
     recipes: dict[str, str] = {}
-    current: str | None = None
-    for line in text.splitlines():
-        if line.startswith("\t"):
-            if current:
-                recipes[current] += line
-            continue
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        # `:` but not `:=`, so a variable assignment is not read as a target. Names are
-        # taken up to the first space, so a multi-target rule loses all but the first --
-        # which the .PHONY cross-check below is what actually catches.
-        m = re.match(r"^([A-Za-z0-9_.$()/-]+)\s*:(?!=)", line)
-        current = m.group(1) if m else None
-        if current:
-            recipes.setdefault(current, "")
+    phony: set[str] = set()
+    for name, recipe, is_phony in _entries(files):
+        recipes[name] = recipe
+        if is_phony:
+            phony.add(name)
 
     direct = [t for t, body in recipes.items() if "robot_cmd" in body]
     viascript = [t for t, body in recipes.items()
@@ -1525,24 +1573,25 @@ def _reasoner_targets(makefile_text: str | None = None,
     # \b-bounded: robot_cmd is already direct's business, so this needs to match
     # `robot.jar` and a bare `robot` without also matching every word starting "robot".
     raw = [t for t, body in recipes.items() if re.search(r"\brobot\b|\bjava\b", body)]
-    return Derived(sorted(set(direct + viascript + raw)),
-                   len(direct), len(viascript), len(raw), recipes)
+    return Derived(sorted(set(direct + viascript + raw)), len(direct), len(viascript),
+                   len(raw), recipes, phony, patterns, bool(marker))
 
 
-def _scan_findings(found: Derived, text: str) -> list[str]:
+def _scan_findings(found: Derived, phony_declared: set[str]) -> list[str]:
     """Reasons to distrust a scan, separate from what it found.
 
     Every one of these is the scan reporting a clean Makefile because it stopped
-    reading it properly, which is the failure this file exists to make loud.
+    reading properly, which is the failure this file exists to make loud.
     """
     out: list[str] = []
-    # A path going quiet. Guards total breakage of one path, not partial -- 4 down to 3
-    # passes here, which is what the .PHONY cross-check is for.
-    if not found.direct or not found.viascript:
-        out.append(f"the target scan found {found.direct} recipe(s) calling robot_cmd "
-                   f"and {found.viascript} running a reasoner-importing script; both "
-                   f"should be non-zero, so the scan is broken rather than the Makefile")
-    # Re-entry, named here rather than discovered by running it. The sentinel in
+    if not found.parsed:
+        # No "# Files" section means make did not get as far as describing any target,
+        # so every count below is zero for a reason that has nothing to do with the
+        # Makefile's content.
+        return ["make printed no database, so nothing here was derived from anything; "
+                "run `make -pqRr` by hand to see why"]
+
+    # Re-entry, named rather than discovered by running it. The sentinel in
     # _recipe_cases bounds the damage at one level, but it reports the child as a
     # target that would not skip, which is not what went wrong. This says what did.
     selfrun = sorted(t for t in found.found
@@ -1553,44 +1602,30 @@ def _scan_findings(found: Derived, text: str) -> list[str]:
                    f"file's module scope in reach of the reasoner import -- a lint pass "
                    f"lifting the PLC0415 suppression will do it")
 
-    # Constructs the scan cannot parse, refused by shape rather than inferred from the
-    # result. A .PHONY cross-check catches a lost target NAME, but the shape that
-    # actually bites loses the RECIPE while keeping the name -- a target line continued
-    # with a backslash parses fine and then discards every tab line under it, and the
-    # count guard above sees 4 become 3 and says nothing. Refusing the shape is the
-    # only thing that turns a partial scan miss from silent into named.
-    for line in text.splitlines():
-        if line.startswith("\t") or not line.strip() or line.lstrip().startswith("#"):
-            continue
-        m = re.match(r"^([^:=\n]+):(?!=)", line)
-        if not m:
-            continue
-        names, rest = m.group(1), line[m.end():]
-        for broken, shape in (
-            (line.rstrip().endswith("\\"), "is continued with a backslash"),
-            (len(names.split()) > 1, "names more than one target"),
-            ("%" in names, "is a pattern rule"),
-            (rest.startswith(":"), "is a double-colon rule"),
-        ):
-            if broken:
-                out.append(f"the target line for {names.strip()!r} {shape}, which the "
-                           f"scan cannot parse: it drops that recipe and the sweep "
-                           f"reports a clean Makefile with the target missing")
+    # A path going quiet, which is a classification that stopped classifying rather
+    # than a Makefile that stopped needing a reasoner.
+    if not found.direct or not found.viascript:
+        out.append(f"the target scan found {found.direct} recipe(s) calling robot_cmd "
+                   f"and {found.viascript} running a reasoner-importing script; both "
+                   f"should be non-zero, so the scan is broken rather than the Makefile")
 
-    # Belt and braces on the names: every .PHONY entry is a target this file declares
-    # it has, so a scan that cannot find one has stopped reading properly.
-    phony = re.search(r"^\.PHONY:((?:[^\n\\]*\\\n)*[^\n]*)", text, re.M)
-    if phony:
-        named = set(phony.group(1).replace("\\\n", " ").split())
-        seen = set(re.findall(r"^([A-Za-z0-9_.$()/-]+)\s*:(?!=)", text, re.M))
-        missed = sorted(named - seen)
-        if missed:
-            out.append(f"the target scan did not find {missed}, which .PHONY declares; "
-                       f"a target line it cannot parse drops that recipe silently")
+    # Independent of the block parsing: .PHONY is read off the source, the phony set is
+    # read off the database. A block this file fails to parse shrinks the second only.
+    missed = sorted(phony_declared - found.phony)
+    if missed:
+        out.append(f"the scan did not see {missed} as targets, which .PHONY declares; "
+                   f"make described them and this file failed to read the description")
+
+    # A pattern rule needing a reasoner cannot be swept -- there is no concrete target
+    # to run -- so it is named instead of being quietly outside the net.
+    if found.patterns:
+        out.append(f"pattern rule(s) {found.patterns} need a reasoner and cannot be "
+                   f"swept, since `make` cannot be asked for a pattern; give the rule a "
+                   f"concrete target, or exclude it deliberately")
+
     # The ledger rule this repo applies to its three JSON ledgers: an entry naming
     # something the population no longer holds reads as a decision about today and is
-    # not one. An exclusion that excludes nothing is worse than none, because it says a
-    # target was considered.
+    # not one. An exclusion that excludes nothing is worse than none.
     stale = sorted(set(UNSWEEPABLE_TARGETS) - set(found.found))
     if stale:
         out.append(f"UNSWEEPABLE_TARGETS names {stale}, which the scan does not find; "
@@ -1598,27 +1633,41 @@ def _scan_findings(found: Derived, text: str) -> list[str]:
     return out
 
 
-# Set by the sweep in the environment of every make it spawns. _recipe_cases refuses
-# to run when it is already set, because the derived set is what decides who gets
-# swept: hoist `import reasoner` in this file to module scope -- exactly what a lint
-# pass does to a PLC0415 suppression -- and validate-negative joins that set, whereupon
+def _phony_declared(makefile: Path) -> set[str]:
+    """The names .PHONY lists, read off the source as an independent second opinion."""
+    m = re.search(r"^\.PHONY:((?:[^\n\\]*\\\n)*[^\n]*)", makefile.read_text(), re.M)
+    return set(m.group(1).replace("\\\n", " ").split()) if m else set()
+
+
+# Set by the sweep in the environment of every make it spawns. _recipe_cases refuses to
+# run when it is already set, because the derived set is what decides who gets swept:
+# hoist `import reasoner` in this file to module scope -- exactly what a lint pass does
+# to a PLC0415 suppression -- and validate-negative joins that set, whereupon
 # `make validate-negative` spawns `make validate-negative` without bound.
 SWEEP_SENTINEL = "FMO_REASONER_SWEEP"
 
 
 def _derivation_cases() -> list[str]:
-    """The scan itself, against snippets, because its docstring is not a test.
+    """The scan itself, against real makefiles, because its docstring is not a test.
 
-    The sweep can only be as good as the set it derives, and the derivation is regex
-    over text: every claim about what it catches is a claim about a parser, and the
-    `raw` path in particular contributes nothing today, so a break in it would go
-    unnoticed for exactly as long as it took someone to add the target it exists for.
+    The sweep can only be as good as the set it derives. Snippets are written to a
+    scratch directory and put through the same `make -pqRr` the real scan uses, so what
+    is under test is this file's reading of make's database rather than a guess about
+    it. The `raw` path especially: it contributes no targets today, so a break in it
+    would go unnoticed for exactly as long as it took someone to add the target it
+    exists for.
+
+    The last two cases are the shapes the previous regex scan could not parse and had to
+    refuse by name. They are now expected to be *found*, which is the whole reason for
+    asking make instead of reading the file.
     """
     out: list[str] = []
     users = {"reasoner", "importer"}
 
     def scan(text: str) -> Derived:
-        return _reasoner_targets(makefile_text=text, users=users)
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "Makefile").write_text(text)
+            return _reasoner_targets(directory=Path(tmp), users=users)
 
     for name, text, expected, label in (
         ("robot_cmd", "a:\n\t@$(call robot_cmd,a); $$cmd merge\n", ["a"],
@@ -1631,8 +1680,18 @@ def _derivation_cases() -> list[str]:
          "a recipe that needs no reasoner is not swept"),
         ("robotics", "a:\n\techo robotics roboticist\n", [],
          "a word merely starting with robot is not a reasoner"),
-        ("assignment", "PY := poetry run\nROBOT_JAR ?= x\n", [],
+        ("assignment", "PY := poetry run\nROBOT_JAR ?= x\na:\n\techo hi\n", [],
          "a variable assignment is not a target"),
+        ("build", "a: $(BUILD)/x\n$(BUILD)/x:\n\tjava -jar robot.jar\n",
+         [f"{MAKE_BUILD}/x"],
+         "a target named through $(BUILD) comes back with the sweep's own marker"),
+        # The two the regex scan got wrong. Both are now simply right.
+        ("continuation",
+         "a: dep \\\n  other\n\t@$(call robot_cmd,a); $$cmd merge\ndep other:\n\t@true\n",
+         ["a"],
+         "a target line continued with a backslash keeps its recipe"),
+        ("multi-target", "a b:\n\t@$(call robot_cmd,x); $$cmd merge\n", ["a", "b"],
+         "a multi-target rule yields both targets, not just the first"),
     ):
         got = scan(text).found
         if got != expected:
@@ -1640,30 +1699,32 @@ def _derivation_cases() -> list[str]:
         else:
             print(f"  ok   [scan] {label}")
 
-    # The two shapes that silently drop a recipe. The scan gets both wrong -- that is
-    # accepted, and the point is that _scan_findings says so rather than reporting a
-    # clean Makefile. Each snippet declares the target in .PHONY, which is what a real
-    # target of this repo's would do.
-    for name, text, label in (
-        ("continuation", ".PHONY: a\na: dep \\\n  other\n\t@$(call robot_cmd,a); $$cmd merge\n",
-         "a target line broken across lines is reported, not silently dropped"),
-        ("multi-target", ".PHONY: a b\na b:\n\t@$(call robot_cmd,a); $$cmd merge\n",
-         "a multi-target rule is reported, not silently dropped"),
-    ):
-        findings = _scan_findings(scan(text), text)
-        if not any("cannot parse" in f for f in findings):
-            out.append(f"the {name} snippet produced {findings or 'no findings'}: {label}")
-        else:
-            print(f"  ok   [scan] {label}")
+    # A pattern rule needing a reasoner has no concrete target to run, so it is named
+    # rather than left silently outside the net.
+    findings = _scan_findings(scan("%.out: %.in\n\tjava -jar robot.jar\n"), set())
+    if not any("pattern rule" in f for f in findings):
+        out.append(f"a reasoner-needing pattern rule produced {findings or 'no findings'}, "
+                   f"so it would sit outside the sweep unremarked")
+    else:
+        print("  ok   [scan] a pattern rule needing a reasoner is reported, not ignored")
 
-    # And the audit on the exclusion list, which is what makes a total scan failure
-    # loud rather than clean.
-    findings = _scan_findings(scan("a:\n\t@echo nothing\n"), "a:\n\t@echo nothing\n")
+    # The audit on the exclusion list, which is what makes a total scan failure loud
+    # rather than clean.
+    findings = _scan_findings(scan("a:\n\t@echo nothing\n"), set())
     if not any("UNSWEEPABLE_TARGETS names" in f for f in findings):
         out.append(f"a scan finding none of the exclusions produced {findings}, so a "
                    f"broken scan can still report a clean Makefile")
     else:
         print("  ok   [scan] an exclusion the scan cannot find is refused")
+
+    # And the .PHONY second opinion, which is what notices this file misreading a block
+    # that make described perfectly well.
+    findings = _scan_findings(scan("a:\n\t@echo nothing\n"), {"a", "ghost"})
+    if not any("ghost" in f for f in findings):
+        out.append("a .PHONY name the scan never saw went unreported, so a block this "
+                   "file fails to read looks like a Makefile that does not have it")
+    else:
+        print("  ok   [scan] a .PHONY name the scan did not see is reported")
     return out
 
 
@@ -1696,7 +1757,7 @@ def _recipe_cases() -> list[str]:
                 f"is load-bearing rather than a backstop"]
 
     found = _reasoner_targets()
-    out += _scan_findings(found, (ROOT / "Makefile").read_text())
+    out += _scan_findings(found, _phony_declared(ROOT / "Makefile"))
     if out:
         # A scan that cannot be trusted makes every case below meaningless, so none run.
         return out
@@ -1722,13 +1783,13 @@ def _recipe_cases() -> list[str]:
             for inherited in ("MAKEFLAGS", "MFLAGS"):
                 env.pop(inherited, None)
             proc = subprocess.run(
-                ["make", goal.replace("$(BUILD)", str(build)), f"BUILD={build}"],
+                ["make", goal.replace(MAKE_BUILD, str(build)), f"BUILD={build}"],
                 cwd=ROOT, env=env, capture_output=True, text=True)
         return proc.returncode, proc.stdout + proc.stderr
 
     for target in targets:
         code, output = run(target, java_exit=1, robot_exit=1)
-        label = target.replace("$(BUILD)", "build")
+        label = target.replace(MAKE_BUILD, "build")
         if code != 0:
             out.append(f"make {label} exited {code} with a reasoner that does not run, "
                        f"rather than skipping: {output.strip()[-160:]}")
