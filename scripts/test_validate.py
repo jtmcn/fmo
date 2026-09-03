@@ -13,6 +13,7 @@ from __future__ import annotations
 import contextlib
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1436,50 +1437,146 @@ def _inferred_type_cases() -> list[str]:
     return out
 
 
-def _recipe_cases() -> list[str]:
-    """The Makefile asks reasoner.py rather than answering for itself.
+# Excluded from the sweep by name, with the reason, because the sweep runs targets for
+# real. Nothing verifies a reason, so a new entry is the thing to argue about in review.
+UNSWEEPABLE_TARGETS = {
+    "setup": "runs poetry install and downloads a 79MB jar",
+}
 
-    This is the claim the whole extraction exists for, and it is a claim about make,
-    so it is checked by running make. Both cases put fakes on PATH for `java` and for
-    `robot`, so whichever branch resolution takes -- robot.jar in the repo root, or
-    robot on PATH -- the answer comes from the fake and not from the machine. The
-    repo's own robot.jar is gitignored, so a case that let the machine answer would
-    pass on this checkout and skip vacuously on a fresh clone.
+
+def _reasoner_targets() -> tuple[list[str], list[str]]:
+    """Make targets that need a reasoner, read off the Makefile rather than listed.
+
+    A hand-kept list is the same failure this sweep exists to catch, one level up: a
+    new reasoner target left off it is never swept, and its missing skip is discovered
+    on someone's JDK-less laptop. Same argument as validate.CHECKS -- enumerate the
+    real set and fail on what it does not account for.
+
+    A target qualifies three ways, and each covers what the others miss. Its recipe
+    may open with $(call robot_cmd,...), which is how a recipe asks. Or it may run a
+    script that imports reasoner, which is how reason-negative and axioms ask -- their
+    recipes never mention ROBOT at all, and a sweep grepping only for robot_cmd would
+    miss exactly the targets that were already correct. Or it may simply name java or
+    robot, which is the case that matters most and contributes nothing today: a target
+    added later that calls `java -jar robot.jar` without asking is precisely the bug
+    this whole branch removed, and it would otherwise be invisible here for the same
+    reason it was invisible in the Makefile -- nobody grepped for what was absent.
+
+    Returns the qualifying targets and the two derivation paths' own counts, so the
+    caller can tell a parser that quietly stopped finding one kind from a Makefile
+    that genuinely has none.
+    """
+    # reasoner itself counts: a recipe invoking it directly -- `make setup`, asking
+    # whether to print its install note -- depends on it as surely as one running a
+    # script that imports it. Leaving it out made setup invisible here, which in turn
+    # made its entry in UNSWEEPABLE_TARGETS dead configuration.
+    users = {"reasoner"} | {
+        p.stem for p in (ROOT / "scripts").glob("*.py")
+        if re.search(r"^(?:import reasoner|from reasoner import)", p.read_text(), re.M)
+    }
+    recipes: dict[str, str] = {}
+    current: str | None = None
+    for line in (ROOT / "Makefile").read_text().splitlines():
+        if line.startswith("\t"):
+            if current:
+                recipes[current] += line
+            continue
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        # `:` but not `:=`, so a variable assignment is not read as a target.
+        m = re.match(r"^([A-Za-z0-9_.$()/-]+)\s*:(?!=)", line)
+        current = m.group(1) if m else None
+        if current:
+            recipes.setdefault(current, "")
+
+    direct = [t for t, body in recipes.items() if "robot_cmd" in body]
+    viascript = [t for t, body in recipes.items()
+                 if any(f"{u}.py" in body for u in users) and "robot_cmd" not in body]
+    # No "and not in the others": a raw mention is worth sweeping wherever it appears,
+    # and set() below deduplicates. A target here that is not also in direct will not
+    # skip, and the sweep will say so by name rather than by absence.
+    raw = [t for t, body in recipes.items() if re.search(r"\brobot|\bjava\b", body)]
+    found = set(direct + viascript + raw)
+    stale = sorted(set(UNSWEEPABLE_TARGETS) - found)
+    if stale:
+        # The ledger rule this repo applies to its three JSON ledgers: an entry naming
+        # something the population no longer holds reads as a decision about today and
+        # is not one. An exclusion nothing excludes is worse than none, because it
+        # says a target was considered.
+        raise LookupError(
+            f"UNSWEEPABLE_TARGETS names {stale}, which the sweep does not find; "
+            f"either the derivation broke or the entry is stale")
+    return sorted(found - set(UNSWEEPABLE_TARGETS)), [str(len(direct)), str(len(viascript))]
+
+
+def _recipe_cases() -> list[str]:
+    """Every reasoner target skips when the reasoner does not run.
+
+    The claim the extraction exists for, and it is a claim about make, so it is
+    checked by running make. Sweeping the whole set rather than one target is the
+    lesson of the bug itself: the prose said `make axioms` and `make reason` behaved
+    alike and they did not, and no amount of rewriting the prose would have found it.
+    Uniform behaviour is worth asserting only if something asserts it.
+
+    Fakes go on PATH for both `java` and `robot`, so whichever branch resolution takes
+    -- robot.jar in the repo root, or robot on PATH -- the answer comes from the
+    fixture and not from the machine. The repo's own robot.jar is gitignored, so a
+    case that let the machine answer would pass on this checkout and skip vacuously on
+    a fresh clone. $(BUILD) is redirected at a scratch directory, so a sweep never
+    touches the real one and never reads a stale artifact as up to date.
     """
     out: list[str] = []
     if shutil.which("make") is None:
         return ["make not found, so the reasoner recipes went unverified"]
 
-    def run_reason(java_exit: int, robot_exit: int) -> tuple[int, str]:
+    try:
+        targets, (direct, viascript) = _reasoner_targets()
+    except LookupError as exc:
+        # A verdict, not a traceback: this file's own subject is checks that answer
+        # with something a reader can act on.
+        return [str(exc)]
+    if direct == "0" or viascript == "0":
+        # Not "no targets": either derivation path going quiet is a broken parser
+        # reporting a clean Makefile, which is this file's whole subject.
+        return [f"the target sweep found {direct} recipe(s) calling robot_cmd and "
+                f"{viascript} running a reasoner-importing script; both should be "
+                f"non-zero, so the derivation is broken rather than the Makefile"]
+
+    def run(goal: str, java_exit: int, robot_exit: int) -> tuple[int, str]:
         with tempfile.TemporaryDirectory() as tmp:
-            fake = Path(tmp)
+            fake = Path(tmp) / "bin"
+            fake.mkdir()
+            build = Path(tmp) / "build"
             for name, code in (("java", java_exit), ("robot", robot_exit)):
                 (fake / name).write_text(f"#!/bin/sh\nexit {code}\n")
                 (fake / name).chmod(0o755)
             env = dict(os.environ, PATH=f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
             env.pop("ROBOT_JAR", None)
-            proc = subprocess.run(["make", "reason"], cwd=ROOT, env=env,
-                                  capture_output=True, text=True)
+            proc = subprocess.run(
+                ["make", goal.replace("$(BUILD)", str(build)), f"BUILD={build}"],
+                cwd=ROOT, env=env, capture_output=True, text=True)
         return proc.returncode, proc.stdout + proc.stderr
 
-    # The regression this branch closes: presence-based detection ran `java -jar
-    # robot.jar` and died on a stub, while the Python targets beside it skipped.
-    code, output = run_reason(java_exit=1, robot_exit=1)
-    if code != 0:
-        out.append(f"make reason exited {code} with a reasoner that does not run, "
-                   f"rather than skipping: {output.strip()[-160:]}")
-    elif "SKIP" not in output:
-        out.append("make reason exited 0 without saying it skipped")
-    elif "exited 1" not in output:
-        # Distinguishes "probed and failed" from "found nothing", which would mean
-        # the fakes were never consulted and the case proved nothing.
-        out.append(f"make reason skipped without probing anything: {output.strip()[:120]}")
-    else:
-        print("  ok   [make] reason skips when the reasoner does not run")
+    for target in targets:
+        code, output = run(target, java_exit=1, robot_exit=1)
+        label = target.replace("$(BUILD)", "build")
+        if code != 0:
+            out.append(f"make {label} exited {code} with a reasoner that does not run, "
+                       f"rather than skipping: {output.strip()[-160:]}")
+        elif "SKIP" not in output:
+            out.append(f"make {label} exited 0 without saying it skipped, so it is "
+                       f"green over a step nothing performed")
+        elif "exited 1" not in output:
+            # Separates "probed and failed" from "found nothing". The second would
+            # mean the fakes were never consulted and the case proved nothing.
+            out.append(f"make {label} skipped without probing: {output.strip()[:120]}")
+        else:
+            print(f"  ok   [make] {label} skips when the reasoner does not run")
 
-    # The positive control. Without it, a robot_cmd that always resolved to nothing
-    # would pass the case above and every reasoner target would skip forever.
-    code, output = run_reason(java_exit=0, robot_exit=0)
+    # The positive control, on the one target whose recipe is pure ROBOT calls. Without
+    # it a robot_cmd resolving to nothing would pass every case above, and every
+    # reasoner target would skip forever while the sweep called it uniform.
+    code, output = run("reason", java_exit=0, robot_exit=0)
     if code != 0:
         out.append(f"make reason exited {code} with a reasoner that runs: "
                    f"{output.strip()[-160:]}")
