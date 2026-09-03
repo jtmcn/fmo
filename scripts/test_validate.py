@@ -1186,6 +1186,7 @@ def axiom_cases() -> list[str]:
     import ledger as L  # noqa: PLC0415
     import axioms  # noqa: PLC0415
     import test_reason as T  # noqa: PLC0415
+    import reasoner as R  # noqa: PLC0415
 
     out: list[str] = []
     sites = sorted(axioms.all_sites())
@@ -1254,11 +1255,11 @@ def axiom_cases() -> list[str]:
     else:
         print("  ok   [check_axioms] a blank pinned value is not called exempt")
 
-    out += reasoner_silence_cases(C, T)
+    out += reasoner_silence_cases(C, T, R)
     return out
 
 
-def reasoner_silence_cases(C, T) -> list[str]:
+def reasoner_silence_cases(C, T, R) -> list[str]:
     """A reasoner that cannot answer must not be read as answering "no".
 
     These are the two halves of one defect. Detection said a JVM was there because
@@ -1272,13 +1273,15 @@ def reasoner_silence_cases(C, T) -> list[str]:
     that needs to reason. Nothing below starts a JVM or touches the real robot.jar.
     """
     out: list[str] = []
-    out += _detection_cases(T)
+    out += _detection_cases(R)
     out += _outcome_cases(T)
     out += _scoring_cases(C, T)
+    out += _recipe_cases()
+    out += _inferred_type_cases()
     return out
 
 
-def _detection_cases(T: ModuleType) -> list[str]:
+def _detection_cases(R: ModuleType) -> list[str]:
     """robot_command answers about a reasoner that runs, not one that exists."""
     out: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -1292,33 +1295,33 @@ def _detection_cases(T: ModuleType) -> list[str]:
         java = fake / "java"
         java.write_text("#!/bin/sh\necho 'Unable to locate a Java Runtime.' >&2\nexit 1\n")
         java.chmod(0o755)
-        saved_path, saved_root = os.environ.get("PATH", ""), T.ROOT
+        saved_path, saved_root = os.environ.get("PATH", ""), R.ROOT
         saved_jar = os.environ.pop("ROBOT_JAR", None)
         try:
             os.environ["PATH"] = f"{fake}{os.pathsep}{saved_path}"
-            setattr(T, "ROOT", fake)
-            broken, why = T.robot_command()
+            setattr(R, "ROOT", fake)
+            broken, why = R.robot_command()
             # A named reasoner that does not run is a typo, not an absence, and used
             # to fail loudly on first use. Probing must not turn that into a skip.
             os.environ["ROBOT_JAR"] = str(fake / "robot.jar")
             try:
-                T.robot_command()
+                R.robot_command()
                 named = "returned instead of raising"
-            except T.ReasonerBroken as exc:
+            except R.ReasonerBroken as exc:
                 named = str(exc)
             del os.environ["ROBOT_JAR"]
             # The positive control. Without it a robot_command that returned None
             # unconditionally -- say, a typo in the probe -- would pass every case
             # above and every reasoner target would skip forever.
             java.write_text("#!/bin/sh\nexit 0\n")
-            working, _ = T.robot_command()
+            working, _ = R.robot_command()
         finally:
             os.environ["PATH"] = saved_path
             if saved_jar is not None:
                 os.environ["ROBOT_JAR"] = saved_jar
             else:
                 os.environ.pop("ROBOT_JAR", None)
-            setattr(T, "ROOT", saved_root)
+            setattr(R, "ROOT", saved_root)
 
     for ok, problem, label in (
         (broken is None,
@@ -1383,6 +1386,107 @@ def _outcome_cases(T: ModuleType) -> list[str]:
                     print(f"  ok   [test_reason] {label}")
         finally:
             setattr(T, "ROOT", saved_root)
+    return out
+
+
+def _inferred_type_cases() -> list[str]:
+    """CQ3's verdict skips without a reasoner, and refuses to pass without a file.
+
+    The second is the guard worth having. Lifting the check out of the Makefile gave
+    it a way to be run when the reasoner had skipped, and "the file is not there" must
+    read as a broken recipe rather than as a machine without Java -- otherwise the
+    target that proves a class is a working defined class passes by not looking.
+    """
+    out: list[str] = []
+    check = str(ROOT / "scripts" / "check_inferred_type.py")
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = Path(tmp)
+        good = fake / "reasoned.ttl"
+        good.write_text("<http://example.org/M> a <http://example.org/WeatherMarket> .\n")
+
+        def run(reasoner_exit: int, path: Path) -> tuple[int, str]:
+            for name in ("java", "robot"):
+                (fake / name).write_text(f"#!/bin/sh\nexit {reasoner_exit}\n")
+                (fake / name).chmod(0o755)
+            env = dict(os.environ,
+                       PATH=f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
+            env.pop("ROBOT_JAR", None)
+            proc = subprocess.run(
+                [sys.executable, check, str(path), "http://example.org/M", "WeatherMarket"],
+                cwd=fake, capture_output=True, text=True, env=env)
+            return proc.returncode, proc.stdout + proc.stderr
+
+        missing = run(reasoner_exit=0, path=fake / "never-written.ttl")
+        skipped = run(reasoner_exit=1, path=fake / "never-written.ttl")
+        passing = run(reasoner_exit=0, path=good)
+
+    for (code, output), want_code, want_text, label in (
+        (missing, 1, "was not written", "a reasoned file that was never written fails"),
+        (skipped, 0, "SKIP", "no reasoner is a skip, not a verdict"),
+        (passing, 0, "PASS", "an inferred type still passes"),
+    ):
+        if code != want_code:
+            out.append(f"check_inferred_type exited {code}, wanted {want_code}: {label}"
+                       f" -- {output.strip()[:100]}")
+        elif want_text not in output:
+            out.append(f"check_inferred_type said {output.strip()[:80]!r}, wanted "
+                       f"{want_text!r}: {label}")
+        else:
+            print(f"  ok   [competency] {label}")
+    return out
+
+
+def _recipe_cases() -> list[str]:
+    """The Makefile asks reasoner.py rather than answering for itself.
+
+    This is the claim the whole extraction exists for, and it is a claim about make,
+    so it is checked by running make. Both cases put fakes on PATH for `java` and for
+    `robot`, so whichever branch resolution takes -- robot.jar in the repo root, or
+    robot on PATH -- the answer comes from the fake and not from the machine. The
+    repo's own robot.jar is gitignored, so a case that let the machine answer would
+    pass on this checkout and skip vacuously on a fresh clone.
+    """
+    out: list[str] = []
+    if shutil.which("make") is None:
+        return ["make not found, so the reasoner recipes went unverified"]
+
+    def run_reason(java_exit: int, robot_exit: int) -> tuple[int, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp)
+            for name, code in (("java", java_exit), ("robot", robot_exit)):
+                (fake / name).write_text(f"#!/bin/sh\nexit {code}\n")
+                (fake / name).chmod(0o755)
+            env = dict(os.environ, PATH=f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
+            env.pop("ROBOT_JAR", None)
+            proc = subprocess.run(["make", "reason"], cwd=ROOT, env=env,
+                                  capture_output=True, text=True)
+        return proc.returncode, proc.stdout + proc.stderr
+
+    # The regression this branch closes: presence-based detection ran `java -jar
+    # robot.jar` and died on a stub, while the Python targets beside it skipped.
+    code, output = run_reason(java_exit=1, robot_exit=1)
+    if code != 0:
+        out.append(f"make reason exited {code} with a reasoner that does not run, "
+                   f"rather than skipping: {output.strip()[-160:]}")
+    elif "SKIP" not in output:
+        out.append("make reason exited 0 without saying it skipped")
+    elif "exited 1" not in output:
+        # Distinguishes "probed and failed" from "found nothing", which would mean
+        # the fakes were never consulted and the case proved nothing.
+        out.append(f"make reason skipped without probing anything: {output.strip()[:120]}")
+    else:
+        print("  ok   [make] reason skips when the reasoner does not run")
+
+    # The positive control. Without it, a robot_cmd that always resolved to nothing
+    # would pass the case above and every reasoner target would skip forever.
+    code, output = run_reason(java_exit=0, robot_exit=0)
+    if code != 0:
+        out.append(f"make reason exited {code} with a reasoner that runs: "
+                   f"{output.strip()[-160:]}")
+    elif "SKIP" in output:
+        out.append("make reason skipped even though its reasoner runs")
+    else:
+        print("  ok   [make] reason runs when the reasoner runs")
     return out
 
 

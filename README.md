@@ -146,12 +146,13 @@ Python deps are managed by poetry (`pyproject.toml`); every target runs through
 between any two releases, so a floating constraint would redden a clean tree for reasons
 that have nothing to do with this repo. ROBOT comes from `$ROBOT_JAR`, a `robot.jar` in this directory, or `robot` on
 `PATH` — `make setup` downloads it if none of those exist, but it needs a JRE
-(`brew install openjdk`). `make reason-negative` and `make axioms` skip with a notice when
-ROBOT or Java is missing *or does not run* — presence is not usability, and a `java` that
-exits 1 once had them report verified pins against a JVM that never started. A `$ROBOT_JAR`
-that does not run fails instead of skipping, because naming one is a decision. `make reason`
-and `make competency` still detect ROBOT by presence, so a broken runtime makes them fail
-rather than skip. The Java-free checks always run.
+(`brew install openjdk`). Every reasoner target — `reason`, `competency`, `reason-negative`,
+`axioms` — skips with a notice when ROBOT or Java is missing *or does not run*, so `make test`
+completes on a machine without a JDK. Presence is not usability: a `java` that exits 1 once had
+`make axioms` report verified pins against a JVM that never started, and `make reason` die where
+its neighbour skipped. A `$ROBOT_JAR` that does not run fails instead of skipping, because naming
+one is a decision. `scripts/reasoner.py` is the only thing that decides any of this. The
+Java-free checks always run.
 
 To open in Protégé, open `src/fmo.ttl` — the catalog next to it resolves the imports.
 
