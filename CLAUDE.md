@@ -24,7 +24,7 @@ make shape-signatures   # sign the export shapes, audit them against FMO's pin
 make shape-signatures-update  # re-pin after an intended shapes change; review the diff
 make cq                 # SPARQL competency questions vs checked-in .expected
 make cq-update          # regenerate .expected — review the diff before committing
-make reason             # HermiT consistency (needs a working JDK; fails, not skips, without one)
+make reason             # HermiT consistency (skips with a notice without a ROBOT that runs)
 make competency         # CQ3: weaken an assertion, confirm the reasoner re-derives it
 make meta               # every check must fail when it has nothing to check
 make test               # all of the above
@@ -152,6 +152,15 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   kernel does *not* own is the file's shape, its wording, or its per-entry
   verification; see `scripts/ledger.py`'s docstring for why each stays at the call
   site.
+- **What a usable reasoner is belongs to `scripts/reasoner.py`.** Both the Python
+  checkers and the Makefile recipes ask it, and neither keeps a copy. The Makefile
+  once had its own — `$(wildcard robot.jar)` asks whether a *file* is there, never
+  whether it runs — so on a machine with `robot.jar` and no JDK `make axioms` skipped
+  while `make reason` died on the macOS `java` stub. Absence is a skip; a `$ROBOT_JAR`
+  that names a reasoner which does not run is a failure, because naming it was a
+  decision. A recipe that needs one is a single shell opened with
+  `$(call robot_cmd,LABEL)`, which sets `$$cmd` or exits the recipe quietly.
+
 - **Units: identical where values are compared, dimension-equal where a unit is merely
   chosen.** Dimension equality is never sufficient — °F vs °C shares a dimension vector.
   `wx:conventionalUnit` is deliberately *not* a sub-property of the functional

@@ -17,22 +17,25 @@ bug arrived. Each case names the report it expects, and a class-level case also 
 class, because "some class is unsatisfiable" would be satisfied by an unrelated one -- the
 same attribution the SHACL mutants make on sh:minCount violations.
 
-Skips with a notice when ROBOT or Java is missing or does not run -- unlike
-`make reason`, whose detection is still presence-based, so a stub java makes it
-fail rather than skip.
+Skips with a notice when ROBOT or Java is missing or does not run. What "usable"
+means is reasoner.py's to say, and every target now asks it -- `make reason`
+included, which used to answer for itself and get it wrong.
 
 Run: python3 scripts/test_reason.py
 """
 
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Literal
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from reasoner import ReasonerBroken, robot_command  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
@@ -158,69 +161,6 @@ FIRED = "fired"
 ACCEPTED = "accepted"
 UNREADABLE = "unreadable"
 Outcome = Literal["fired", "accepted", "unreadable"]
-
-# A wedged JVM should not hang every reasoner target at startup, which is what an
-# unbounded probe buys in exchange for the one it catches.
-PROBE_TIMEOUT = 60
-
-
-class ReasonerBroken(RuntimeError):
-    """A reasoner was named and does not run, which is not the same as having none."""
-
-
-def robot_command() -> tuple[list[str] | None, str]:
-    """Same resolution order as the Makefile: ROBOT_JAR, ./robot.jar, robot on PATH.
-
-    Returns the command and an empty note, or None and the reason there is none. The
-    reason is returned rather than printed because each caller owns its own SKIP line
-    -- and it is returned at all because "no ROBOT that runs" told an operator nothing
-    they could act on while the stub's own first line, "Unable to locate a Java
-    Runtime", was captured and discarded three lines away.
-
-    The command is run, not merely found. shutil.which("java") answered a question
-    nobody asked: macOS ships a /usr/bin/java stub that is present on every machine
-    and exits 1, so presence was never usability. check_axioms consequently skipped
-    nothing and reported 9 of 9 pins verified against a JVM that never started.
-    --version is the cheapest thing ROBOT will do that still needs the runtime, and it
-    proves ROBOT rather than java, which is what every caller goes on to invoke.
-
-    A reasoner the operator *named* and that does not run raises rather than skipping.
-    Both are "no usable reasoner", but only one of them is a decision: ROBOT_JAR
-    pointing at nothing is a typo, and it used to fail loudly on the first real run --
-    probing without this split would have turned that into a silent skip, trading one
-    false green for another. A discovered robot.jar with no JVM behind it is the case
-    README documents as a skip, and stays one.
-    """
-    explicit = os.environ.get("ROBOT_JAR")
-    jar = explicit
-    if not jar and (ROOT / "robot.jar").exists():
-        jar = str(ROOT / "robot.jar")
-    if jar:
-        if not shutil.which("java"):
-            if explicit:
-                raise ReasonerBroken(f"ROBOT_JAR names {jar}, but no java is on PATH")
-            return None, f"no java on PATH to run {jar}"
-        command = ["java", "-jar", jar]
-    else:
-        found = shutil.which("robot")
-        if not found:
-            return None, ("no ROBOT found: set ROBOT_JAR, drop robot.jar in the repo "
-                          "root, or put robot on PATH")
-        command = [found]
-    try:
-        proc = subprocess.run([*command, "--version"], capture_output=True,
-                              text=True, timeout=PROBE_TIMEOUT)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        why = f"{command[0]} could not be run: {exc}"
-    else:
-        if proc.returncode == 0:
-            return command, ""
-        detail = (proc.stderr or proc.stdout).strip().splitlines()
-        why = (f"{' '.join(command)} --version exited {proc.returncode}"
-               + (f": {detail[0]}" if detail else ""))
-    if explicit:
-        raise ReasonerBroken(why)
-    return None, why
 
 
 def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,

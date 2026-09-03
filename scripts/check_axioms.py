@@ -30,9 +30,8 @@ it reports which axioms are load-bearing rather than which ones someone believed
 were. It is slow (a reasoner run per trial) and writes nothing; the ledger is
 edited by hand from what it prints, because the reasons are the point.
 
-Skips with a notice when ROBOT or Java is missing or does not run -- unlike
-`make reason`, whose detection is still presence-based, so a stub java makes it
-fail rather than skip.
+Skips with a notice when ROBOT or Java is missing or does not run, on
+reasoner.py's judgement, which is now every target's.
 """
 
 from __future__ import annotations
@@ -48,6 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import axioms  # noqa: E402
 import ledger as L  # noqa: E402
+import reasoner as R  # noqa: E402
 import test_reason as T  # noqa: E402
 from registry import ROOT, SRC  # noqa: E402
 
@@ -211,8 +211,8 @@ def verify(robot: list[str]) -> int:
 
 def main() -> int:
     try:
-        robot, why = T.robot_command()
-    except T.ReasonerBroken as exc:
+        robot, why = R.robot_command()
+    except R.ReasonerBroken as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
     if robot is None:

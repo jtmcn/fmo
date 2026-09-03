@@ -1,8 +1,10 @@
 # FMO build and check targets.
 #
 # `make setup` installs everything. ROBOT is optional: set ROBOT_JAR=/path/to/robot.jar,
-# drop robot.jar in this directory, or put `robot` on PATH. Without it, `validate` still
-# runs; reasoner targets skip with a notice.
+# drop robot.jar in this directory, or put `robot` on PATH. Without one that RUNS,
+# `validate` still runs and every reasoner target skips with a notice; a $ROBOT_JAR
+# naming one that does not run fails instead. scripts/reasoner.py decides, for the
+# recipes here and for the Python checkers alike.
 
 SRC     := src
 BUILD   := build
@@ -12,17 +14,25 @@ EXAMPLES := $(wildcard examples/*.ttl)
 PYSCRIPTS := $(wildcard scripts/*.py)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 SHAPEPIN := shapes/thermaledge-export.pin.json
+# The \# is escaped: an unescaped one starts a Makefile comment, which silently
+# truncated this to the example's base IRI and made the check look for a type on
+# a subject that has none.
+MARKET_B82 := https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15\#Market-B82
 
 PY_BIN  := poetry run
 PY      := $(PY_BIN) python3
 
-ifdef ROBOT_JAR
-ROBOT := java -jar $(ROBOT_JAR)
-else ifneq ($(wildcard robot.jar),)
-ROBOT := java -jar robot.jar
-else
-ROBOT := $(shell command -v robot 2>/dev/null)
-endif
+# What a usable reasoner is belongs to scripts/reasoner.py, which is also what the
+# Python checkers ask. This file used to hold a second opinion -- $(wildcard robot.jar)
+# asks whether a FILE is there, never whether it runs -- and the two disagreed on a
+# machine with robot.jar and no JDK: `make axioms` skipped, `make reason` died on the
+# macOS java stub. Same argument as ledger.py; see that module's docstring.
+#
+# $(call robot_cmd,LABEL) sets $$cmd for the rest of the recipe LINE, so a recipe that
+# needs a reasoner is one shell: no reasoner exits it quietly, a $ROBOT_JAR that names
+# a broken one fails it. Resolved per recipe rather than here because the probe starts
+# a JVM, and `make typecheck` should not pay for a question it never asks.
+robot_cmd = cmd=$$($(PY) scripts/reasoner.py $(1)) || exit 1; [ -n "$$cmd" ] || exit 0
 
 .PHONY: all setup test typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
@@ -33,7 +43,8 @@ setup:
 	poetry install
 	@command -v robot >/dev/null || [ -f robot.jar ] || \
 		curl -fsSL -o robot.jar https://github.com/ontodev/robot/releases/latest/download/robot.jar
-	@command -v java >/dev/null || echo "NOTE: no java found; \`brew install openjdk\` to enable make reason"
+	@cmd=$$($(PY) scripts/reasoner.py setup) || exit 1; \
+	 [ -n "$$cmd" ] || echo "NOTE: \`brew install openjdk\` to enable the reasoner targets"
 	@$(MAKE) --no-print-directory validate
 
 ## Static types over the checking scripts. ty is pinned exactly in the dev group:
@@ -123,20 +134,17 @@ cq-update:
 
 ## HermiT consistency over the schema, then over schema plus examples.
 reason: $(BUILD)/merged.owl $(BUILD)/full.owl
-ifeq ($(strip $(ROBOT)),)
-	@echo "SKIP reason: ROBOT not found. Set ROBOT_JAR or put robot on PATH."
-	@echo "  https://github.com/ontodev/robot/releases"
-else
-	@echo "== reasoning over schema =="
-	$(ROBOT) reason --input $(BUILD)/merged.owl --reasoner HermiT --output $(BUILD)/reasoned.owl
-	@echo "== reasoning over schema + examples =="
-	$(ROBOT) reason --input $(BUILD)/full.owl --reasoner HermiT --output $(BUILD)/full-reasoned.owl
-	@echo "consistent"
-endif
+	@$(call robot_cmd,reason); \
+	 set -e; \
+	 echo "== reasoning over schema =="; \
+	 (set -x; $$cmd reason --input $(BUILD)/merged.owl --reasoner HermiT --output $(BUILD)/reasoned.owl); \
+	 echo "== reasoning over schema + examples =="; \
+	 (set -x; $$cmd reason --input $(BUILD)/full.owl --reasoner HermiT --output $(BUILD)/full-reasoned.owl); \
+	 echo "consistent"
 
 ## Prove the reasoner-only guards fire: the axioms validate.py cannot check.
-## Skips with a notice when ROBOT or Java is missing or does not run. Unlike
-## `make reason`, which detects ROBOT here by presence and so fails on a stub java.
+## Skips with a notice when ROBOT or Java is missing or does not run -- the same
+## judgement `make reason` now asks for, from scripts/reasoner.py.
 reason-negative:
 	$(PY) scripts/test_reason.py
 
@@ -169,26 +177,21 @@ shape-signatures-update:
 ## Proves ksh:WeatherMarket is a working defined class, not decoration. Needs a
 ## reasoner, unlike `make cq`, because the answer is inferred rather than asserted.
 competency:
-ifeq ($(strip $(ROBOT)),)
-	@echo "SKIP competency: ROBOT not found."
-else
-	@mkdir -p $(BUILD)
-	@sed 's/ex:Market-B82 a ksh:WeatherMarket ;/ex:Market-B82 a ksh:Market ;/' \
-		examples/kxhighny-2026-08-15.ttl > $(BUILD)/ex-weak.ttl
-	@cmp -s examples/kxhighny-2026-08-15.ttl $(BUILD)/ex-weak.ttl && { \
-		echo "FAIL: the sed anchor no longer matches, so nothing was weakened;"; \
-		echo "      the reasoner would be handed the asserted type and 'pass'."; \
-		exit 1; } || true
-	$(ROBOT) merge --input $(TOP) --input $(BUILD)/ex-weak.ttl --catalog $(CATALOG) \
-		reason --reasoner HermiT --axiom-generators "ClassAssertion" \
-		--output $(BUILD)/weak-reasoned.ttl
-	@$(PY) -c "import sys; from rdflib import Graph, RDF, URIRef; \
-g=Graph(); g.parse('$(BUILD)/weak-reasoned.ttl'); \
-m=URIRef('https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#Market-B82'); \
-t=[str(x) for x in g.objects(m, RDF.type)]; \
-sys.exit('FAIL: ksh:WeatherMarket not inferred; got %s' % t) if not any('WeatherMarket' in x for x in t) \
-else print('PASS: ksh:WeatherMarket inferred from the proposition-subject chain')"
-endif
+	@$(call robot_cmd,competency); \
+	 set -e; \
+	 mkdir -p $(BUILD); \
+	 sed 's/ex:Market-B82 a ksh:WeatherMarket ;/ex:Market-B82 a ksh:Market ;/' \
+	   examples/kxhighny-2026-08-15.ttl > $(BUILD)/ex-weak.ttl; \
+	 if cmp -s examples/kxhighny-2026-08-15.ttl $(BUILD)/ex-weak.ttl; then \
+	   echo "FAIL: the sed anchor no longer matches, so nothing was weakened;"; \
+	   echo "      the reasoner would be handed the asserted type and 'pass'."; \
+	   exit 1; \
+	 fi; \
+	 (set -x; $$cmd merge --input $(TOP) --input $(BUILD)/ex-weak.ttl --catalog $(CATALOG) \
+	   reason --reasoner HermiT --axiom-generators "ClassAssertion" \
+	   --output $(BUILD)/weak-reasoned.ttl); \
+	 $(PY) scripts/check_inferred_type.py $(BUILD)/weak-reasoned.ttl \
+	   "$(MARKET_B82)" WeatherMarket
 
 ## Build the interactive map: build/ontology.html, self-contained, opens by
 ## double-clicking. Frontend sources live in viz/; this only injects the data.
@@ -205,20 +208,16 @@ merge: $(BUILD)/merged.owl $(BUILD)/full.owl
 
 $(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(SRC)/imports/qudt-subset.ttl $(CATALOG)
 	@mkdir -p $(BUILD)
-ifeq ($(strip $(ROBOT)),)
-	@echo "SKIP merge: ROBOT not found."
-else
-	$(ROBOT) merge --input $(TOP) --catalog $(CATALOG) --output $@
-endif
+	@$(call robot_cmd,merge); \
+	 set -ex; \
+	 $$cmd merge --input $(TOP) --catalog $(CATALOG) --output $@
 
 $(BUILD)/full.owl: $(BUILD)/merged.owl $(EXAMPLES)
 	@mkdir -p $(BUILD)
-ifeq ($(strip $(ROBOT)),)
-	@echo "SKIP merge: ROBOT not found."
-else
-	$(ROBOT) merge --input $(TOP) $(foreach e,$(EXAMPLES),--input $(e)) \
-		--catalog $(CATALOG) --output $@
-endif
+	@$(call robot_cmd,merge); \
+	 set -ex; \
+	 $$cmd merge --input $(TOP) $(foreach e,$(EXAMPLES),--input $(e)) \
+	   --catalog $(CATALOG) --output $@
 
 ## Everything.
 test: typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
