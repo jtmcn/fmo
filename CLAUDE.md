@@ -167,6 +167,14 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   `fm:hasUnit`; the `owl:AllDifferent` block in `core.ttl` makes that mistake a HermiT
   inconsistency rather than a wrong answer.
 
+## CI
+
+`.github/workflows/test.yml` runs `make test` on push and PR in two jobs: with a JDK, and
+with a `java` that exits 1 — the macOS stub reproduced, since the runner ships a working
+JDK and absence would test something else. The second job asserts the run skipped
+*something*: exit 0 is also what a suite that never reached a reasoner target does. ROBOT
+is pinned to a release rather than `latest`, for the reason ty is pinned exactly.
+
 ## Agent skills
 
 ### Issue tracker

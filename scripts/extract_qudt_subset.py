@@ -162,7 +162,7 @@ def main() -> int:
 
 """
     body = out.serialize(format="turtle")
-    OUT.write_text(header + body)
+    OUT.write_text(header + body, encoding="utf-8")
 
     print(f"wrote {OUT.relative_to(ROOT)}: {len(out)} triples, "
           f"{len(UNITS)} units, {len(QUANTITY_KINDS)} quantity kinds, "

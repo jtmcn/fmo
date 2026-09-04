@@ -1123,7 +1123,7 @@ def ledger_cases() -> list[str]:
     import json as _json  # noqa: PLC0415
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "l.json"
-        path.write_text(_json.dumps({"_comment": "x", "_hidden": {}, "real": {}}))
+        path.write_text(_json.dumps({"_comment": "x", "_hidden": {}, "real": {}}), encoding="utf-8")
         keys = set(L.load(path))
         if keys != {"_hidden", "real"}:
             out.append(f"ledger.load stripped the wrong keys: {sorted(keys)}")
@@ -1142,7 +1142,7 @@ def ledger_cases() -> list[str]:
         # call site remembering to. This is the hole that let an entry parked under
         # `deferred` in axiom-expectations.json pass check_axioms with OK.
         parked = Path(tmp) / "parked.json"
-        parked.write_text(_json.dumps({"pinned": {}, "deferred": {"x": "parked"}}))
+        parked.write_text(_json.dumps({"pinned": {}, "deferred": {"x": "parked"}}), encoding="utf-8")
         try:
             L.load(parked, ("pinned", "exempt"))
             out.append("ledger.load accepted a category the caller does not read")
@@ -1294,9 +1294,9 @@ def _detection_cases(R: ModuleType) -> list[str]:
         # gitignored, so a fresh clone that has not run `make setup` would otherwise
         # send every probe below down the robot-on-PATH branch and these cases would
         # answer about the machine rather than about the code.
-        (fake / "robot.jar").write_text("not a jar; the fake java never opens it")
+        (fake / "robot.jar").write_text("not a jar; the fake java never opens it", encoding="utf-8")
         java = fake / "java"
-        java.write_text("#!/bin/sh\necho 'Unable to locate a Java Runtime.' >&2\nexit 1\n")
+        java.write_text("#!/bin/sh\necho 'Unable to locate a Java Runtime.' >&2\nexit 1\n", encoding="utf-8")
         java.chmod(0o755)
         saved_path, saved_root = os.environ.get("PATH", ""), R.ROOT
         saved_jar = os.environ.pop("ROBOT_JAR", None)
@@ -1316,7 +1316,7 @@ def _detection_cases(R: ModuleType) -> list[str]:
             # The positive control. Without it a robot_command that returned None
             # unconditionally -- say, a typo in the probe -- would pass every case
             # above and every reasoner target would skip forever.
-            java.write_text("#!/bin/sh\nexit 0\n")
+            java.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
             working, _ = R.robot_command()
         finally:
             os.environ["PATH"] = saved_path
@@ -1379,7 +1379,7 @@ def _outcome_cases(T: ModuleType) -> list[str]:
                  T.FIRED, "a reasoner reporting what the case expects is a case firing"),
             ):
                 robot = fake / "robot.sh"
-                robot.write_text(f"#!/bin/sh\n{behaviour}\n")
+                robot.write_text(f"#!/bin/sh\n{behaviour}\n", encoding="utf-8")
                 robot.chmod(0o755)
                 got = T.run_case(["/bin/sh", str(robot)], name, rel, find, replace,
                                  quiet=True)
@@ -1405,11 +1405,11 @@ def _inferred_type_cases() -> list[str]:
     with tempfile.TemporaryDirectory() as tmp:
         fake = Path(tmp)
         good = fake / "reasoned.ttl"
-        good.write_text("<http://example.org/M> a <http://example.org/WeatherMarket> .\n")
+        good.write_text("<http://example.org/M> a <http://example.org/WeatherMarket> .\n", encoding="utf-8")
 
         def run(reasoner_exit: int, path: Path) -> tuple[int, str]:
             for name in ("java", "robot"):
-                (fake / name).write_text(f"#!/bin/sh\nexit {reasoner_exit}\n")
+                (fake / name).write_text(f"#!/bin/sh\nexit {reasoner_exit}\n", encoding="utf-8")
                 (fake / name).chmod(0o755)
             env = dict(os.environ,
                        PATH=f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
@@ -1584,7 +1584,7 @@ def _reasoner_targets(directory: Path | None = None,
         # its entry in UNSWEEPABLE_TARGETS dead configuration.
         users = {"reasoner"} | {
             p.stem for p in (ROOT / "scripts").glob("*.py")
-            if re.search(r"^(?:import reasoner|from reasoner import)", p.read_text(), re.M)
+            if re.search(r"^(?:import reasoner|from reasoner import)", p.read_text(encoding="utf-8"), re.M)
         }
 
     # Pattern rules print above "# Files", in the implicit-rules section, and are
@@ -1699,7 +1699,7 @@ def _phony_declared(makefile: Path) -> set[str]:
     """
     names: set[str] = set()
     for m in re.finditer(r"^\.PHONY\s*\+?=?:?((?:[^\n\\]*\\\n)*[^\n]*)",
-                         makefile.read_text(), re.M):
+                         makefile.read_text(encoding="utf-8"), re.M):
         names |= set(m.group(1).replace("\\\n", " ").split())
     return names
 
@@ -1733,7 +1733,7 @@ def _derivation_cases() -> list[str]:
 
     def scan(text: str) -> Derived:
         with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / "Makefile").write_text(text)
+            (Path(tmp) / "Makefile").write_text(text, encoding="utf-8")
             return _reasoner_targets(directory=Path(tmp), users=users)
 
     for name, text, expected, label in (
@@ -1863,7 +1863,7 @@ def _recipe_cases() -> list[str]:
             fake.mkdir()
             build = Path(tmp) / "build"
             for name, code in (("java", java_exit), ("robot", robot_exit)):
-                (fake / name).write_text(f"#!/bin/sh\nexit {code}\n")
+                (fake / name).write_text(f"#!/bin/sh\nexit {code}\n", encoding="utf-8")
                 (fake / name).chmod(0o755)
             env = dict(os.environ, PATH=f"{fake}{os.pathsep}{os.environ.get('PATH', '')}")
             env.pop("ROBOT_JAR", None)
@@ -1994,11 +1994,11 @@ def run_case(name: str, rel: str, find: str, replace: str, expect: str,
     with tempfile.TemporaryDirectory() as tmp:
         work = copy_tree(tmp)
         target = work / rel
-        text = target.read_text()
+        text = target.read_text(encoding="utf-8")
         if text.count(find) != 1:
             print(f"  SETUP FAIL [{name}]: anchor found {text.count(find)} times in {rel}")
             return False
-        target.write_text(text.replace(find, replace))
+        target.write_text(text.replace(find, replace), encoding="utf-8")
         return expect_failure(work, script, name, expect)
 
 

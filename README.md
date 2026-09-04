@@ -1,5 +1,7 @@
 # FMO — the Forecast-Market Ontology
 
+[![test](https://github.com/jtmcn/fmo/actions/workflows/test.yml/badge.svg)](https://github.com/jtmcn/fmo/actions/workflows/test.yml)
+
 An ontology relating **weather forecasts** to the **Kalshi prediction markets** listed on
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
@@ -153,6 +155,11 @@ completes on a machine without a JDK. Presence is not usability: a `java` that e
 its neighbour skipped. A `$ROBOT_JAR` that does not run fails instead of skipping, because naming
 one is a decision. `scripts/reasoner.py` is the only thing that decides any of this. The
 Java-free checks always run.
+
+CI runs `make test` on every push and pull request, twice: once with a JDK, and once with a
+`java` that exists and does not run. The second is not redundant — it is the only thing that
+checks the skip branches every reasoner target carries, and it fails if the run skips
+*nothing*, since a suite that never reached a reasoner target would also exit 0.
 
 To open in Protégé, open `src/fmo.ttl` — the catalog next to it resolves the imports.
 

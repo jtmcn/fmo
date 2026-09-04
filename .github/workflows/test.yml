@@ -1,0 +1,125 @@
+# `make test` on every push and pull request.
+#
+# Two jobs, because this repo has two supported environments and they exercise
+# different code. `full` is the one that proves the ontology; `no-reasoner` proves the
+# suite still completes when there is no usable ROBOT, which is what every reasoner
+# target's skip branch exists for and what nothing outside a developer's laptop had
+# ever checked.
+name: test
+
+on:
+  push:
+  pull_request:
+
+env:
+  # Pinned rather than `latest`, which is what the Makefile's `make setup` fetches. A
+  # new ROBOT release must not redden a clean tree for reasons that have nothing to do
+  # with this repo -- the same argument as the exact pin on ty. Bumping it is a commit.
+  ROBOT_VERSION: v1.9.10
+
+jobs:
+  full:
+    name: full suite (JDK 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Cache the virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - run: poetry install
+
+      - name: Cache robot.jar
+        id: robot
+        uses: actions/cache@v4
+        with:
+          path: robot.jar
+          key: robot-${{ env.ROBOT_VERSION }}
+
+      - name: Fetch robot.jar
+        if: steps.robot.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o robot.jar \
+            "https://github.com/ontodev/robot/releases/download/${ROBOT_VERSION}/robot.jar"
+
+      - name: make test
+        run: make test
+
+  no-reasoner:
+    name: full suite (no usable reasoner)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install poetry
+        run: pipx install poetry
+
+      - name: Cache the virtualenv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: poetry-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      - run: poetry install
+
+      - name: Cache robot.jar
+        id: robot
+        uses: actions/cache@v4
+        with:
+          path: robot.jar
+          key: robot-${{ env.ROBOT_VERSION }}
+
+      - name: Fetch robot.jar
+        if: steps.robot.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL -o robot.jar \
+            "https://github.com/ontodev/robot/releases/download/${ROBOT_VERSION}/robot.jar"
+
+      # A java that exists and does not run, which is the macOS stub reproduced. The
+      # runner ships a working JDK, so removing java would test absence; this tests
+      # the case the reasoner detection was rewritten for. robot.jar is present, so
+      # resolution reaches the probe instead of stopping at "nothing configured".
+      - name: Put a broken java first on PATH
+        run: |
+          mkdir -p "$HOME/stub"
+          printf '#!/bin/sh\necho "Unable to locate a Java Runtime." >&2\nexit 1\n' \
+            > "$HOME/stub/java"
+          chmod +x "$HOME/stub/java"
+          echo "$HOME/stub" >> "$GITHUB_PATH"
+
+      - name: make test
+        run: |
+          set -o pipefail
+          make test 2>&1 | tee build.log
+
+      # `make test` exiting 0 is necessary and not sufficient: it is also what a suite
+      # that never reached a reasoner target would do. The skips are the evidence that
+      # it did, so their absence fails the job.
+      - name: Assert the reasoner targets actually skipped
+        run: |
+          skips=$(grep -c '^SKIP' build.log || true)
+          echo "reasoner skips: $skips"
+          if [ "$skips" -eq 0 ]; then
+            echo "FAIL: make test passed without a usable reasoner and skipped nothing;"
+            echo "      either a reasoner was found after all, or no target got that far."
+            exit 1
+          fi

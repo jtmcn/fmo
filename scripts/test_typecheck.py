@@ -122,15 +122,15 @@ def run_case(name: str, rel: str | None, find: str | None, replace: str,
         work = workspace(tmp)
         if rel is None:
             # A file that is not there yet, which is the point of the case.
-            (work / "scripts" / "zz_added_script.py").write_text(replace)
+            (work / "scripts" / "zz_added_script.py").write_text(replace, encoding="utf-8")
         else:
             target = work / "scripts" / rel
-            text = target.read_text()
+            text = target.read_text(encoding="utf-8")
             if find is None or text.count(find) != 1:
                 count = 0 if find is None else text.count(find)
                 print(f"  SETUP FAIL [{name}]: anchor found {count} times in {rel}")
                 return False
-            target.write_text(text.replace(find, replace))
+            target.write_text(text.replace(find, replace), encoding="utf-8")
         code, output = run_ty(work, ty)
         if code == 0:
             print(f"  FAIL [{name}]: ty passed but should have failed")
