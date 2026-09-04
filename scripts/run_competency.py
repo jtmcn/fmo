@@ -110,7 +110,7 @@ def main() -> int:
             print("--update and --data are mutually exclusive", file=sys.stderr)
             return 1
 
-    prefixes = (QUERIES / "prefixes.txt").read_text()
+    prefixes = (QUERIES / "prefixes.txt").read_text(encoding="utf-8")
     graph = load_graph(data)
     # LedgerError is typed so this can be a verdict. check_axioms catches it and
     # check_class_coverage gets it through validate.py's per-check handler; this was
@@ -153,7 +153,7 @@ def main() -> int:
     for qf in query_files:
         expected_file = qf.with_suffix(".expected")
         try:
-            results = graph.query(prefixes + "\n" + qf.read_text())
+            results = graph.query(prefixes + "\n" + qf.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
             print(f"  FAIL [{qf.name}]: query error: {exc}")
             failures += 1
@@ -211,7 +211,7 @@ def main() -> int:
             continue
 
         if update:
-            expected_file.write_text(actual)
+            expected_file.write_text(actual, encoding="utf-8")
             print(f"  updated [{qf.name}]: {row_count} row(s)")
             continue
 
@@ -220,7 +220,7 @@ def main() -> int:
             failures += 1
             continue
 
-        expected = expected_file.read_text()
+        expected = expected_file.read_text(encoding="utf-8")
         if actual != expected:
             print(f"  FAIL [{qf.name}]: result differs from {expected_file.name}")
             for line in _diff(expected, actual):

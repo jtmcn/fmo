@@ -236,7 +236,7 @@ vex:A-{tag}-{suffix} a fm:TruthAssessment ;
     fm:referenceTime "{iso(issued)}"^^xsd:dateTime .
 """)
 
-    args.output.write_text("\n".join(out))
+    args.output.write_text("\n".join(out), encoding="utf-8")
     n_assign = N_DAYS * len(BRACKETS) * len(MODELS) * len(LEADS)
     print(f"wrote {args.output}")
     print(f"  {N_DAYS} days, {len(MODELS)} models, {len(LEADS)} lead times, "

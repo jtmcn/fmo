@@ -76,7 +76,7 @@ def stanzas(path: Path) -> dict[str, str]:
     key: str | None = None
     in_quote = False
 
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         head = line.split()[0] if line[:1].strip() else ""
         opens = head and not head.startswith(("@", "<"))
         if opens and not in_quote:
@@ -288,10 +288,10 @@ def inline(html: str) -> str:
         href = re.search(r'href="([^"]+)"', m.group(0))
         if not href or "//" in href.group(1):
             return ""
-        return "<style>\n" + (VIZ / href.group(1)).read_text() + "\n</style>"
+        return "<style>\n" + (VIZ / href.group(1)).read_text(encoding="utf-8") + "\n</style>"
 
     def script(m):
-        return "<script>\n" + (VIZ / m.group(1)).read_text() + "\n</script>"
+        return "<script>\n" + (VIZ / m.group(1)).read_text(encoding="utf-8") + "\n</script>"
 
     html = re.sub(r"<link\b[^>]*>", link, html)
     return re.sub(r'<script\b[^>]*\bsrc="([^"]+)"[^>]*></script>', script, html)
@@ -397,15 +397,15 @@ def main() -> int:
             v.pop("ttl", None)
     (VIZ / "src" / "data.js").write_text(
         # </script> inside a definition would close the inlined block early.
-        "window.FMO = " + json.dumps(data, indent=1).replace("</", "<\\/") + ";\n")
-    html = inline((VIZ / "index.html").read_text())
+        "window.FMO = " + json.dumps(data, indent=1).replace("</", "<\\/") + ";\n", encoding="utf-8")
+    html = inline((VIZ / "index.html").read_text(encoding="utf-8"))
 
     if "--check" in sys.argv:
         return check(data, html)
 
     BUILD.mkdir(exist_ok=True)
     out = BUILD / "ontology.html"
-    out.write_text(html)
+    out.write_text(html, encoding="utf-8")
     n_min = sum(1 for n in data["nodes"] if n["minted"])
     print(f"{out.relative_to(ROOT)}: {n_min} minted classes, "
           f"{len(data['nodes']) - n_min} external, {len(data['edges'])} edges, "

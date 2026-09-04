@@ -179,12 +179,12 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
             ignore=shutil.ignore_patterns(".git", "build", "__pycache__", "*.pyc", ".venv"),
         )
         target = work / rel
-        text = target.read_text()
+        text = target.read_text(encoding="utf-8")
         if text.count(find) != 1:
             if not quiet:
                 print(f"  SETUP FAIL [{name}]: anchor found {text.count(find)} times in {rel}")
             raise LookupError(f"anchor found {text.count(find)} times in {rel}")
-        target.write_text(text.replace(find, replace))
+        target.write_text(text.replace(find, replace), encoding="utf-8")
 
         if drop_axiom:
             import axioms
