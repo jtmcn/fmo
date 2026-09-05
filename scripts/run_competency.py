@@ -197,7 +197,7 @@ def main() -> int:
                 continue
             minimum = rule["min_rows"]
             if row_count < minimum:
-                print(f"  FAIL [{qf.name}]: {row_count} row(s), expected at least {minimum} — {rule['why']}")
+                print(f"  FAIL [{qf.name}]: {row_count} row(s), expected at least {minimum} -- {rule['why']}")
                 failures += 1
                 continue
             print(f"  ok   [{qf.name}]: {row_count} row(s)")

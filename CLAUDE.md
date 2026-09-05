@@ -171,9 +171,18 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 
 `.github/workflows/test.yml` runs `make test` on push and PR in two jobs: with a JDK, and
 with a `java` that exits 1 — the macOS stub reproduced, since the runner ships a working
-JDK and absence would test something else. The second job asserts the run skipped
-*something*: exit 0 is also what a suite that never reached a reasoner target does. ROBOT
-is pinned to a release rather than `latest`, for the reason ty is pinned exactly.
+JDK and absence would test something else. Neither job trusts its own exit 0, which is also
+what a suite that never reached a reasoner target returns. The stub job requires a skip
+whose reason says `--version exited 1`: a skip reading "no ROBOT found" is the absence case
+again, and would mean the stub was never consulted. It fails on a skip for any *other*
+reason too, so the job stays about the one thing it names. The JDK job requires that
+nothing skipped at all — a jar it could not resolve is a green suite that reasoned about
+nothing, and that job is the one whose subject is the ontology. What the second job adds
+over `make validate-negative`, which already sweeps each reasoner target's skip branch, is
+the *whole suite* completing without a reasoner, on Linux. ROBOT is pinned to a release
+rather than `latest`, for the reason ty is pinned exactly, and its digest is verified on
+both the download and the cache-restore path, since a tag and a cache entry are equally
+mutable.
 
 ## Agent skills
 

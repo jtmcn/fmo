@@ -200,7 +200,7 @@ def run_case(robot: list[str], name: str, rel: str, find: str, replace: str,
              "--catalog", str(work / "src" / "catalog-v001.xml"),
              "reason", "--reasoner", "HermiT",
              "--output", str(work / "reasoned.owl")],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         output = proc.stdout + proc.stderr
         if proc.returncode == 0:
@@ -245,7 +245,7 @@ def main() -> int:
              "--input", str(ROOT / TRADING),
              "--catalog", str(ROOT / "src" / "catalog-v001.xml"),
              "reason", "--reasoner", "HermiT", "--output", str(Path(tmp) / "baseline.owl")],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
     if proc.returncode != 0:
         print("BASELINE FAIL: the unmodified tree does not reason cleanly")

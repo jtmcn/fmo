@@ -1,10 +1,5 @@
-# `make test` on every push and pull request.
-#
-# Two jobs, because this repo has two supported environments and they exercise
-# different code. `full` is the one that proves the ontology; `no-reasoner` proves the
-# suite still completes when there is no usable ROBOT, which is what every reasoner
-# target's skip branch exists for and what nothing outside a developer's laptop had
-# ever checked.
+# `make test` on every push and pull request, in the two environments this repo
+# supports: with a reasoner that runs, and with one that does not.
 name: test
 
 on:
@@ -12,10 +7,10 @@ on:
   pull_request:
 
 env:
-  # Pinned rather than `latest`, which is what the Makefile's `make setup` fetches. A
-  # new ROBOT release must not redden a clean tree for reasons that have nothing to do
-  # with this repo -- the same argument as the exact pin on ty. Bumping it is a commit.
+  # Pinned, unlike the `latest` that `make setup` fetches: CI wants yesterday's ROBOT.
   ROBOT_VERSION: v1.9.10
+  # The tag is mutable; the digest is what the pin actually claims.
+  ROBOT_SHA256: 16a73c074f3df359a7338a84b4e0788785fe06117f931bb9796e9619ea776105
 
 jobs:
   full:
@@ -57,8 +52,27 @@ jobs:
           curl -fsSL -o robot.jar \
             "https://github.com/ontodev/robot/releases/download/${ROBOT_VERSION}/robot.jar"
 
+      # Checked on the restore path too: a cache entry is as forgeable as a download.
+      - name: Verify robot.jar
+        run: echo "${ROBOT_SHA256}  robot.jar" | sha256sum -c -
+
       - name: make test
-        run: make test
+        run: |
+          set -o pipefail
+          make test 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      # Exit 0 is also what a suite whose reasoner targets all skipped looks like, and a
+      # jar this job never resolved reaches that. With a JDK and a verified jar, nothing may.
+      - name: Assert nothing skipped
+        run: |
+          skips=$(grep -c '^SKIP' "$RUNNER_TEMP/build.log" || true)
+          echo "skips: ${skips:-no log}"
+          if [ "${skips:-x}" != 0 ]; then
+            echo "FAIL: the full suite has a reasoner and skipped anyway, so it is green"
+            echo "      over steps nothing performed:"
+            grep '^SKIP' "$RUNNER_TEMP/build.log" || true
+            exit 1
+          fi
 
   no-reasoner:
     name: full suite (no usable reasoner)
@@ -94,10 +108,11 @@ jobs:
           curl -fsSL -o robot.jar \
             "https://github.com/ontodev/robot/releases/download/${ROBOT_VERSION}/robot.jar"
 
+      - name: Verify robot.jar
+        run: echo "${ROBOT_SHA256}  robot.jar" | sha256sum -c -
+
       # A java that exists and does not run, which is the macOS stub reproduced. The
-      # runner ships a working JDK, so removing java would test absence; this tests
-      # the case the reasoner detection was rewritten for. robot.jar is present, so
-      # resolution reaches the probe instead of stopping at "nothing configured".
+      # runner ships a working JDK, so removing java would test absence instead.
       - name: Put a broken java first on PATH
         run: |
           mkdir -p "$HOME/stub"
@@ -109,17 +124,25 @@ jobs:
       - name: make test
         run: |
           set -o pipefail
-          make test 2>&1 | tee build.log
+          make test 2>&1 | tee "$RUNNER_TEMP/build.log"
 
-      # `make test` exiting 0 is necessary and not sufficient: it is also what a suite
-      # that never reached a reasoner target would do. The skips are the evidence that
-      # it did, so their absence fails the job.
-      - name: Assert the reasoner targets actually skipped
+      # Exit 0 is also what a suite that never reached a reasoner target would do, so the
+      # skips are the evidence. `exited 1` is the stub's own answer, and is required
+      # because a skip reading "no ROBOT found" is the absence case this job is not.
+      - name: Assert the reasoner targets probed the stub and skipped
         run: |
-          skips=$(grep -c '^SKIP' build.log || true)
-          echo "reasoner skips: $skips"
-          if [ "$skips" -eq 0 ]; then
-            echo "FAIL: make test passed without a usable reasoner and skipped nothing;"
+          log="$RUNNER_TEMP/build.log"
+          skips=$(grep -c '^SKIP' "$log" || true)
+          probed=$(grep -c '^SKIP.*--version exited 1' "$log" || true)
+          echo "skips: ${skips:-no log}, of which probed: ${probed:-no log}"
+          if [ "${probed:-0}" = 0 ]; then
+            echo "FAIL: make test passed without a usable reasoner and nothing probed one;"
             echo "      either a reasoner was found after all, or no target got that far."
+            exit 1
+          fi
+          if [ "${skips:-x}" != "${probed:-0}" ]; then
+            echo "FAIL: a step skipped for a reason other than the stub, so this job is"
+            echo "      no longer only about a reasoner that does not run:"
+            grep '^SKIP' "$log" | grep -v -- '--version exited 1'
             exit 1
           fi

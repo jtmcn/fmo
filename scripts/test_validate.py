@@ -1416,7 +1416,7 @@ def _inferred_type_cases() -> list[str]:
             env.pop("ROBOT_JAR", None)
             proc = subprocess.run(
                 [sys.executable, check, str(path), "http://example.org/M", "WeatherMarket"],
-                cwd=fake, capture_output=True, text=True, env=env)
+                cwd=fake, capture_output=True, text=True, encoding="utf-8", env=env)
             return proc.returncode, proc.stdout + proc.stderr
 
         missing = run(reasoner_exit=0, path=fake / "never-written.ttl")
@@ -1483,7 +1483,8 @@ def _make_database(directory: Path) -> tuple[str, int]:
     """
     env = {k: v for k, v in os.environ.items() if k not in ("MAKEFLAGS", "MFLAGS")}
     proc = subprocess.run(["make", "-pqRr", f"BUILD={MAKE_BUILD}"], env=env,
-                          cwd=directory, capture_output=True, text=True)
+                          cwd=directory, capture_output=True, text=True,
+                          encoding="utf-8")
     return proc.stdout, proc.returncode
 
 
@@ -1874,7 +1875,7 @@ def _recipe_cases() -> list[str]:
                 env.pop(inherited, None)
             proc = subprocess.run(
                 ["make", goal.replace(MAKE_BUILD, str(build)), f"BUILD={build}"],
-                cwd=ROOT, env=env, capture_output=True, text=True)
+                cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8")
         return proc.returncode, proc.stdout + proc.stderr
 
     for target in targets:
@@ -1974,7 +1975,7 @@ def _checker_name(script: str) -> str:
 def expect_failure(work: Path, script: str, name: str, expect: str) -> bool:
     proc = subprocess.run(
         [sys.executable, *script.split()],
-        cwd=work, capture_output=True, text=True,
+        cwd=work, capture_output=True, text=True, encoding="utf-8",
     )
     output = proc.stdout + proc.stderr
 
@@ -2033,7 +2034,8 @@ def main() -> int:
                    f"scripts/shape_signatures.py --audit {SHAPE_PIN}",
                    "scripts/test_meta.py"):
         proc = subprocess.run(
-            [sys.executable, *script.split()], cwd=ROOT, capture_output=True, text=True,
+            [sys.executable, *script.split()], cwd=ROOT, capture_output=True,
+            text=True, encoding="utf-8",
         )
         if proc.returncode != 0:
             print(f"BASELINE FAIL: {script} does not pass on the unmodified tree")

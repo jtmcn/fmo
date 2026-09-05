@@ -112,7 +112,8 @@ def workspace(tmp: str) -> Path:
 
 def run_ty(work: Path, ty: list[str]) -> tuple[int, str]:
     paths = sorted(str(p) for p in (work / "scripts").glob("*.py"))
-    proc = subprocess.run(ty + paths, cwd=work, capture_output=True, text=True)
+    proc = subprocess.run(ty + paths, cwd=work, capture_output=True,
+                          text=True, encoding="utf-8")
     return proc.returncode, proc.stdout + proc.stderr
 
 
@@ -162,7 +163,8 @@ def make_cases() -> list[str]:
         bare.mkdir(parents=True)
         shutil.copy(ROOT / "pyproject.toml", bare / "pyproject.toml")
         bare = bare.resolve()
-        proc = subprocess.run(ty, cwd=bare, capture_output=True, text=True)
+        proc = subprocess.run(ty, cwd=bare, capture_output=True,
+                              text=True, encoding="utf-8")
     if proc.returncode != 0:
         out.append("ty with nothing to check no longer exits 0; the guard's reason is stale")
     else:
@@ -171,7 +173,7 @@ def make_cases() -> list[str]:
     # Run, not `make -n`: the guard is a recipe line, so a dry run prints it and
     # exits 0. It fails before the recipe reaches poetry, so running it is cheap.
     proc = subprocess.run(["make", "typecheck", "PYSCRIPTS="],
-                          cwd=ROOT, capture_output=True, text=True)
+                          cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
     if proc.returncode == 0:
         out.append("make typecheck accepted an empty file list, so it can pass vacuously")
     else:
@@ -180,7 +182,7 @@ def make_cases() -> list[str]:
     # `make -n` here: the claim is about the command make would run, and running
     # it for real would just be `make typecheck` a second time.
     proc = subprocess.run(["make", "-n", "typecheck"],
-                          cwd=ROOT, capture_output=True, text=True)
+                          cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
     missing = [s for s in SCRIPTS if f"scripts/{s}" not in proc.stdout]
     if proc.returncode != 0:
         out.append("make -n typecheck failed on the unmodified tree")
