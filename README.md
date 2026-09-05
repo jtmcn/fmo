@@ -157,9 +157,11 @@ one is a decision. `scripts/reasoner.py` is the only thing that decides any of t
 Java-free checks always run.
 
 CI runs `make test` on every push and pull request, twice: once with a JDK, and once with a
-`java` that exists and does not run. The second is not redundant — it is the only thing that
-checks the skip branches every reasoner target carries, and it fails if the run skips
-*nothing*, since a suite that never reached a reasoner target would also exit 0.
+`java` that exists and does not run. `make validate-negative` already sweeps each reasoner
+target's skip branch one target at a time; what the second job adds is the *whole suite*
+completing without a reasoner, on Linux. Neither job trusts its own exit 0, which is also
+what a suite that never reached a reasoner target returns: the second requires a skip whose
+reason shows the broken `java` was probed, the first requires that nothing skipped at all.
 
 To open in Protégé, open `src/fmo.ttl` — the catalog next to it resolves the imports.
 

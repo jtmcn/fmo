@@ -1158,13 +1158,13 @@ def check_context_terms(g: Graph, ex: Graph) -> None:
              "CONTEXT.md names no terms in backticks, so this check matched nothing",
              always=True)
     coverage("prose paths", len(paths), "source path(s) checked against the tree",
-             "CONTEXT.md backticks no repo path, so §4's paths went unchecked",
+             "CONTEXT.md backticks no repo path, so section 4's paths went unchecked",
              always=True)
     coverage("prose make targets", len(targets), "make target(s) checked against the Makefile",
-             "CONTEXT.md names no make target, so §4's targets went unchecked",
+             "CONTEXT.md names no make target, so section 4's targets went unchecked",
              always=True)
     coverage("prose checks", len(checks), "check name(s) checked against scripts/",
-             "CONTEXT.md names no check_* function, so §4's check names went unchecked",
+             "CONTEXT.md names no check_* function, so section 4's check names went unchecked",
              always=True)
 
 

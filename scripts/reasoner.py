@@ -94,7 +94,7 @@ def robot_command() -> tuple[list[str] | None, str]:
         command = [found]
     try:
         proc = subprocess.run([*command, "--version"], capture_output=True,
-                              text=True, timeout=PROBE_TIMEOUT)
+                              text=True, encoding="utf-8", timeout=PROBE_TIMEOUT)
     except (OSError, subprocess.TimeoutExpired) as exc:
         why = f"{command[0]} could not be run: {exc}"
     else:
