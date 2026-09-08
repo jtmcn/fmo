@@ -1,45 +1,82 @@
-# Issue tracker: GitHub
+# Issue tracker: FMO spec files
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Work for this repo is tracked as spec files, not GitHub issues. A spec is
+`.fmo/specs/FM-NNNN-<slug>.md` — the `<slug>` is a short kebab-case phrase, and
+`FM-` matches the `fm:` namespace prefix the ontology already uses.
+
+GitHub Issues on `jtmcn/fmo` are no longer the tracker. The six specs that open
+this directory were migrated from issues #21, #22 and #36-39, each of which was
+closed with a pointer to its spec file. Pull requests still go through GitHub;
+only the work items moved.
 
 ## Conventions
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
-- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Comment on an issue**: `gh issue comment <number> --body "..."`
-- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+- **One spec per file**: `.fmo/specs/FM-NNNN-<slug>.md`, numbered from the
+  highest existing `FM-` id + 1 (after `FM-0006`, the next is `FM-0007`).
+- **Frontmatter** (YAML between `---` fences, required): `id`, `title`, `type`,
+  `priority`, `depends_on`, `touches`, `forbidden`, `risk`, `acceptance`. No
+  field is optional. Nothing parses them today — the discipline is the point,
+  and a field left blank is a decision nobody made rather than one made and
+  written down.
+- **Body**: headings `## Context`, `## Problem`, `## Out of scope`, and
+  `## Notes for the agent`. `## Comments` at the bottom, appended to over time,
+  is where conversation goes.
+- **Dependencies**: `depends_on` lists blocking spec ids (e.g. `[FM-0003]`). A
+  spec is unblocked when every id it lists is done.
+- **Triage state** is read from the frontmatter — `priority`, `depends_on`, and
+  whether the acceptance claims are ticked — not from a label string. See
+  `triage-labels.md`.
 
-Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
+## Acceptance claims carry a witness
 
-## Pull requests as a triage surface
+Each entry under `acceptance` is a `claim` and a `witness`:
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+```yaml
+acceptance:
+  - claim: >-
+      Every reasoner target skips rather than fails when ROBOT does not run.
+    witness: make validate-negative
+```
 
-When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
+The `witness` names the thing that would fail if the claim stopped holding — a
+make target, a check function, a test name, or the file whose content is the
+claim. It is the same requirement the checks themselves are built on: this repo
+already refuses a check that traversed nothing (`coverage()`), an empty SPARQL
+result, and a validator check without a negative test. A claim nothing can
+falsify is the spec-level version of the vacuous pass, and is the one thing a
+spec must not contain.
 
-- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
-- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
-- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+Where a claim is about a defect, prefer a witness that fails *today* — the
+negative test that does not exist yet is better named than assumed.
 
-GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `gh issue view 42`.
+## A spec that introduces a term names its `CONTEXT.md` entry
+
+`CONTEXT.md` is the controlled vocabulary: which word to use for what, and which
+not to. A spec that will name something new says so in `## Notes for the agent`,
+naming the entry it needs, so the term and the code that uses it do not arrive
+in separate weeks. Inventing vocabulary while implementing against it is how a
+word comes to mean whatever the implementation needed.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a GitHub issue.
+Create the next `FM-` spec file under `.fmo/specs/`.
 
 ## When a skill says "fetch the relevant ticket"
 
-Run `gh issue view <number> --comments`.
+Read the referenced `.fmo/specs/FM-NNNN-<slug>.md`, resolving from the `FM-` id
+or the number the user passed.
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
+Used by `/wayfinder`. The **map** is a spec file; research and one-off records
+live alongside it.
 
-- **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `gh issue create --label wayfinder:map`.
-- **Child ticket**: an issue linked to the map as a GitHub sub-issue (`gh api` on the sub-issues endpoint). Where sub-issues aren't enabled, add the child to a task list in the map body and put `Part of #<map>` at the top of the child body. Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.
-- **Blocking**: GitHub's **native issue dependencies**, the canonical, UI-visible representation. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only, the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
-- **Frontier query**: list the map's open children (`gh issue list --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or an assignee; first in map order wins.
-- **Claim**: `gh issue edit <n> --add-assignee @me`, the session's first write.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
+- **Map**: a spec holding the Notes / Decisions-so-far / Fog body.
+- **Child ticket**: another `FM-` spec, with `depends_on` naming the map.
+- **Blocking**: `depends_on`. A ticket is unblocked when every id it lists is
+  done.
+- **Frontier**: scan `.fmo/specs/` for specs that are open, unblocked and
+  unclaimed; lowest `priority` number first, then lowest id.
+- **Claim**: add `claimed_by:` to the frontmatter and save before any work.
+- **Resolve**: tick the acceptance claims, then append the outcome under
+  `## Comments` and a context pointer to the map's Decisions-so-far.

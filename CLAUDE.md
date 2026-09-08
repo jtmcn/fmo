@@ -188,11 +188,11 @@ mutable.
 
 ### Issue tracker
 
-Issues live in GitHub Issues on `jtmcn/fmo`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Work is tracked as spec files in `.fmo/specs/FM-NNNN-*.md`, not GitHub Issues. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-The five canonical triage roles, using their default label strings. See `docs/agents/triage-labels.md`.
+The five canonical roles, surfaced in a spec's frontmatter rather than as labels. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
