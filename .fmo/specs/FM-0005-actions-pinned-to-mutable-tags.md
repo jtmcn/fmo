@@ -1,7 +1,7 @@
 ---
 id: FM-0005
 title: actions are pinned to mutable major tags, not commit SHAs
-type: chore
+type: wontfix
 priority: 3
 depends_on:
   - FM-0004
@@ -14,13 +14,14 @@ forbidden:
 risk: low
 acceptance:
   - claim: >-
-      Every `uses:` names a commit SHA with the version in a trailing comment,
-      so no third party can change what runs by moving a tag.
+      STRUCK (wontfix). Every `uses:` names a commit SHA with the version in a
+      trailing comment. Declined on 2026-09-10; the argument is under
+      `## Comments`.
     witness: .github/workflows/test.yml
   - claim: >-
-      If the decision goes the other way, the argument for keeping floating
-      tags is written down rather than left implicit.
-    witness: docs/agents/issue-tracker.md
+      The argument for keeping floating tags is written down rather than left
+      implicit, so the next reader inherits a decision instead of an accident.
+    witness: .fmo/specs/FM-0005-actions-pinned-to-mutable-tags.md
 ---
 
 Migrated from GitHub issue #38. Found in review of PR #35.
@@ -68,3 +69,35 @@ leaves implicit. If it is declined, record the argument under `## Comments` and
 set `type: wontfix` rather than deleting the file.
 
 ## Comments
+
+**2026-09-10 — declined (`wontfix`).** Investigated the threat model against
+this repo rather than in general, and the premise does not hold here.
+
+Blast radius of a compromised action, measured not assumed: the repo is public
+and not a fork; **zero** secrets are configured on it and none are referenced in
+the workflow; the repository's `default_workflow_permissions` is **already
+`read`** with PR approval off; and nothing is published, uploaded or deployed
+from CI. A hostile action would get a read-only token on an already-public repo
+and no artifact to poison. What is left is runner abuse and a falsified test
+verdict, neither of which propagates.
+
+All four actions are first-party `actions/*`. The tag-moving attacks that
+motivate SHA-pinning hit *third-party* actions harvesting secrets; compromising
+`actions/checkout` means compromising GitHub, which pinning does not save you
+from either.
+
+The cost, meanwhile, is real and was demonstrated three weeks ago. On
+2026-07-20 `actions/checkout` published v2.8.0, v3.7.0, v4.4.0, v5.1.0, v6.1.0
+and v7.0.1 on the same day -- a `node24` runtime migration backported across
+every major line. All four actions here now report `using: node24`. A SHA pin
+taken before that date would have frozen on `node20` and broken when runners
+drop it; the floating `v4` tag absorbed it for nothing. There is no
+`dependabot.yml` in this repo, so pins would go stale by default rather than by
+neglect.
+
+Revisit if any of the measured facts change -- a secret is added, the workflow
+starts publishing something, or a third-party action is introduced. The first
+two are the ones that would actually move the answer.
+
+Superseded in substance by **FM-0007**: the actions are 1-3 majors behind, which
+is the drift that is really there, and pinning would have frozen it in place.

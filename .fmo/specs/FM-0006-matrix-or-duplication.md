@@ -4,7 +4,7 @@ title: the two jobs duplicate six steps verbatim -- matrix, or duplication on pu
 type: decision
 priority: 4
 depends_on:
-  - FM-0005
+  - FM-0007
 touches:
   - .github/workflows/test.yml
   - CLAUDE.md

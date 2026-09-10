@@ -13,8 +13,9 @@ forbidden:
 risk: low
 acceptance:
   - claim: >-
-      Both jobs run with a `contents: read` token rather than the repository
-      default, since nothing in `make test` touches the API.
+      Both jobs declare `contents: read` explicitly. The repository default is
+      already `read`, so this is defence against that default changing, not a
+      fix for a token that is currently too broad.
     witness: .github/workflows/test.yml
   - claim: >-
       Both jobs declare a `timeout-minutes`. Observed durations are 5 and 4
@@ -39,9 +40,12 @@ the job says about itself.
 ## Problem
 
 **No `permissions:` block.** Both jobs inherit the repository-default
-`GITHUB_TOKEN` scope. Nothing in `make test` touches the API, so the token should
-be `contents: read`. This is the default-deny argument the workflow already makes
-about ROBOT: the narrow thing is the one you can reason about.
+`GITHUB_TOKEN` scope. That default is currently `read` already (checked
+2026-09-10 via `actions/permissions/workflow`), so this is not a live
+over-permission -- it is an unstated dependency on a setting outside the file,
+which one org-level change silently widens. Declaring `contents: read` makes the
+workflow say what it needs. The original framing of this spec claimed the
+default was broader; it was not.
 
 **No `timeout-minutes:`.** The GitHub default is 6 hours. Observed on `main`
 (run 33982347328): 5 min for `full`, 4 min for `no-reasoner`. `PROBE_TIMEOUT =
