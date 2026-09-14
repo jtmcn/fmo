@@ -377,8 +377,8 @@ modules do not enumerate. Nothing pins a count. The ledger is required to shrink
 for a class an example has since started exercising fails, as does one naming a class that
 no longer exists. `unassertable` is the only category asserting the ontology *refuses* a
 class, so each entry names the term whose `skos:scopeNote` carries that argument and the
-check confirms the note still exists — one argument covers the whole quality group, and a
-reword would otherwise leave nine entries citing nothing.
+check confirms the note still exists — a reword that dropped it
+would leave the entry citing nothing while it still reads as settled.
 
 ## What holds the checks honest
 
@@ -497,17 +497,19 @@ Flagged rather than silently decided:
   and nothing says so. `examples/kxrainnyc-2026-07-15.ttl` sidesteps it by listing
   one market and asserting no exclusivity.
 - **Wind, storms and atmospheric state have no market to model.** Checked against the
-  live Kalshi API on 2026-08-23: of 354 series in Climate and Weather, none is a wind
-  market. `wx:WindSpeed`, `wx:WindDirection` and `wx:AirMotion` are therefore minted
-  against nothing listable, and `wx:Storm`, `wx:Thunderstorm` and `wx:TropicalCyclone`
-  remain contested on their own terms (`docs/design-notes.md`). The grouping is
-  imprecise, and `queries/class-coverage-expectations.json` now splits it: only
-  `wx:AirMotion` is unlisted. `wx:WindSpeed` and `wx:WindDirection` are qualities,
-  and a listed wind market would mint a target and a variable rather than a quality
-  instance — exactly as the listed temperature market does, which is why
-  `wx:AirTemperature` is unexercised too. Whether the rest earn their place is still
-  open, but the reason each is empty is now written down per class rather than
-  summarised in a count that drifts.
+  live Kalshi API on 2026-08-23 (354 series in Climate and Weather) and again on
+  2026-09-14 (390): none settles on wind, pressure, dew point or humidity. `wx:AirMotion`,
+  `wx:WindSpeed`, `wx:WindDirection`, `wx:AtmosphericPressure`, `wx:DewPoint` and
+  `wx:RelativeHumidity` are therefore `unlisted` in
+  `queries/class-coverage-expectations.json`, and `wx:Storm`, `wx:Thunderstorm` and
+  `wx:TropicalCyclone` remain contested on their own terms (`docs/design-notes.md`). The
+  qualities were once filed as refused instead, on the argument that a quality instance
+  would stand in for a future fact. That argument constrains what a *forecast* may point
+  at; a settled market is past-tense, and the rain example's datum points at the quality
+  it reports. A listed wind market would make them `unwritten`, as the listed temperature
+  market makes `wx:AirTemperature`. Whether the rest earn their place is still open, but
+  the reason each is empty is written down per class rather than summarised in a count
+  that drifts.
 - **Bracket exhaustiveness is unchecked.** The validator refuses overlapping brackets in a
   grouping asserted mutually exclusive, but cannot tell whether they leave a gap: the
   KXHIGHNY ladder tiles the line only because the protocol reports whole degrees, which is

@@ -182,12 +182,18 @@ schema-versus-example split the word exists to carry.
 
 Four reasons a class is unexercised, and only the last is a gap: **schema-instantiated**
 (its individuals are declared in `src/`, so no example file can reach it), **unassertable**
-(instantiating it would assert what the ontology refuses — a quality instance standing in
-for a future fact), **unlisted** (no Kalshi market exists to model), and **unwritten**
-(nothing prevents an example; nobody has written one).
+(instantiating it would assert what the ontology refuses — a designation outside the
+exhaustive set, a unit that would bypass the dimension checks), **unlisted** (no Kalshi
+market exists to model), and **unwritten** (nothing prevents an example; nobody has
+written one).
 > Say "unwritten", not "unexercised", for that fourth case. The umbrella word and the
 > residual category are not the same set, and using one for both is how the count that
 > matters gets read as the count that cannot move.
+>
+> A quality is not unassertable for being a quality. "Propositions, not aboutness"
+> constrains what a *forecast* may point at; a settled market's datum may point at the
+> quality it reports, as the rain example's does. Where no market settles on one, it is
+> unlisted.
 
 **Ledger**: a checked-in JSON file recording, per item, why something is not proved
 the usual way. Three: `queries/axiom-expectations.json` for axioms with no reasoner

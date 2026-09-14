@@ -6,30 +6,37 @@ priority: 2
 depends_on: []
 touches:
   - queries/class-coverage-expectations.json
+  - scripts/test_validate.py
+  - README.md
+  - CONTEXT.md
+  - docs/adr/0001-classify-unexercised-classes.md
 forbidden:
   - src/**
-  - scripts/**
-  - README.md
+  - scripts/validate.py
+  - scripts/ledger.py
 risk: low
 acceptance:
   - claim: >-
-      The six quality-group classes no longer sit under `unassertable`. Each
-      names, in its reason, the example that would instantiate it -- for
-      temperature, a portion of air at the site bearing the quality with a
-      datum reporting the maximum it attained, mirroring `rex:Datum-Precip`.
+      None of the seven quality-group classes sits under `unassertable`.
+      wx:AirTemperature and wx:AtmosphericQuality are `unwritten`, the first
+      naming the example that would instantiate it; wx:AtmosphericPressure,
+      wx:DewPoint, wx:RelativeHumidity, wx:WindDirection and wx:WindSpeed are
+      `unlisted`, each dated to the Kalshi read it rests on.
     witness: queries/class-coverage-expectations.json
   - claim: >-
       Nothing left under `unassertable` cites a sibling for its reason. Both
       survivors, `fm:Designation` and `fm:MeasurementUnit`, cite themselves.
-    witness: check_class_coverage
-  - claim: >-
-      The ledger `_comment` no longer says one argument covers the whole
-      quality group, which stops being true once the group moves.
     witness: queries/class-coverage-expectations.json
   - claim: >-
-      `make validate` passes unchanged, and no `src/` file moved, so no version
-      bump and no README status line.
-    witness: make validate
+      No prose still describes the qualities as refused: the ledger `_comment`,
+      README, CONTEXT.md's gloss of unassertable, and ADR-0001, which is amended
+      rather than rewritten.
+    witness: queries/class-coverage-expectations.json
+  - claim: >-
+      The negative tests that rested on the moved entries still prove their
+      defects, now against the two entries that remain unassertable; `make
+      validate` passes; and no src/ file moved, so no version bump.
+    witness: make validate-negative
 ---
 
 Migrated from GitHub issue #21 (labelled `bug`). Supersedes the premise of #20.
@@ -114,18 +121,36 @@ while changing nothing.
 
 ## Notes for the agent
 
-Ledger-only: no `src/` change, so no version bump and no README status line.
+No `src/` change, so no version bump and no README status line.
 `semantics_sha256` does not move, and `definition_sha256` — the digest
 `README.md:385` says ThermalEdge actually pins — was never in play: it digests
 `skos:definition` alone (`scripts/term_signatures.py:103`), and nothing here
 touches a definition.
 
-**Worth deciding as part of this**: whether the two wind qualities go to
-`unwritten` or to `unlisted` alongside `wx:AirMotion`. `unlisted` fits the
-external fact (no wind market is listed) and requires a `checked` date;
-`unwritten` fits the fact that no example has been written. They are not the
-same claim and the entries should not straddle them.
+**Decided 2026-09-14: the qualities no market settles on are `unlisted`.** The wind
+pair was the open question, and the criterion that answers it answers three more: of
+390 Climate and Weather series on Kalshi that day, 139 settle on temperature and none
+on wind, pressure, dew point or humidity. Every example in this repo is a real
+settlement, so without a market there is nothing to write one around -- the fact that
+already keeps `wx:AirMotion` unlisted. Filing the wind pair `unlisted` and the other
+three `unwritten` would have split the qualities across two categories on one fact.
+Only `wx:AirTemperature` has a listed market, so it and its parent are `unwritten`.
 
 Once this lands, #20 dissolves without a scope note being written or moved.
 
 ## Comments
+
+**2026-09-14 — landed.** Two corrections to this spec as migrated. Its `forbidden`
+list excluded `scripts/**` and `README.md`, which made it unimplementable: three
+negative tests in `scripts/test_validate.py` were keyed to entries that move, and
+README described the misfiling in two places. "No README status line" in #21 meant no
+version bump; the migration over-read it as a ban on README prose. And its first claim
+counted six classes where the ledger held seven, because #21 listed `wx:WindDirection`
+separately. The temperature datum is `ex:Datum-Max`, not the `ex:Datum-High` #21
+proposed.
+
+The three retargeted negative tests now run against `fm:Designation` and
+`fm:MeasurementUnit`, the entries that stay. `scripts/validate.py:1259` still checks
+only that a justifier *has* a scope note, not that it argues the prohibition; that is
+left out of scope as before, and is the reason the misfiling went unnoticed for 45
+commits.
