@@ -1,10 +1,21 @@
-# `make test` on every push and pull request, in the two environments this repo
-# supports: with a reasoner that runs, and with one that does not.
+# `make test` on pull requests and on pushes to main, in the two environments this
+# repo supports: with a reasoner that runs, and with one that does not.
 name: test
 
 on:
+  # pull_request covers branches; running on their pushes too ran every PR commit twice.
   push:
+    branches: [main]
   pull_request:
+
+# Explicit rather than inherited, so a wider repository default cannot widen it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel a PR's superseded run only; a run on main always finishes.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Pinned, unlike the `latest` that `make setup` fetches: CI wants yesterday's ROBOT.
@@ -16,6 +27,8 @@ jobs:
   full:
     name: full suite (JDK 21)
     runs-on: ubuntu-latest
+    # Runs take 4-5 minutes; this bounds a wedged JVM, not a slow suite.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -77,6 +90,7 @@ jobs:
   no-reasoner:
     name: full suite (no usable reasoner)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
