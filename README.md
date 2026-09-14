@@ -156,7 +156,7 @@ its neighbour skipped. A `$ROBOT_JAR` that does not run fails instead of skippin
 one is a decision. `scripts/reasoner.py` is the only thing that decides any of this. The
 Java-free checks always run.
 
-CI runs `make test` on every push and pull request, twice: once with a JDK, and once with a
+CI runs `make test` on pull requests and on main, twice: once with a JDK, and once with a
 `java` that exists and does not run. `make validate-negative` already sweeps each reasoner
 target's skip branch one target at a time; what the second job adds is the *whole suite*
 completing without a reasoner, on Linux. Neither job trusts its own exit 0, which is also
