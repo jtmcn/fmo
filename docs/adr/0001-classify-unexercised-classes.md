@@ -52,3 +52,16 @@ which is the right amount for a claim that says only "nobody has done this yet".
 
 The cost is 27 hand-written reasons, and they are the work — the check itself is set
 arithmetic over two graphs.
+
+## Amended 2026-09-14
+
+The context above says seven quality classes "must not" be instantiated, on the strength of
+"propositions, not aboutness". That argument constrains what a *forecast* may point at and
+says nothing about what an example may instantiate: a settled market is past-tense, and the
+rain example's datum points at the `wx:PrecipitationDepth` it reports — an instance that was
+in the repo before this ADR was written. The quality group has left `unassertable`.
+`wx:AirTemperature` and `wx:AtmosphericQuality` are `unwritten`; the five qualities no
+Kalshi market settles on are `unlisted`. The decision recorded here, to classify rather
+than count, stands. Only that premise was wrong, and the rejected option that would have
+deleted these classes stays rejected — for a different reason. See
+`.fmo/specs/done/FM-0001-quality-group-misfiled-as-unassertable.md`.

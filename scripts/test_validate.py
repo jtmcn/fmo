@@ -764,24 +764,23 @@ wx:DewPoint a owl:Class ;""",
         "ledger names a class that does not exist: wx:Thunderstorm_renamed",
     ),
     (
-        # unassertable is the only category asserting the ontology REFUSES a class,
-        # and one scope note carries that argument for the whole quality group. Reword
-        # it away and nine entries keep citing a justification that is no longer written
-        # anywhere, while every one of them still reads as settled.
+        # unassertable is the only category asserting the ontology REFUSES a class, so
+        # each entry cites the scope note carrying that argument. Reword it away and the
+        # entry keeps citing a justification written nowhere, still reading as settled.
         "the scope note an unassertable entry rests on being removed",
-        "src/weather.ttl",
-        """    skos:scopeNote "Instances are quality instances that vary continuously.""",
-        """    skos:altLabel "Instances are quality instances that vary continuously.""",
-        "justification carries no scope note: wx:AirTemperature",
+        "src/core.ttl",
+        '    skos:scopeNote """Truth values, comparators, market statuses, and resolution outcomes are all',
+        '    skos:altLabel """Truth values, comparators, market statuses, and resolution outcomes are all',
+        "justification carries no scope note: fm:Designation",
     ),
     (
         # The other half of the pin: a justification that never resolves at all. A typo
         # here is quieter than a reword, because nothing in the file looks wrong.
         "an unassertable entry whose justification names no declared term",
         "queries/class-coverage-expectations.json",
-        '"justified_by": "wx:WindSpeed"',
-        '"justified_by": "wx:WindSpeed_typo"',
-        "unassertable entry names no declared justification: wx:WindSpeed",
+        '"justified_by": "fm:MeasurementUnit"',
+        '"justified_by": "fm:MeasurementUnit_typo"',
+        "unassertable entry names no declared justification: fm:MeasurementUnit",
     ),
     (
         # unlisted is the one category resting on the world rather than on the model,
@@ -800,8 +799,8 @@ wx:DewPoint a owl:Class ;""",
         "a class classified under two categories at once",
         "queries/class-coverage-expectations.json",
         '"wx:Snowfall": {',
-        '"wx:WindSpeed": {\n      "reason": "An injected duplicate of an unassertable entry."\n    },\n    "wx:Snowfall": {',
-        "classified twice: wx:WindSpeed",
+        '"fm:Designation": {\n      "reason": "An injected duplicate of an unassertable entry."\n    },\n    "wx:Snowfall": {',
+        "classified twice: fm:Designation",
     ),
     (
         # A key nothing reads swallowed its entries whole. The block this injects is

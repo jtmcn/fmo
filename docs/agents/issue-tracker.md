@@ -12,7 +12,7 @@ only the work items moved.
 ## Conventions
 
 - **One spec per file**: `.fmo/specs/FM-NNNN-<slug>.md`, numbered from the
-  highest existing `FM-` id + 1 (after `FM-0006`, the next is `FM-0007`).
+  highest existing `FM-` id + 1, counting `done/` -- an id is never reused.
 - **Frontmatter** (YAML between `---` fences, required): `id`, `title`, `type`,
   `priority`, `depends_on`, `touches`, `forbidden`, `risk`, `acceptance`. No
   field is optional. Nothing parses them today — the discipline is the point,
@@ -23,9 +23,12 @@ only the work items moved.
   is where conversation goes.
 - **Dependencies**: `depends_on` lists blocking spec ids (e.g. `[FM-0003]`). A
   spec is unblocked when every id it lists is done.
-- **Triage state** is read from the frontmatter — `priority`, `depends_on`, and
-  whether the acceptance claims are ticked — not from a label string. See
-  `triage-labels.md`.
+- **Triage state** is read from the frontmatter — `priority`, `depends_on`,
+  `risk` and `type` — not from a label string. See `triage-labels.md`.
+- **Done** means the file has moved to `.fmo/specs/done/`, in the commit that
+  lands the work, as saffron's specs do. A `wontfix` spec stays where it is, so
+  `done/` holds only work that happened. The `FM-` id is the stable handle; the
+  path changes when a spec lands.
 
 ## Acceptance claims carry a witness
 
@@ -75,8 +78,10 @@ live alongside it.
 - **Child ticket**: another `FM-` spec, with `depends_on` naming the map.
 - **Blocking**: `depends_on`. A ticket is unblocked when every id it lists is
   done.
-- **Frontier**: scan `.fmo/specs/` for specs that are open, unblocked and
-  unclaimed; lowest `priority` number first, then lowest id.
+- **Frontier**: scan `.fmo/specs/*.md`, which excludes `done/`, for specs that
+  are not `wontfix`, unblocked and unclaimed; lowest `priority` number first,
+  then lowest id.
 - **Claim**: add `claimed_by:` to the frontmatter and save before any work.
-- **Resolve**: tick the acceptance claims, then append the outcome under
-  `## Comments` and a context pointer to the map's Decisions-so-far.
+- **Resolve**: confirm every claim's witness passes, append the outcome under
+  `## Comments`, `git mv` the spec into `done/`, and add a context pointer to
+  the map's Decisions-so-far.

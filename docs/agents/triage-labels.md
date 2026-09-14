@@ -19,8 +19,8 @@ Each role maps onto a concrete action:
   `priority` and `risk`.
 - **`needs-info`** → the missing thing is almost always a witness. A claim
   without one is not ready, because nothing would fail if it stopped holding.
-- **`ready-for-agent`** → work the spec; tick claims only once their witness
-  actually passes.
+- **`ready-for-agent`** → work the spec; move it to `done/` only once every
+  claim's witness actually passes.
 - **`ready-for-human`** → route to a person, don't drive it unattended.
 - **`wontfix`** → record the argument under `## Comments`; leave the file in
   place. A spec that was decided against is worth more on disk than deleted.
