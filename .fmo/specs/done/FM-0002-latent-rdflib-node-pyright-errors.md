@@ -17,13 +17,16 @@ forbidden:
 risk: low
 acceptance:
   - claim: >-
-      `npx pyright scripts/` reports 0 errors. The 36 reportArgumentType errors
-      (plus one reportAssignmentType) are gone, not suppressed wholesale.
-    witness: npx --no-install pyright scripts/
+      STRUCK (superseded). `npx pyright scripts/` reports 0 errors. Pyright was
+      dropped for ty in 376ba29; the claim that replaces it is that ty reports
+      0 errors over scripts/, and that the check can fail.
+    witness: make typecheck typecheck-negative
   - claim: >-
       No blanket suppression. Any `# type: ignore` is line-scoped and carries a
-      justification comment referencing this spec.
-    witness: scripts/validate.py
+      justification comment referencing this spec. Verified at close: scripts/
+      holds no `type: ignore`, `ty: ignore` or `cast(`. Nothing enforces this
+      going forward.
+    witness: scripts/
   - claim: >-
       The suite is unaffected: validate.py still ends OK, and test_shapes,
       test_validate, test_shape_drift, test_meta and test_reason all still pass.
@@ -104,3 +107,18 @@ Note that `make typecheck` runs `ty`, not pyright, and is pinned exactly. This
 spec is about pyright's view; keep both green.
 
 ## Comments
+
+**2026-09-15 — closed, already implemented in 376ba29** ("Type check the
+scripts, and prove the type check can fail", 2026-09-01). That commit fixed
+these diagnostics rather than suppressing them: `ancestors`, `subclasses_of`,
+`ranges_of` and `_constraints` widened to `Node`; containers filled from
+`subject_objects()` re-declared as `Node`; the `float(node)` sites routed
+through one `as_float()` boundary. Options 1 and 3 from the notes above.
+
+It also deleted `pyrightconfig.json` — two checkers disagreeing about one tree
+is worse than one — and made `ty` the single gate. The first claim's pyright
+witness therefore checks a tool the repo deliberately dropped; it is struck
+and replaced by `make typecheck` / `make typecheck-negative`.
+
+Witnesses at close: `make typecheck` passes; `scripts/` holds no suppression
+or `cast(`; `make test` exits 0 with no skips.
