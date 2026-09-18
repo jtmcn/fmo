@@ -112,3 +112,19 @@ done, so this is unblocked. The first claim's old witness was the workflow
 file, which cannot see a log line; it is split into a structural claim the file
 can witness and a log claim the landing PR's run can falsify. Fix shape chosen:
 restore-only in `no-reasoner`, over per-job keys.
+
+**2026-09-18 — done.** PR #43, run 35372397038, on the branch
+`joel/fm-0004-cache-keys`. All three claims pass:
+
+- `full` is the only job with `actions/cache`; `no-reasoner` uses
+  `actions/cache/restore` for both caches.
+- The run carries no `Unable to reserve cache` line, and exactly one
+  `Cache saved with key`, from `full`. It was a real miss, not a quiet hit: the
+  new venv key had never been stored, and the log shows it saved as
+  `poetry-Linux-3.12.14-579856eb…`. `robot-v1.9.10` was unchanged and restored
+  in both jobs, which is the restore-only path working.
+- The key now carries `3.12.14` rather than `3.12`.
+
+Both assertions held too — `skips: 0` for the JDK job, `skips: 6, of which
+probed: 6` for the stub job — so the bump did not buy a green run over a suite
+that reasoned about nothing.
