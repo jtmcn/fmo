@@ -3,6 +3,7 @@ id: FM-0004
 title: both jobs write the same cache keys, so one reservation fails on every cache miss
 type: bug
 priority: 2
+claimed_by: joel
 depends_on:
   - FM-0003
 touches:
