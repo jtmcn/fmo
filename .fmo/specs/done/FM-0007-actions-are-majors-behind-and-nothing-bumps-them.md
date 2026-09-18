@@ -86,3 +86,28 @@ FM-0003 through FM-0007 all touch `.github/workflows/test.yml`; the chain is
 FM-0003 -> FM-0004 -> FM-0007 -> FM-0006.
 
 ## Comments
+
+**2026-09-18 — done.** PR #44, run 35375801601, branch
+`joel/fm-0007-bump-actions`. checkout v4->v7, setup-python v5->v7, setup-java
+v4->v6, cache v4->v6. All three claims pass:
+
+- Every `uses:` names the action's current major as of today; nothing is held
+  back, so the file has nothing to explain.
+- `.github/dependabot.yml` watches `github-actions` monthly. Note it takes
+  effect once this is on the default branch; Dependabot reads the config from
+  `main`, not from the PR.
+- `skips: 0` for the JDK job and `skips: 6, of which probed: 6` for the stub
+  job — the same figures as run 35374733804 before the bump. The JDK job is the
+  one that matters: `setup-java@v6` changed the metadata API it resolves
+  distributions from, and a JDK it failed to deliver would have turned the
+  reasoner targets into skips over a green run.
+
+Two dependencies were checked at the new tags rather than assumed:
+`actions/cache/restore` exists at v6 and still sets `cache-hit`, and
+`setup-python@v7` still outputs `python-version`. The run confirms the second
+independently — both jobs restored `poetry-Linux-3.12.14-579856eb…`, which is
+the key FM-0004 builds from that output. Had it gone, the key would have read
+`poetry-Linux--579856eb…` and missed.
+
+The bump was only today's instance of the fault. The fault was that nothing
+would notice the next one, and `dependabot.yml` is the part that answers it.
