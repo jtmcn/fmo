@@ -3,6 +3,7 @@ id: FM-0007
 title: the workflow's actions are 1-3 majors behind and nothing bumps them
 type: chore
 priority: 3
+claimed_by: joel
 depends_on:
   - FM-0004
 touches:

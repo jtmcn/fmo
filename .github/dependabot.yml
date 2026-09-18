@@ -1,0 +1,8 @@
+# The workflow floats on major tags, so a major moving is nobody's job to notice.
+# This is that job. See .fmo/specs/done/FM-0007-*.md.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
