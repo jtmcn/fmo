@@ -186,6 +186,17 @@ are equally mutable. Runs are bounded by `timeout-minutes` and a read-only token
 a PR's superseded run is cancelled: a run on main always finishes, so every merge gets a
 verdict.
 
+The two jobs repeat their setup instead of sharing a `strategy.matrix`, and that is a
+decision rather than an oversight (FM-0006). The asymmetry between them is the subject,
+and a matrix states it as a conditional where two job bodies state it as a heading. The
+cost moved after the cache split: one job saves and the other restores, `uses:` is one of
+the two step keys that take no expression, so a matrix would need eight `if:`-guarded
+steps to share six — and the `Fetch robot.jar` guard would span two step ids whose
+`cache-hit` is empty when skipped, one boolean over "said no" and "said nothing", which is
+the ROBOT-detection bug this repo has already fixed once. The drift a matrix prevents is
+real and has bitten here twice, which is why `scripts/reasoner.py` and `scripts/ledger.py`
+exist; revisit if a third environment appears, or if the save/restore split goes away.
+
 ## Agent skills
 
 ### Issue tracker
