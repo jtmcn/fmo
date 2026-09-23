@@ -79,19 +79,17 @@ acceptance:
     witness: README.md
 ---
 
-Found while reading *The Ontology Pipeline* (Talisman) against FMO, in its SKOS
-chapters. See the book's CBox integration section (mnemo `5a791d`, seq 297–302)
-and its SKOS integrity conditions (seq 212).
+Found while reviewing FMO's controlled vocabularies against common SKOS practice.
 
 ## Context
 
 FMO has nine controlled vocabularies, the subclasses of `fm:Designation`. Each is
 a set of typed `owl:NamedIndividual`s with `skos:definition`, kept apart by
 `owl:AllDifferent` within a vocabulary and `owl:AllDisjointClasses` across them.
-This is the book's second way of bringing a vocabulary concept into an ontology,
-as an individual, done in OWL rather than SKOS. The book's Heuristic 3 supports
-the choice: SKOS is for classification where dual membership is legitimate, and
-here it is the defect (`ksh:ResolvedYes` doubling as `fm:True`). Nothing in this
+In SKOS terms each is a concept scheme whose concepts were brought into the
+ontology as individuals, and doing that in OWL rather than SKOS is deliberate:
+SKOS suits classification where dual membership is legitimate, and here it is the
+defect (`ksh:ResolvedYes` doubling as `fm:True`). Nothing in this
 spec changes that.
 
 Four of the vocabularies mirror a field in the Kalshi trading API:
@@ -225,7 +223,7 @@ and `make shapes-negative` proves each rule fires.
   the datatypes. `check_documentation` also covers datatypes in FMO's
   namespaces.
 - **Version 0.13.0.** Additive annotations only; no existing term's meaning
-  changes. The book's versioning chapter would call this a minor bump.
+  changes, which under semantic versioning is a minor bump.
 
 ### Testing decisions
 
