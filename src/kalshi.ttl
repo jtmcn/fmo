@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.12.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.13.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -20,7 +20,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.12.0" ;
+    owl:versionInfo "0.13.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -170,9 +170,9 @@ ksh:ContractSide a owl:Class ;
 no leave a trader in economically similar places but are recorded as different orders, and
 collapsing them here would lose the distinction the exchange actually books.""" .
 
-ksh:YesSide a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "yes side" ;
+ksh:YesSide a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "yes side" ; skos:notation "yes"^^ksh:SideCode ;
     skos:definition "The side whose contracts pay out if the market's proposition is true." .
-ksh:NoSide  a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "no side" ;
+ksh:NoSide  a ksh:ContractSide, owl:NamedIndividual ; rdfs:label "no side" ; skos:notation "no"^^ksh:SideCode ;
     skos:definition "The side whose contracts pay out if the market's proposition is false." .
 
 [] a owl:AllDifferent ;
@@ -183,9 +183,9 @@ ksh:OrderAction a owl:Class ;
     rdfs:label "order action" ;
     skos:definition "A designation of whether an order acquires or disposes of contracts on its side of the market." .
 
-ksh:Buy  a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "buy" ;
+ksh:Buy  a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "buy" ; skos:notation "buy"^^ksh:ActionCode ;
     skos:definition "The order acquires contracts on its side, paying the price stated." .
-ksh:Sell a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "sell" ;
+ksh:Sell a ksh:OrderAction, owl:NamedIndividual ; rdfs:label "sell" ; skos:notation "sell"^^ksh:ActionCode ;
     skos:definition "The order disposes of contracts on its side, receiving the price stated." .
 
 [] a owl:AllDifferent ;
@@ -265,11 +265,11 @@ ksh:ResolutionOutcome a owl:Class ;
     rdfs:label "resolution outcome" ;
     skos:definition "A designation of how a market resolved." .
 
-ksh:ResolvedYes  a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved yes" ;
+ksh:ResolvedYes  a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved yes" ; skos:notation "yes"^^ksh:ResultCode ;
     skos:definition "The market's proposition was assigned the value true; yes contracts pay out." .
-ksh:ResolvedNo   a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved no" ;
+ksh:ResolvedNo   a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved no" ; skos:notation "no"^^ksh:ResultCode ;
     skos:definition "The market's proposition was assigned the value false; no contracts pay out." .
-ksh:ResolvedScalar a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved scalar" ;
+ksh:ResolvedScalar a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "resolved scalar" ; skos:notation "scalar"^^ksh:ResultCode ;
     skos:definition "The market was determined to a numeric value rather than a truth value, and contracts pay out in proportion to it." ;
     skos:scopeNote "Applies to markets whose market_type is scalar rather than binary. No such market is modelled here; the individual exists so that the outcome enumeration matches the API's." .
 ksh:Voided       a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "voided" ;
@@ -277,7 +277,7 @@ ksh:Voided       a ksh:ResolutionOutcome, owl:NamedIndividual ; rdfs:label "void
     skos:scopeNote """No API `result` value corresponds to this. The documented enumeration is yes, no, scalar,
 and empty; 8000 sampled settled markets returned only yes and no. Voiding is a real exchange
 action but is evidently not recorded in the result field, so this individual is retained on
-institutional grounds and should not be read as a mapping target.""" .
+institutional grounds and carries no skos:notation: it is never produced from API data.""" .
 
 [] a owl:AllDifferent ;
    owl:distinctMembers ( ksh:ResolvedYes ksh:ResolvedNo ksh:ResolvedScalar ksh:Voided ) .
@@ -292,22 +292,22 @@ closed, settled) mapping many-to-one onto these. Versions through 0.6.0 enumerat
 values by mistake; `settled` in particular is a filter value only, and the terminal status is
 `finalized`.""" .
 
-ksh:Initialized a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "initialized" ;
+ksh:Initialized a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "initialized" ; skos:notation "initialized"^^ksh:StatusCode ;
     skos:definition "The market exists but has not opened for trading; it becomes active when its open time passes." .
-ksh:Active      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "active" ;
+ksh:Active      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "active" ; skos:notation "active"^^ksh:StatusCode ;
     skos:definition "Orders may be placed and matched." .
-ksh:Inactive    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "inactive" ;
+ksh:Inactive    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "inactive" ; skos:notation "inactive"^^ksh:StatusCode ;
     skos:definition "Trading is paused by the exchange without the market having closed; resting orders are cancelled if it is reactivated." .
-ksh:Closed      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "closed" ;
+ksh:Closed      a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "closed" ; skos:notation "closed"^^ksh:StatusCode ;
     skos:definition "The close time has passed and no further orders are accepted, but no outcome has been determined." .
-ksh:Determined  a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "determined" ;
+ksh:Determined  a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "determined" ; skos:notation "determined"^^ksh:StatusCode ;
     skos:definition "An outcome has been assigned and the settlement timer is running, during which the outcome may still be disputed." ;
     skos:scopeNote "The state a ksh:MarketSettlement leaves a market in: a resolution exists, but no funds have moved and the outcome is still contestable. ksh:Payout carries it to ksh:Finalized. Collapsing the two loses that window." .
-ksh:Disputed    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "disputed" ;
+ksh:Disputed    a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "disputed" ; skos:notation "disputed"^^ksh:StatusCode ;
     skos:definition "The determined outcome has been challenged and may be determined again." .
-ksh:Amended     a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "amended" ;
+ksh:Amended     a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "amended" ; skos:notation "amended"^^ksh:StatusCode ;
     skos:definition "The market was determined again following a dispute, restarting the settlement timer." .
-ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized" ;
+ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized" ; skos:notation "finalized"^^ksh:StatusCode ;
     skos:definition "Settlement is complete and positions have been paid out; the market is in its terminal state." .
 
 [] a owl:AllDifferent ;
@@ -329,6 +329,35 @@ ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized"
                  qudt:QuantityKind qudt:QuantityKindDimensionVector
                  ksh:ContractSide ksh:OrderAction ksh:ResolutionOutcome
                  ksh:MarketStatus ) .
+
+################################################################
+# API codes
+#
+# One datatype per API field, not one for all: "yes" is both a result and a side,
+# and a typed literal keeps the two apart. shapes/vocabulary.ttl holds the documented
+# enumerations and checks the notations against them.
+################################################################
+
+# Declared the way bfo-core declares the SKOS annotations it uses. OWLAPI would infer
+# it; declaring it keeps the typed literals out of HermiT's view by statement, not guess.
+skos:notation a owl:AnnotationProperty .
+
+ksh:StatusCode a rdfs:Datatype ;
+    rdfs:label "status code" ;
+    skos:definition "The string the Kalshi API returns in a market's `status` field." .
+
+ksh:ResultCode a rdfs:Datatype ;
+    rdfs:label "result code" ;
+    skos:definition "The string the Kalshi API returns in a market's `result` field." ;
+    skos:scopeNote "The empty string is a documented result and has no designation: a market with no result has not resolved, which is the absence of a ksh:ResolutionOutcome rather than one of them." .
+
+ksh:SideCode a rdfs:Datatype ;
+    rdfs:label "side code" ;
+    skos:definition "The string the Kalshi API uses in an order's `side` field." .
+
+ksh:ActionCode a rdfs:Datatype ;
+    rdfs:label "action code" ;
+    skos:definition "The string the Kalshi API uses in an order's `action` field." .
 
 ################################################################
 # Pricing and implied probability

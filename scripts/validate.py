@@ -110,7 +110,8 @@ from registry import (  # noqa: E402
 # A term is declared when something types it. A retirement that leaves a tombstone behind
 # -- owl:deprecated plus the old label -- is not a declaration, and CONTEXT.md must stop
 # naming it rather than keep pointing at a term the model no longer has.
-DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty, OWL.NamedIndividual)
+DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty,
+               OWL.NamedIndividual, RDFS.Datatype)
 
 CONTEXT = ROOT / "CONTEXT.md"
 # Backticked only: prose says "the fm: side" and names files, and neither is a term.
@@ -1582,7 +1583,7 @@ def check_defined_terms(ex: Graph) -> None:
 
 @check(takes=("schema",), population="schema", reason="its population is the minted terms")
 def check_documentation(g: Graph) -> None:
-    """Every minted class and property carries rdfs:label and skos:definition.
+    """Every minted class, property and datatype carries rdfs:label and skos:definition.
 
     A scopeNote used to count as a definition and this was advisory. Both the module
     docstring and CLAUDE.md promise this fails, so it fails: a scope note says
@@ -1591,7 +1592,7 @@ def check_documentation(g: Graph) -> None:
     terms = minted_classes(g) + sorted(
         {
             s
-            for t in (OWL.ObjectProperty, OWL.DatatypeProperty)
+            for t in (OWL.ObjectProperty, OWL.DatatypeProperty, RDFS.Datatype)
             for s in g.subjects(RDF.type, t)
             if is_ours(s)
         },

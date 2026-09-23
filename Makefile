@@ -75,10 +75,12 @@ meta:
 
 ## SHACL conformance: does the data satisfy the ThermalEdge export contract?
 ## Runs the examples as ONE graph -- they import each other, so a file checked
-## alone reports absences that are not real. Pure Python, no Java.
+## alone reports absences that are not real. Pure Python, no Java. Last, the
+## modules alone against FMO's own vocabulary shapes (the API codes).
 shapes:
 	$(PY) scripts/validate_shapes.py --examples
 	$(PY) scripts/validate_shapes.py --exports
+	$(PY) scripts/validate_shapes.py --vocabulary
 
 ## Tests about the shapes themselves: no shape may match nothing, no shape may
 ## fail to catch a missing required property on a node typed as its own

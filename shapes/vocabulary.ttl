@@ -1,0 +1,80 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix voc:  <https://w3id.org/forecast-market-ontology/shapes/vocabulary#> .
+
+# FMO's own vocabulary rules, run against the modules alone. Not part of the
+# ThermalEdge export contract, and not pinned: no consumer reads this file.
+#
+# Each field's documented enumeration appears twice -- in sh:in (no code outside it)
+# and as sh:targetNode (no code nobody carries). test_shapes.py asserts the two agree.
+# Documented codes as checked against the Kalshi API on 2026-08-17.
+
+voc:MarketStatusShape a sh:NodeShape ;
+    sh:targetClass ksh:MarketStatus ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:StatusCode ;
+        sh:in ( "initialized"^^ksh:StatusCode "active"^^ksh:StatusCode
+                "inactive"^^ksh:StatusCode "closed"^^ksh:StatusCode
+                "determined"^^ksh:StatusCode "disputed"^^ksh:StatusCode
+                "amended"^^ksh:StatusCode "finalized"^^ksh:StatusCode ) ;
+    ] .
+
+# ksh:Voided is the one designation with no code; its scope note says why.
+voc:ResolutionOutcomeShape a sh:NodeShape ;
+    sh:targetClass ksh:ResolutionOutcome ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:maxCount 1 ;
+        sh:datatype ksh:ResultCode ;
+        sh:in ( "yes"^^ksh:ResultCode "no"^^ksh:ResultCode "scalar"^^ksh:ResultCode ) ;
+    ] ;
+    sh:or (
+        [ sh:path skos:notation ; sh:minCount 1 ]
+        [ sh:in ( ksh:Voided ) ]
+    ) .
+
+voc:ContractSideShape a sh:NodeShape ;
+    sh:targetClass ksh:ContractSide ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:SideCode ;
+        sh:in ( "yes"^^ksh:SideCode "no"^^ksh:SideCode ) ;
+    ] .
+
+voc:OrderActionShape a sh:NodeShape ;
+    sh:targetClass ksh:OrderAction ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:ActionCode ;
+        sh:in ( "buy"^^ksh:ActionCode "sell"^^ksh:ActionCode ) ;
+    ] .
+
+# A code is a lookup key, so no two individuals share one. Typed literals keep the
+# result "yes" and the side "yes" distinct.
+voc:NotationUniqueShape a sh:NodeShape ;
+    sh:targetObjectsOf skos:notation ;
+    sh:property [
+        sh:path [ sh:inversePath skos:notation ] ;
+        sh:maxCount 1 ;
+    ] .
+
+# Every documented code is carried by some individual. The empty result is left out:
+# an unresolved market has no ksh:ResolutionOutcome (see ksh:ResultCode).
+voc:DocumentedCodesCarriedShape a sh:NodeShape ;
+    sh:targetNode
+        "initialized"^^ksh:StatusCode , "active"^^ksh:StatusCode ,
+        "inactive"^^ksh:StatusCode , "closed"^^ksh:StatusCode ,
+        "determined"^^ksh:StatusCode , "disputed"^^ksh:StatusCode ,
+        "amended"^^ksh:StatusCode , "finalized"^^ksh:StatusCode ,
+        "yes"^^ksh:ResultCode , "no"^^ksh:ResultCode , "scalar"^^ksh:ResultCode ,
+        "yes"^^ksh:SideCode , "no"^^ksh:SideCode ,
+        "buy"^^ksh:ActionCode , "sell"^^ksh:ActionCode ;
+    sh:property [
+        sh:path [ sh:inversePath skos:notation ] ;
+        sh:minCount 1 ;
+    ] .
