@@ -276,3 +276,24 @@ The entry names the four datatypes in backticks, which is what makes
   Don't let the shapes file enumerate the filter values.
 
 ## Comments
+
+**2026-09-22 — done.** `make test` passes with a JDK and no skips. The claims'
+witnesses, each seen to fail when its subject was removed:
+
+- `make shapes-negative`: 15 vocabulary assertions. That's 6 vacuity checks, the
+  `sh:in`/`sh:targetNode` agreement check, the exception check, and 7 mutants,
+  each credited only to the constraint it targets. Deleting
+  `sh:datatype ksh:ActionCode` fails it.
+- `make signatures`: remapping `ksh:Active`'s code moves only its
+  `semantics_sha256`. Dropping `notation:` from the digest fails it.
+- `make validate`: with `rdfs:Datatype` taken out of `DECLARED_AS`, CONTEXT.md's
+  four datatype names are reported as undeclared.
+
+Two findings differ from what the spec expected:
+
+- **Literal `sh:targetNode` works in pyshacl.** The SPARQL fallback wasn't needed.
+- **HermiT was never at risk.** It is consistent with the `skos:notation`
+  declaration removed too, because OWLAPI already infers annotation properties.
+  The declaration stays, matching how `bfo-core.ttl` declares the SKOS
+  annotations it uses, and its comment says so rather than claiming it prevents
+  a failure.

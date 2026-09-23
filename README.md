@@ -6,9 +6,10 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.12.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.13.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
-were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23.
+were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
+each designation carries its API code, checked against that enumeration by `make shapes`.
 Worked markets: a temperature bracket ladder and a settled rain market. Term coverage is
 deliberately shallow in places; see [Open questions](#open-questions).
 
@@ -56,6 +57,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `shapes/thermaledge-export.ttl` | SHACL shapes: what a valid ThermalEdge export must contain |
 | `shapes/thermaledge-export.pin.json` | FMO's pin on those shapes, audited by `make shape-signatures` (generated) |
+| `shapes/vocabulary.ttl` | SHACL shapes over the modules themselves: each Kalshi designation's API code (`skos:notation`) against the documented enumeration |
 | `examples/export/` | a conformant export fixture: what the shapes were written for |
 | `examples/negative/` | fixtures that must FAIL, so the checks are known to bite |
 | `queries/production-expectations.json` | per-query floors and exemptions for production mode |
@@ -84,7 +86,7 @@ make validate                        # structure, BFO grounding, unit coherence,
 make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make meta                            # tests about the checks: none may pass with nothing to check
-make shapes                          # SHACL: does the data satisfy the export contract?
+make shapes                          # SHACL: does the data satisfy the export contract? do the API codes match the API?
 make shapes-negative                 # tests about the shapes: vacuity, required-property mutants, dead constraints
 make export-check                    # production CQ mode: export passes, mismatch fails
 make reason                          # HermiT consistency (needs robot.jar)

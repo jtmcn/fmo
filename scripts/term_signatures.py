@@ -34,7 +34,7 @@ import json
 import sys
 from pathlib import Path
 
-from rdflib import Graph, RDF, RDFS, OWL, URIRef
+from rdflib import Graph, Literal, RDF, RDFS, OWL, URIRef
 from rdflib.namespace import SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -42,7 +42,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import axioms  # noqa: E402
 from registry import ONTOLOGY_PREFIXES, SRC  # noqa: E402
 
-DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.NamedIndividual)
+DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.NamedIndividual,
+               RDFS.Datatype)
 
 
 def digest(text: str) -> str:
@@ -57,8 +58,8 @@ def minted_graph() -> Graph:
     return g
 
 
-def signatures() -> dict[str, dict]:
-    g = minted_graph()
+def signatures(g: Graph | None = None) -> dict[str, dict]:
+    g = minted_graph() if g is None else g
     sites = axioms.all_sites()
 
     # Axioms are attributed by the curie the key opens with, which is the subject
@@ -82,6 +83,13 @@ def signatures() -> dict[str, dict]:
             label = str(next(g.objects(subject, RDFS.label), ""))
             definition = str(next(g.objects(subject, SKOS.definition), ""))
             notes = sorted(str(n) for n in g.objects(subject, SKOS.scopeNote))
+            # An API code is what ingest looks the term up by, so remapping one moves
+            # the semantics a consumer relies on even though no axiom changed.
+            notations = sorted(
+                f"{n}^^{axioms.curie(g, n.datatype)}" if isinstance(n, Literal) and n.datatype
+                else str(n)
+                for n in g.objects(subject, SKOS.notation)
+            )
             parents = sorted(
                 axioms.curie(g, p) for p in g.objects(subject, RDFS.subClassOf)
                 if isinstance(p, URIRef)
@@ -95,6 +103,7 @@ def signatures() -> dict[str, dict]:
                 f"label: {label}",
                 f"definition: {definition}",
                 *(f"note: {n}" for n in notes),
+                *(f"notation: {n}" for n in notations),
                 *(f"parent: {p}" for p in parents),
                 *(f"axiom: {a}" for a in axiom_lines),
             ])
@@ -105,6 +114,30 @@ def signatures() -> dict[str, dict]:
                 "axioms": len(axiom_lines),
             }
     return dict(sorted(out.items()))
+
+
+def notation_mutant(sigs: dict[str, dict]) -> str | None:
+    """Remap one API code; exactly that term's semantics_sha256 must move.
+
+    Returns a failure message, or None. A digest that ignored notations would pass
+    the reproducibility check above and still let a remapped code reach a consumer
+    with every pin matching.
+    """
+    g = minted_graph()
+    coded = sorted((s, n) for s, n in g.subject_objects(SKOS.notation) if isinstance(n, Literal))
+    if not coded:
+        return "no term carries a skos:notation, so the notation mutant tested nothing"
+    subject, notation = coded[0]
+    g.remove((subject, SKOS.notation, notation))
+    g.add((subject, SKOS.notation, Literal(f"{notation}-remapped", datatype=notation.datatype)))
+    mutated = signatures(g)
+    moved = sorted(k for k in sigs if sigs[k]["semantics_sha256"] != mutated[k]["semantics_sha256"])
+    prose = sorted(k for k in sigs if sigs[k]["definition_sha256"] != mutated[k]["definition_sha256"])
+    expected = axioms.curie(g, subject)
+    if moved != [expected] or prose:
+        return (f"remapping {expected}'s notation moved semantics_sha256 for {moved} "
+                f"and definition_sha256 for {prose}; expected only {expected}'s semantics")
+    return None
 
 
 def main() -> int:
@@ -122,6 +155,10 @@ def main() -> int:
             return 1
         if not sigs:
             print("FAIL: no terms signed, so this check verified nothing", file=sys.stderr)
+            return 1
+        moved = notation_mutant(sigs)
+        if moved is not None:
+            print(f"FAIL: {moved}", file=sys.stderr)
             return 1
         with_axioms = sum(1 for v in sigs.values() if v["axioms"])
         print(f"OK: {len(sigs)} term signatures reproducible, {with_axioms} carry axioms")

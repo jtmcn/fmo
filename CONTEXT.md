@@ -148,6 +148,13 @@ _Avoid_: "the price is the probability".
 
 **Status** (`ksh:hasStatus`): functional, current only. Not a history.
 
+**API code** (`skos:notation`): the string the Kalshi API uses for a designation, typed
+by the field it appears in — `ksh:StatusCode`, `ksh:ResultCode`, `ksh:SideCode`,
+`ksh:ActionCode`. Ingest looks a designation up by its code, never by its label:
+`ksh:YesSide` is labelled "yes side" and its code is `"yes"`, which is also the code of
+`ksh:ResolvedYes` in a different field. `ksh:Voided` has no code.
+_Avoid_: "the label" for the code, "the enum value", "the status string".
+
 ---
 
 ## 4. Repo mechanics

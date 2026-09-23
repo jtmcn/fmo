@@ -40,12 +40,12 @@ import sys
 from pathlib import Path
 
 from pyshacl import validate as shacl_validate
-from rdflib import Graph, RDF, RDFS
+from rdflib import Graph, Literal, RDF, RDFS, URIRef
 from rdflib.term import Node
-from rdflib.namespace import Namespace
+from rdflib.namespace import Namespace, SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import MODULES, SHAPES, SRC, exports  # noqa: E402
+from registry import MODULES, ONTOLOGY_PREFIXES, SHAPES, SRC, VOCABULARY_SHAPES, exports  # noqa: E402
 
 SH = Namespace("http://www.w3.org/ns/shacl#")
 
@@ -55,6 +55,14 @@ SH = Namespace("http://www.w3.org/ns/shacl#")
 # suite still says OK, which is the export contract quietly losing a required
 # property. Checked in like a CQ .expected -- bump it deliberately.
 EXPECTED_ASSERTIONS = 14
+
+# The vocabulary shapes' matrix, counted separately because it runs over the
+# modules rather than per export fixture: one vacuity check per shape, the
+# enumeration-agreement and exception checks, and one mutant per constraint.
+EXPECTED_VOCABULARY_ASSERTIONS = 15
+
+KSH = Namespace(ONTOLOGY_PREFIXES["ksh"])
+VOC = Namespace("https://w3id.org/forecast-market-ontology/shapes/vocabulary#")
 
 
 def base_graph() -> Graph:
@@ -100,6 +108,140 @@ def rdfs_entailed(data: Graph, shapes: Graph) -> Graph:
     shacl_validate(entailed, shacl_graph=shapes, inference="rdfs",
                    advanced=True, inplace=True)
     return entailed
+
+
+def property_shape(shapes: Graph, shape: Node, path: Node) -> Node:
+    """The property shape under `shape` whose sh:path is `path`."""
+    found = [p for p in shapes.objects(shape, SH.property) if shapes.value(p, SH.path) == path]
+    if len(found) != 1:
+        raise LookupError(f"{shape} has {len(found)} property shape(s) on {path}")
+    return found[0]
+
+
+def inverse_notation_shape(shapes: Graph, shape: Node) -> Node:
+    """The property shape under `shape` on [sh:inversePath skos:notation]."""
+    found = [p for p in shapes.objects(shape, SH.property)
+             if shapes.value(shapes.value(p, SH.path), SH.inversePath) == SKOS.notation]
+    if len(found) != 1:
+        raise LookupError(f"{shape} has {len(found)} inverse-notation property shape(s)")
+    return found[0]
+
+
+def vocabulary_checks() -> tuple[int, list[str]]:
+    """Vacuity, enumeration agreement, exceptions, and one mutant per constraint.
+
+    Each mutant must be caught by the constraint it targets, from the shape that
+    owns it: most of them also trip a neighbour (a duplicated code leaves another
+    uncarried), and a check crediting any violation would hide a dead constraint.
+    """
+    shapes = Graph().parse(VOCABULARY_SHAPES, format="turtle")
+    modules = base_graph()
+    entailed = rdfs_entailed(modules, shapes)
+    failures: list[str] = []
+    checked = 0
+
+    # 1. Vacuity, per shape, over whichever target it declares.
+    for shape in sorted(set(shapes.subjects(RDF.type, SH.NodeShape)), key=str):
+        focus: set = set()
+        for cls in shapes.objects(shape, SH.targetClass):
+            focus |= set(entailed.subjects(RDF.type, cls))
+        for prop in shapes.objects(shape, SH.targetObjectsOf):
+            focus |= set(entailed.objects(None, prop))
+        focus |= set(shapes.objects(shape, SH.targetNode))
+        label = str(shape).split("#")[-1]
+        checked += 1
+        if focus:
+            print(f"  ok   [{label}] {len(focus)} focus node(s) in the modules")
+        else:
+            failures.append(f"{label} matches no focus node in the modules, so it conforms vacuously")
+
+    # 2. The enumeration is written twice; the two copies must agree.
+    listed = {
+        item
+        for prop in shapes.subjects(SH.path, SKOS.notation)
+        for items in shapes.objects(prop, SH["in"])
+        for item in shapes.items(items)
+    }
+    carried = set(shapes.objects(VOC.DocumentedCodesCarriedShape, SH.targetNode))
+    checked += 1
+    if listed != carried:
+        failures.append(
+            f"sh:in and sh:targetNode disagree on the documented codes: only in sh:in "
+            f"{sorted(map(str, listed - carried))}, only targeted "
+            f"{sorted(map(str, carried - listed))}"
+        )
+    else:
+        print(f"  ok   [enumeration] {len(listed)} code(s), sh:in and sh:targetNode agree")
+
+    # 3. An exception names an individual with no code and a scope note saying why.
+    # SHACL cannot see an exception go stale; this can.
+    excepted = {
+        item
+        for alternatives in shapes.objects(None, SH["or"])
+        for member in shapes.items(alternatives)
+        for items in shapes.objects(member, SH["in"])
+        for item in shapes.items(items)
+    }
+    checked += 1
+    stale = sorted(str(i) for i in excepted if any(modules.objects(i, SKOS.notation)))
+    unexplained = sorted(str(i) for i in excepted if not any(modules.objects(i, SKOS.scopeNote)))
+    if not excepted:
+        failures.append("no exception found under sh:or, so this check read nothing")
+    elif stale or unexplained:
+        failures.append(f"exceptions that carry a code: {stale}; with no scope note: {unexplained}")
+    else:
+        print(f"  ok   [exceptions] {len(excepted)} excepted, none coded, each with a scope note")
+
+    # 4. Mutants.
+    status = property_shape(shapes, VOC.MarketStatusShape, SKOS.notation)
+    action = property_shape(shapes, VOC.OrderActionShape, SKOS.notation)
+    unique = inverse_notation_shape(shapes, VOC.NotationUniqueShape)
+    documented = inverse_notation_shape(shapes, VOC.DocumentedCodesCarriedShape)
+    notation = SKOS.notation
+    probe = URIRef("https://w3id.org/forecast-market-ontology/examples/probe#Unexplained")
+
+    def code(value: str, datatype: str) -> Literal:
+        return Literal(value, datatype=KSH[datatype])
+
+    mutants = [
+        ("a coded individual with its code removed", status, SH.MinCountConstraintComponent,
+         [], [(KSH.Finalized, notation, code("finalized", "StatusCode"))]),
+        ("a second code on one individual", status, SH.MaxCountConstraintComponent,
+         [(KSH.Finalized, notation, code("closed", "StatusCode"))], []),
+        ("two individuals sharing one code", unique, SH.MaxCountConstraintComponent,
+         [(KSH.Closed, notation, code("finalized", "StatusCode"))],
+         [(KSH.Closed, notation, code("closed", "StatusCode"))]),
+        ("another field's datatype", action, SH.DatatypeConstraintComponent,
+         [(KSH.Buy, notation, code("buy", "SideCode"))],
+         [(KSH.Buy, notation, code("buy", "ActionCode"))]),
+        ("a code outside the enumeration", action, SH.InConstraintComponent,
+         [(KSH.Sell, notation, code("sel", "ActionCode"))],
+         [(KSH.Sell, notation, code("sell", "ActionCode"))]),
+        ("a documented code nobody carries", documented, SH.MinCountConstraintComponent,
+         [], list(modules.triples((KSH.ResolvedScalar, None, None)))),
+        ("a new outcome with neither a code nor an exception", VOC.ResolutionOutcomeShape,
+         SH.OrConstraintComponent, [(probe, RDF.type, KSH.ResolutionOutcome)], []),
+    ]
+    for name, source, component, add, remove in mutants:
+        checked += 1
+        mutant = Graph()
+        for triple in modules:
+            mutant.add(triple)
+        for triple in remove:
+            mutant.remove(triple)
+        for triple in add:
+            mutant.add(triple)
+        _, results, _ = shacl_validate(mutant, shacl_graph=shapes, inference="rdfs", advanced=True)
+        caught = any(
+            results.value(result, SH.sourceConstraintComponent) == component
+            for result in results.subjects(SH.sourceShape, source)
+        )
+        if caught:
+            print(f"  ok   [vocabulary] catches {name}")
+        else:
+            failures.append(f"vocabulary shapes do not catch {name} with {component.split('#')[-1]}")
+
+    return checked, failures
 
 
 def main() -> int:
@@ -212,7 +354,16 @@ def main() -> int:
                     f"for it: the shape is present but nothing proves it can fire"
                 )
 
-    print(f"\n{checked} shape assertion(s) checked")
+    vocabulary_checked, vocabulary_failures = vocabulary_checks()
+    failures += vocabulary_failures
+    if vocabulary_checked != EXPECTED_VOCABULARY_ASSERTIONS:
+        failures.append(
+            f"expected {EXPECTED_VOCABULARY_ASSERTIONS} vocabulary shape assertion(s), ran "
+            f"{vocabulary_checked}: update EXPECTED_VOCABULARY_ASSERTIONS if a vocabulary "
+            f"shape or mutant was added or removed on purpose"
+        )
+
+    print(f"\n{checked} export and {vocabulary_checked} vocabulary shape assertion(s) checked")
     if checked != EXPECTED_ASSERTIONS:
         failures.append(
             f"expected {EXPECTED_ASSERTIONS} shape assertion(s), ran {checked}: the "

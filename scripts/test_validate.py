@@ -378,6 +378,16 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "no skos:definition: https://w3id.org/forecast-market-ontology/weather#WindDirection",
     ),
     (
+        # Datatypes were outside the documented population, so an API-code datatype
+        # could ship with a label and no statement of which field it types.
+        # Exercises check_documentation.
+        "a datatype left without a skos:definition",
+        "src/kalshi.ttl",
+        """    skos:definition "The string the Kalshi API uses in an order's `action` field." .""",
+        """    skos:scopeNote "Buy or sell." .""",
+        "no skos:definition: https://w3id.org/forecast-market-ontology/kalshi#ActionCode",
+    ),
+    (
         # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
         # was missing from the first one. A vocabulary outside them lets one
         # individual be typed into two at once, which is legal OWL that every other

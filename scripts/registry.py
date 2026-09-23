@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
 QUERIES = ROOT / "queries"
 SHAPES = ROOT / "shapes" / "thermaledge-export.ttl"
+# FMO's own vocabulary rules; checked against the modules alone, never an export.
+VOCABULARY_SHAPES = ROOT / "shapes" / "vocabulary.ttl"
 
 MODULES = [
     "imports/bfo-core.ttl", "imports/qudt-subset.ttl",
