@@ -273,8 +273,8 @@ A competency question is a requirement: a question the ontology must be able to 
 fix scope and then to test it. If a question cannot be answered, a term or a relation is
 missing. They are the difference between an ontology that earns its keep and a tidy taxonomy.
 
-Each of 1 to 4 is now mechanically checked by `make test` and fails the build if it regresses.
-Through 0.1.0 all four carried a tick mark on the strength of "you could query the example for
+All eight are mechanically checked by `make test` and fail the build if they regress.
+Through 0.1.0 the first four carried a tick mark on the strength of "you could query the example for
 this", which was true and not the same as tested; only 3 had a real check. Made honest in 0.2.0.
 
 | # | Question | Status |
@@ -286,8 +286,9 @@ this", which was true and not the same as tested; only 3 had a real check. Made 
 | 5 | For a mutually exclusive event grouping, do the implied probabilities sum to one, and by how much do they overshoot? | `queries/cq05-bracket-coherence.rq` |
 | 6 | Given a lead time, what is the historical calibration of a model against settled outcomes? | `queries/cq06a-...`, `cq06b-...` |
 | 7 | Which settled markets were contradicted by a later correction to their settlement source? | `queries/cq07-correction-contradiction.rq` |
+| 8 | Who took which side of a market, at what price, and what were they paid? | `queries/cq08-order-flow-payout.rq` |
 
-Questions 1, 2 and 4 are answered by SPARQL over the asserted graph; 3 needs OWL reasoning
+Every question but 3 is answered by SPARQL over the asserted graph; 3 needs OWL reasoning
 because the answer is derived from the `ksh:WeatherMarket` equivalent-class axiom rather than
 stated. That split is why there are two competency targets in the Makefile.
 
@@ -327,7 +328,7 @@ Three things about that query generalise:
   looks like an arbitrage, so the count has to be checked against the true bracket count.
 
 Interpreting the overshoot as spread plus fee drag still needs a fee model, which does not exist
-yet. Remaining:
+yet.
 
 Question 6 landed in 0.5.0, as two queries rather than one. `cq06a` is the reliability table —
 observed frequency against mean forecast probability, per model, per lead time, per probability
