@@ -221,10 +221,25 @@ information content entity. That would give a second observation model and a mod
 argument, for interoperability deferred until the ontology is published for reuse. Revisit
 then, starting with `closeMatch` links rather than an import.
 
-**The snow terms are unmapped.** Mapping them exposed that FMO does not say whether
-`wx:SnowDepth` and `wx:TotalSnowfall` mean new snow or snow on the ground, which CF (and NWS)
-keep apart. That is FMO's ambiguity, filed as FM-0010, and the ledger's `ambiguous` entries
-name it.
+**Mapping the snow terms exposed a misfiling.** FMO did not say whether `wx:SnowDepth` and
+`wx:TotalSnowfall` meant new snow or snow on the ground, which CF and the NWS keep apart. The
+cause was a parent: `wx:SnowDepth` sat under `wx:PrecipitationDepth`, which is a
+liquid-water-equivalent depth, while its own definition was a settled depth. The two are
+different qualities of the same snow, differing by its density. FM-0010 split them:
+
+- `wx:SnowCover` is the snow lying on the ground, a portion of precipitate.
+- `wx:SnowDepth` is its settled depth (`surface_snow_thickness`), no longer a precipitation
+  depth.
+- `wx:NewSnowDepth` is the settled depth of one snowfall's output
+  (`thickness_of_snowfall_amount`). It inheres in that output, as the rain example's
+  precipitation depth inheres in the rainfall's output.
+- `wx:TotalSnowfall` sums `wx:NewSnowDepth` over the interval (`time: sum`), which is the NWS
+  daily snowfall.
+
+Both settled depths are declared disjoint from `wx:PrecipitationDepth`, so filing either
+back under it is an unsatisfiable class, and `scripts/test_reason.py` has a case for each.
+They are not declared disjoint from each other: snow falling on bare ground is both a
+snowfall's output and the snow cover.
 
 ## Bugs the checks caught
 

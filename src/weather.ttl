@@ -51,6 +51,12 @@ wx:PortionOfPrecipitate a owl:Class ;
     skos:definition "A material entity of condensed water, liquid or solid, that has fallen from the atmosphere and accumulated at a surface." ;
     skos:scopeNote "The bearer of accumulated precipitation depth. Distinct from the precipitation process that deposits it." .
 
+wx:SnowCover a owl:Class ;
+    rdfs:subClassOf wx:PortionOfPrecipitate ;
+    rdfs:label "snow cover" ;
+    skos:definition "A portion of precipitate consisting of the snow and ice lying on the ground at a site, accumulated from one or more snowfalls and altered since by settling, melting and drifting." ;
+    skos:scopeNote "Snow on the ground, as distinct from the output of one snowfall. The NWS reports the two apart -- snow depth and snowfall -- and so does CF. Its liquid-water equivalent is a wx:PrecipitationDepth like any portion of precipitate's; its settled depth is wx:SnowDepth." .
+
 wx:WeatherStation a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000030 ;   # object
     rdfs:label "weather station" ;
@@ -140,8 +146,26 @@ wx:PrecipitationDepth a owl:Class ;
     skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/lwe_thickness_of_precipitation_amount/> .
 
 wx:SnowDepth a owl:Class ;
-    rdfs:subClassOf wx:PrecipitationDepth ; rdfs:label "snow depth" ;
-    skos:definition "The precipitation depth of a portion of precipitate consisting of accumulated snow, measured as settled depth rather than as liquid-water equivalent." .
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:label "snow depth" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty bfo:BFO_0000197 ;
+        owl:someValuesFrom wx:SnowCover ] ;
+    owl:disjointWith wx:PrecipitationDepth ;
+    skos:definition "The quality of a snow cover in virtue of its settled depth above the ground." ;
+    skos:scopeNote "Not a wx:PrecipitationDepth, which is a liquid-water equivalent: the same snow cover bears both, and they differ by the snow's density. Until FM-0010 this was filed under wx:PrecipitationDepth, which made it inherit that mapping and meaning." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/surface_snow_thickness/> .
+
+wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:label "new snow depth" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty bfo:BFO_0000197 ;
+        owl:someValuesFrom wx:PortionOfPrecipitate ] ;
+    owl:disjointWith wx:PrecipitationDepth ;
+    skos:definition "The quality of the portion of precipitate output by a snowfall in virtue of its settled depth, measured before it merges with the snow already on the ground." ;
+    skos:scopeNote "What a snowboard measures and the NWS reports as snowfall. The bearer is the snowfall's output, as the rain example's precipitation depth inheres in the rainfall's output, not the snow cover it joins: new snow on a deep snow cover leaves wx:SnowDepth rising by less than this, because the cover settles." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> .
 
 ################################################################
 # Occurrents: weather as something that happens
@@ -249,8 +273,11 @@ wx:TotalPrecipitation a wx:WeatherVariable, owl:NamedIndividual ;
 
 wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total snowfall" ;
-    skos:definition "The accumulated settled depth of snow at an observing site over a temporal interval." ;
+    skos:definition "The sum of the new snow depths measured at an observing site over a temporal interval." ;
     skos:scopeNote "Settled depth, not liquid-water equivalent. Same dimension as total precipitation but not the same quantity, so dimensional compatibility alone will not catch a confusion between them." ;
+    skos:scopeNote "New snow, not snow on the ground: the NWS daily snowfall, summed from snowboard readings. The depth of the snow cover at the end of the interval is a different quantity, wx:SnowDepth, and is usually less." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> ;
+    wx:cfCellMethods "time: sum" ;
     fm:hasQuantityKind quantitykind:Length ;
     wx:conventionalUnit unit:IN , unit:CentiM .
 

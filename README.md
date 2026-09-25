@@ -239,8 +239,7 @@ adds the CF cell method for its statistic: `wx:MaximumAirTemperature` is `air_te
 with `time: maximum`, and `wx:MeanAirTemperature` is `time: mid_range`, because the NWS
 daily mean is the midpoint of max and min. These are annotations, not an import;
 `check_cf_mappings` fails on a CF IRI used any other way, and on an unmapped term that
-`queries/cf-mapping-expectations.json` does not explain. The snow terms are unmapped
-pending FM-0010.
+`queries/cf-mapping-expectations.json` does not explain.
 
 One trap worth naming, because it bit during this work: `wx:conventionalUnit` is deliberately
 **not** a sub-property of `fm:hasUnit`. `hasUnit` is functional, so making a multi-valued

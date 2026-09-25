@@ -149,6 +149,28 @@ ksh:TraderRole a owl:Class ;""",
         "inconsistent",
         ("src/core.ttl",),
     ),
+    (
+        # FM-0010's defect: a settled snow depth filed under the liquid-water-
+        # equivalent one, inheriting a mapping and a meaning it does not have.
+        "snow depth filed back under precipitation depth",
+        "src/weather.ttl",
+        """wx:SnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality""",
+        """wx:SnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:subClassOf wx:PrecipitationDepth ;""",
+        "unsatisfiable",
+    ),
+    (
+        "new snow depth filed under precipitation depth",
+        "src/weather.ttl",
+        """wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality""",
+        """wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:subClassOf wx:PrecipitationDepth ;""",
+        "unsatisfiable",
+    ),
 ]
 
 
