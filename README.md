@@ -6,7 +6,7 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.13.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.14.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
 each designation carries its API code, checked against that enumeration by `make shapes`.
@@ -239,8 +239,7 @@ adds the CF cell method for its statistic: `wx:MaximumAirTemperature` is `air_te
 with `time: maximum`, and `wx:MeanAirTemperature` is `time: mid_range`, because the NWS
 daily mean is the midpoint of max and min. These are annotations, not an import;
 `check_cf_mappings` fails on a CF IRI used any other way, and on an unmapped term that
-`queries/cf-mapping-expectations.json` does not explain. The snow terms are unmapped
-pending FM-0010.
+`queries/cf-mapping-expectations.json` does not explain.
 
 One trap worth naming, because it bit during this work: `wx:conventionalUnit` is deliberately
 **not** a sub-property of `fm:hasUnit`. `hasUnit` is functional, so making a multi-valued

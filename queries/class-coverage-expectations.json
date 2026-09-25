@@ -79,11 +79,17 @@
     "wx:NamedStormDesignation": {
       "reason": "Depends on a tropical cyclone example existing, which depends on the contested storm modelling below."
     },
+    "wx:NewSnowDepth": {
+      "reason": "The snowfall analogue of the rain example's wx:PrecipitationDepth: a quality of a snowfall's output. It needs a snowfall market worked through, which has not been done."
+    },
     "wx:PortionOfAir": {
       "reason": "The bearer that atmospheric qualities inhere in. Since none of those qualities is instantiated, nothing yet needs the bearer; wx:PortionOfPrecipitate shows the analogous class is assertable once a process is recorded."
     },
+    "wx:SnowCover": {
+      "reason": "Snow on the ground. Nothing structural bars an example; it needs a snow-depth market worked through, which has not been done."
+    },
     "wx:SnowDepth": {
-      "reason": "A precipitation depth, and wx:PrecipitationDepth is directly instantiated by the rain example, so nothing structural bars this. It needs a snow market worked through, which has not been done."
+      "reason": "A quality of a snow cover, assertable the way wx:PrecipitationDepth is in the rain example. It needs a snow-depth market worked through, which has not been done."
     },
     "wx:Snowfall": {
       "reason": "The sibling of wx:Rainfall, which the rain example does instantiate. Wants a snow market worked through."

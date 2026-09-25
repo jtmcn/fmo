@@ -13,7 +13,7 @@
 
 <https://w3id.org/forecast-market-ontology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.13.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.14.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> ;
     dcterms:title "FMO Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -21,7 +21,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.13.0" .
+    owl:versionInfo "0.14.0" .
 
 ################################################################
 # Material entities
@@ -48,8 +48,14 @@ wx:AirMass a owl:Class ;
 wx:PortionOfPrecipitate a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000040 ;   # material entity
     rdfs:label "portion of precipitate" ;
-    skos:definition "A material entity of condensed water, liquid or solid, that has fallen from the atmosphere and accumulated at a surface." ;
-    skos:scopeNote "The bearer of accumulated precipitation depth. Distinct from the precipitation process that deposits it." .
+    skos:definition "A material entity of condensed water, liquid or solid, output at a surface by a precipitation process." ;
+    skos:scopeNote "The bearer of accumulated precipitation depth. Distinct from the precipitation process that deposits it, and from wx:SnowCover: a portion is individuated by the process that output it, a cover persists while gaining and losing matter." .
+
+wx:SnowCover a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000040 ;   # material entity
+    rdfs:label "snow cover" ;
+    skos:definition "A material entity consisting of the snow and ice lying on the ground at a site, accumulated from one or more snowfalls and altered since by settling, melting and drifting." ;
+    skos:scopeNote "Not a wx:PortionOfPrecipitate. A cover persists while gaining and losing matter, including snow drifted in that never fell at the site, where a portion is individuated by the process that output it. CF and the NWS keep the two apart too. Its settled depth is wx:SnowDepth; its liquid-water equivalent (CF lwe_thickness_of_surface_snow_amount) is not modelled, as no market settles on it." .
 
 wx:WeatherStation a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000030 ;   # object
@@ -140,8 +146,29 @@ wx:PrecipitationDepth a owl:Class ;
     skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/lwe_thickness_of_precipitation_amount/> .
 
 wx:SnowDepth a owl:Class ;
-    rdfs:subClassOf wx:PrecipitationDepth ; rdfs:label "snow depth" ;
-    skos:definition "The precipitation depth of a portion of precipitate consisting of accumulated snow, measured as settled depth rather than as liquid-water equivalent." .
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:label "snow depth" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty bfo:BFO_0000197 ;
+        owl:someValuesFrom wx:SnowCover ] ;
+    skos:definition "The quality of a snow cover in virtue of its settled depth above the ground." ;
+    skos:scopeNote "Not a wx:PrecipitationDepth, which is the liquid-water equivalent of what fell. A settled depth and a water equivalent differ by the snow's density." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/surface_snow_thickness/> .
+
+wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:label "new snow depth" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty bfo:BFO_0000197 ;
+        owl:someValuesFrom wx:PortionOfPrecipitate ] ;
+    skos:definition "The quality of the portion of precipitate output by a snowfall in virtue of its settled depth, measured before it merges with the snow already on the ground." ;
+    skos:scopeNote "What a snowboard measures and the NWS reports as snowfall. The bearer is the snowfall's output, as the rain example's precipitation depth inheres in the rainfall's output, not the snow cover it joins: new snow on a deep snow cover leaves wx:SnowDepth rising by less than this, because the cover settles." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> .
+
+# Three depths, measured three ways. Two of them agree on the first snowfall onto bare
+# ground, and are still a snowboard reading and a stake reading.
+[] a owl:AllDisjointClasses ;
+   owl:members ( wx:PrecipitationDepth wx:SnowDepth wx:NewSnowDepth ) .
 
 ################################################################
 # Occurrents: weather as something that happens
@@ -249,8 +276,11 @@ wx:TotalPrecipitation a wx:WeatherVariable, owl:NamedIndividual ;
 
 wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total snowfall" ;
-    skos:definition "The accumulated settled depth of snow at an observing site over a temporal interval." ;
+    skos:definition "The sum of the new snow depths measured at an observing site over a temporal interval." ;
     skos:scopeNote "Settled depth, not liquid-water equivalent. Same dimension as total precipitation but not the same quantity, so dimensional compatibility alone will not catch a confusion between them." ;
+    skos:scopeNote "New snow, not snow on the ground: the NWS daily snowfall, summed from snowboard readings. The depth of the snow cover at the end of the interval is a different quantity, wx:SnowDepth." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> ;
+    wx:cfCellMethods "time: sum" ;
     fm:hasQuantityKind quantitykind:Length ;
     wx:conventionalUnit unit:IN , unit:CentiM .
 

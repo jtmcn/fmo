@@ -888,10 +888,11 @@ wx:DewPoint a owl:Class ;""",
     (
         "a term in the CF ledger under both categories",
         "queries/cf-mapping-expectations.json",
-        '  "no-counterpart": {',
-        '  "no-counterpart": {\n    "wx:SnowDepth": {\n'
-        '      "reason": "An injected duplicate of an ambiguous entry."\n    },',
-        "in the CF ledger twice: wx:SnowDepth",
+        '  "ambiguous": {}',
+        '  "ambiguous": {\n    "wx:AtmosphericQuality": {\n'
+        '      "reason": "An injected duplicate of a no-counterpart entry.",\n'
+        '      "tracked_by": "FM-0009"\n    }\n  }',
+        "in the CF ledger twice: wx:AtmosphericQuality",
     ),
     (
         # The displaced text stays in the file as a second key, so the JSON parses.
@@ -932,8 +933,8 @@ wx:DewPoint a owl:Class ;""",
         # Without the statistic, a daily total and an instantaneous rate share a name.
         "a CF-mapped weather variable with no cell methods",
         "src/weather.ttl",
-        '    wx:cfCellMethods "time: sum" ;\n',
-        "",
+        'lwe_thickness_of_precipitation_amount/> ;\n    wx:cfCellMethods "time: sum" ;\n',
+        'lwe_thickness_of_precipitation_amount/> ;\n',
         "CF-mapped weather variable carries no cell methods: wx:TotalPrecipitation",
     ),
     (
@@ -961,12 +962,26 @@ wx:DewPoint a owl:Class ;""",
         "not a CF cell method: wx:MeanAirTemperature",
     ),
     (
-        # An ambiguity with nobody tracking it is an unmapped term with a story.
-        "an ambiguous CF ledger entry tracked by no open spec",
+        # An ambiguity with nobody tracking it is an unmapped term with a story. These
+        # two cases also read as duplicates, so each expects its failure by name.
+        "an ambiguous CF ledger entry tracked by no spec at all",
         "queries/cf-mapping-expectations.json",
-        '"tracked_by": "FM-0010"\n    },\n    "wx:TotalSnowfall"',
-        '"tracked_by": "FM-0099"\n    },\n    "wx:TotalSnowfall"',
-        "tracks no open spec: wx:SnowDepth",
+        '  "ambiguous": {}',
+        '  "ambiguous": {\n    "wx:AtmosphericQuality": {\n'
+        '      "reason": "An injected ambiguity.",\n'
+        '      "tracked_by": "FM-0099"\n    }\n  }',
+        "tracks no open spec: wx:AtmosphericQuality names FM-0099",
+    ),
+    (
+        # FM-0010 resolved the snow ambiguity and moved to done/, so citing it now is
+        # citing work that claims to be finished.
+        "an ambiguous CF ledger entry tracked by a resolved spec",
+        "queries/cf-mapping-expectations.json",
+        '  "ambiguous": {}',
+        '  "ambiguous": {\n    "wx:AtmosphericQuality": {\n'
+        '      "reason": "An injected ambiguity.",\n'
+        '      "tracked_by": "FM-0010"\n    }\n  }',
+        "tracks no open spec: wx:AtmosphericQuality names FM-0010",
     ),
     (
         # wx:cfCellMethods is the first minted annotation property; documentation

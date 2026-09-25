@@ -7,14 +7,5 @@
     }
   },
 
-  "ambiguous": {
-    "wx:SnowDepth": {
-      "reason": "Defined as the settled depth of accumulated snow, which reads as snow on the ground (CF surface_snow_thickness), yet it sits under wx:PrecipitationDepth, whose members inhere in a portion of precipitate: new snow over an interval (CF thickness_of_snowfall_amount). The definition and the parent disagree, so either mapping would be a guess.",
-      "tracked_by": "FM-0010"
-    },
-    "wx:TotalSnowfall": {
-      "reason": "Defined as the accumulated settled depth of snow over an interval. NWS reports new snowfall and snow depth as separate values; this could be either, which is CF thickness_of_snowfall_amount with time: sum or surface_snow_thickness with some other method.",
-      "tracked_by": "FM-0010"
-    }
-  }
+  "ambiguous": {}
 }

@@ -104,6 +104,15 @@ mapping and an entry in `queries/cf-mapping-expectations.json`.
 _Avoid_: "CF variable" for the name (a variable is the dataset's array), and "the CF
 term".
 
+**Snow depth** (`wx:SnowDepth`) vs **new snow depth** (`wx:NewSnowDepth`): snow depth is
+how deep the snow lying on the ground is (`wx:SnowCover`); new snow depth is how deep one
+snowfall's output is before it settles into that cover. `wx:TotalSnowfall` sums the second.
+Neither is a `wx:PrecipitationDepth`, which is the liquid-water equivalent of what fell,
+and a snow cover is not a `wx:PortionOfPrecipitate`.
+> Say "snowfall" only for the process (`wx:Snowfall`) or the NWS figure
+> (`wx:TotalSnowfall`), never for the depth on the ground.
+_Avoid_: "accumulation" bare — it names both.
+
 ---
 
 ## 3. Market side (`ksh:`)
