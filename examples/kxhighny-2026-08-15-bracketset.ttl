@@ -103,30 +103,30 @@ ex:Market-T86 a ksh:WeatherMarket ;
 ################################################################
 # Snapshot 1: 12:00Z
 #
-# asks 13 + 62 + 27 + 8 = 110c to buy the whole ladder for a guaranteed $1.
-# bids 10 + 58 + 23 + 5 =  96c to sell it against a $1 liability.
-# Bids below 100 below asks: no arbitrage either way, which is the sane case.
+# asks 0.13 + 0.62 + 0.27 + 0.08 = $1.10 to buy the whole ladder for a guaranteed $1.
+# bids 0.10 + 0.58 + 0.23 + 0.05 = $0.96 to sell it against a $1 liability.
+# Bids below $1 below asks: no arbitrage either way, which is the sane case.
 ################################################################
 
 ex:Quote-T81-1200Z a ksh:Quote ;
     rdfs:label "quote, T81, 12:00Z" ;
     ksh:quoteForMarket ex:Market-T81 ;
     fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 10 ; ksh:yesAskCents 13 ; ksh:lastPriceCents 12 ;
+    ksh:yesBidDollars 0.10 ; ksh:yesAskDollars 0.13 ; ksh:lastPriceDollars 0.12 ;
     ksh:volume 3120 ; ksh:openInterest 2050 .
 
 ex:Quote-B84-1200Z a ksh:Quote ;
     rdfs:label "quote, B84.5, 12:00Z" ;
     ksh:quoteForMarket ex:Market-B84 ;
     fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 23 ; ksh:yesAskCents 27 ; ksh:lastPriceCents 25 ;
+    ksh:yesBidDollars 0.23 ; ksh:yesAskDollars 0.27 ; ksh:lastPriceDollars 0.25 ;
     ksh:volume 6740 ; ksh:openInterest 4310 .
 
 ex:Quote-T86-1200Z a ksh:Quote ;
     rdfs:label "quote, T86, 12:00Z" ;
     ksh:quoteForMarket ex:Market-T86 ;
     fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 5 ; ksh:yesAskCents 8 ; ksh:lastPriceCents 7 ;
+    ksh:yesBidDollars 0.05 ; ksh:yesAskDollars 0.08 ; ksh:lastPriceDollars 0.07 ;
     ksh:volume 1890 ; ksh:openInterest 1120 .
 
 ex:MarketProb-T81-1200Z a fm:MarketImpliedProbability ;
@@ -153,7 +153,7 @@ ex:MarketProb-T86-1200Z a fm:MarketImpliedProbability ;
 ################################################################
 # Snapshot 2: 18:00Z
 #
-# asks 9 + 70 + 23 + 6 = 108c, bids 6 + 66 + 19 + 3 = 94c.
+# asks 0.09 + 0.70 + 0.23 + 0.06 = $1.08, bids 0.06 + 0.66 + 0.19 + 0.03 = $0.94.
 # Implied probabilities now sum to 1.02 rather than 1.04.
 ################################################################
 
@@ -161,28 +161,28 @@ ex:Quote-T81-1800Z a ksh:Quote ;
     rdfs:label "quote, T81, 18:00Z" ;
     ksh:quoteForMarket ex:Market-T81 ;
     fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 6 ; ksh:yesAskCents 9 ; ksh:lastPriceCents 8 ;
+    ksh:yesBidDollars 0.06 ; ksh:yesAskDollars 0.09 ; ksh:lastPriceDollars 0.08 ;
     ksh:volume 4880 ; ksh:openInterest 2310 .
 
 ex:Quote-B82-1800Z a ksh:Quote ;
     rdfs:label "quote, B82.5, 18:00Z" ;
     ksh:quoteForMarket ex:Market-B82 ;
     fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 66 ; ksh:yesAskCents 70 ; ksh:lastPriceCents 68 ;
+    ksh:yesBidDollars 0.66 ; ksh:yesAskDollars 0.70 ; ksh:lastPriceDollars 0.68 ;
     ksh:volume 21400 ; ksh:openInterest 9870 .
 
 ex:Quote-B84-1800Z a ksh:Quote ;
     rdfs:label "quote, B84.5, 18:00Z" ;
     ksh:quoteForMarket ex:Market-B84 ;
     fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 19 ; ksh:yesAskCents 23 ; ksh:lastPriceCents 21 ;
+    ksh:yesBidDollars 0.19 ; ksh:yesAskDollars 0.23 ; ksh:lastPriceDollars 0.21 ;
     ksh:volume 8020 ; ksh:openInterest 4650 .
 
 ex:Quote-T86-1800Z a ksh:Quote ;
     rdfs:label "quote, T86, 18:00Z" ;
     ksh:quoteForMarket ex:Market-T86 ;
     fm:referenceTime "2026-08-15T18:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 3 ; ksh:yesAskCents 6 ; ksh:lastPriceCents 5 ;
+    ksh:yesBidDollars 0.03 ; ksh:yesAskDollars 0.06 ; ksh:lastPriceDollars 0.05 ;
     ksh:volume 2240 ; ksh:openInterest 1180 .
 
 ex:MarketProb-T81-1800Z a fm:MarketImpliedProbability ;

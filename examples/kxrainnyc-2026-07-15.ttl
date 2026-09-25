@@ -147,9 +147,9 @@ rex:Quote-Prior a ksh:Quote ;
     rdfs:label "quote for KXRAINNYC-26JUL15-T0 before the day began" ;
     ksh:quoteForMarket rex:Market-Rain-T0 ;
     fm:referenceTime "2026-07-14T20:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 7 ;
-    ksh:yesAskCents 28 ;
-    ksh:lastPriceCents 24 .
+    ksh:yesBidDollars 0.07 ;
+    ksh:yesAskDollars 0.28 ;
+    ksh:lastPriceDollars 0.24 .
 
 rex:MarketProb-Prior a fm:MarketImpliedProbability ;
     rdfs:label "market implied P(rain) before the day began" ;
@@ -157,7 +157,7 @@ rex:MarketProb-Prior a fm:MarketImpliedProbability ;
     fm:probabilityValue "0.24"^^xsd:decimal ;
     fm:referenceTime "2026-07-14T20:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote rex:Quote-Prior ;
-    fm:statedAs "Last traded price of 24 cents divided by 100. Ignores spread, fees, and carry. The 21-cent spread here is much wider than the temperature example's 4 cents, which is what the placeholder derivation cannot see." .
+    fm:statedAs "Last traded price of $0.24 taken as the probability. Ignores spread, fees, and carry. The 21-cent spread here is much wider than the temperature example's 4 cents, which is what the placeholder derivation cannot see." .
 
 rex:Derivation-Prior a ksh:PriceToProbabilityDerivation ;
     fm:hasInput rex:Quote-Prior ;

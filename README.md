@@ -6,10 +6,13 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.18.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All eight competency questions are mechanically tested. Kalshi field names and enumerations
-were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
-each designation carries its API code, checked against that enumeration by `make shapes`.
+Status: **0.19.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+All eight competency questions are mechanically tested. Kalshi enumerations were checked
+against the live API on 2026-08-17, and the precipitation series on 2026-08-23; each designation
+carries its API code, checked against that enumeration by `make shapes`. Field names were
+re-checked against Trade API 3.31.0 on 2026-09-25: each property that mirrors a field carries
+its name, checked against that schema's field list by `make shapes`, and prices are in dollars
+because the API no longer reports cents.
 Worked markets: a temperature bracket ladder and a settled rain market. Term coverage is
 deliberately shallow in places; see [Open questions](#open-questions).
 
@@ -484,7 +487,7 @@ Flagged rather than silently decided:
   which quietly assumes binary: a scalar market settles to a number, not to the truth of one
   proposition. `ksh:ResolvedScalar` exists so the outcome enumeration matches the API's, but
   nothing else accommodates the case.
-- **Prices are typed decimal but not gridded.** `ksh:lastPriceCents` and the bid/ask properties
+- **Prices are typed decimal but not gridded.** `ksh:lastPriceDollars` and the bid/ask properties
   are decimal because most Kalshi markets now quote in tenths of a cent or finer. Which prices
   are *valid* is per-market, given by the API's `price_ranges` bands; nothing here represents
   that grid, so an off-tick price is expressible.

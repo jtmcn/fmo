@@ -1050,7 +1050,7 @@ def check_trades(g: Graph) -> None:
     """A match outputs two lots: opposite sides, equal quantity.
 
     "The two sides of a match sum to the payout" is what collateralises a binary
-    market, and both CQ8's derived price and ksh:executionPriceCents' scope note
+    market, and both CQ8's derived price and ksh:executionPriceDollars' scope note
     rest on it. Nothing enforced it: ksh:contractQuantity was read by check_payouts
     alone, and only for a lot that had a payout, so the losing lot could state any
     quantity at all and only a .expected diff would notice.

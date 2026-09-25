@@ -1230,8 +1230,8 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
     (
         "ladder priced so the whole set costs under a dollar",
         EXAMPLE,
-        """    ksh:yesAskCents 62 ;""",
-        """    ksh:yesAskCents 30 ;""",
+        """    ksh:yesAskDollars 0.62 ;""",
+        """    ksh:yesAskDollars 0.30 ;""",
         "differs from",
     ),
     (
@@ -2432,7 +2432,7 @@ def check_payouts(g: Graph) -> None:""",
     results.append(run_case(
         "cq-update reporting success on a query that returned nothing",
         TRADING,
-        "    ksh:executionPriceCents 60 ;\n",
+        "    ksh:executionPriceDollars 0.60 ;\n",
         "",
         "returned 0 rows",
         script="scripts/run_competency.py --update",

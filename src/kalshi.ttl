@@ -12,8 +12,9 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.17.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.19.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;
+    owl:incompatibleWith <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;   # FM-0015 renamed five price properties
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -21,7 +22,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.18.0" ;
+    owl:versionInfo "0.19.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -367,6 +368,68 @@ ksh:ActionCode a rdfs:Datatype ;
     rdfs:label "action code" ;
     skos:definition "The string the Kalshi API uses in an order's `action` field." .
 
+ksh:StrikeTypeCode a rdfs:Datatype ;
+    rdfs:label "strike type code" ;
+    skos:definition "The string the Kalshi API returns in a market's `strike_type` field." .
+
+# A field name is typed by the API schema it belongs to: `ticker` and `yes_price_dollars`
+# each name different things in different schemas.
+ksh:MarketFieldName a rdfs:Datatype ;
+    rdfs:label "market field name" ;
+    skos:definition "The name of a field of the Kalshi API's Market object." .
+
+ksh:EventFieldName a rdfs:Datatype ;
+    rdfs:label "event field name" ;
+    skos:definition "The name of a field of the Kalshi API's event object (EventData)." .
+
+ksh:SeriesFieldName a rdfs:Datatype ;
+    rdfs:label "series field name" ;
+    skos:definition "The name of a field of the Kalshi API's Series object." .
+
+ksh:OrderFieldName a rdfs:Datatype ;
+    rdfs:label "order field name" ;
+    skos:definition "The name of a field of the Kalshi API's Order object." .
+
+ksh:TradeFieldName a rdfs:Datatype ;
+    rdfs:label "trade field name" ;
+    skos:definition "The name of a field of the Kalshi API's Trade object." .
+
+ksh:PositionFieldName a rdfs:Datatype ;
+    rdfs:label "position field name" ;
+    skos:definition "The name of a field of the Kalshi API's MarketPosition object." .
+
+################################################################
+# Strike types
+#
+# The comparators are core terms; their Kalshi codes live here so the core stays
+# venue-neutral. Two strike types have no core counterpart and are minted here.
+################################################################
+
+fm:GreaterThan        skos:notation "greater"^^ksh:StrikeTypeCode .
+fm:GreaterThanOrEqual skos:notation "greater_or_equal"^^ksh:StrikeTypeCode .
+fm:LessThan           skos:notation "less"^^ksh:StrikeTypeCode .
+fm:LessThanOrEqual    skos:notation "less_or_equal"^^ksh:StrikeTypeCode .
+fm:Between            skos:notation "between"^^ksh:StrikeTypeCode .
+fm:Custom             skos:notation "custom"^^ksh:StrikeTypeCode .
+fm:EqualTo skos:scopeNote "Carries no Kalshi strike_type code: the API documents no equality strike (Trade API 3.31.0)." .
+
+ksh:FunctionalStrike a fm:Comparator, owl:NamedIndividual ;
+    rdfs:label "functional strike" ;
+    skos:notation "functional"^^ksh:StrikeTypeCode ;
+    skos:definition "The market settles to a value given by a stated mapping from the realized value, rather than to the truth of a threshold comparison." ;
+    skos:scopeNote "Defined from the API schema alone, which describes `functional_strike` as a mapping from expiration values to settlement values and nothing more (Kalshi Trade API 3.31.0, checked 2026-09-25). It strains fm:Comparator's definition, which is about the truth of a proposition, and sits closer to the unmodelled scalar market than to a binary one. No example uses it." .
+
+ksh:StructuredStrike a fm:Comparator, owl:NamedIndividual ;
+    rdfs:label "structured strike" ;
+    skos:notation "structured"^^ksh:StrikeTypeCode ;
+    skos:definition "The condition names entities from the exchange's catalogue of structured targets, and holds according to the outcome recorded for them rather than against a numeric threshold." ;
+    skos:scopeNote "Defined from the API schema alone: `strike_type` lists `structured`, and the `/structured_targets` endpoint catalogues named targets with their competitions; no prose describes the strike type (Kalshi Trade API 3.31.0, checked 2026-09-25). No weather market is known to use it." .
+
+# The core's AllDifferent covers its seven; this one adds the two minted here.
+[] a owl:AllDifferent ;
+   owl:distinctMembers ( fm:GreaterThan fm:GreaterThanOrEqual fm:LessThan fm:LessThanOrEqual
+                         fm:Between fm:EqualTo fm:Custom ksh:FunctionalStrike ksh:StructuredStrike ) .
+
 ################################################################
 # Pricing and implied probability
 ################################################################
@@ -538,18 +601,19 @@ ksh:mutuallyExclusive a owl:DatatypeProperty ;
     skos:definition "True when at most one market in the event grouping can resolve yes." ;
     skos:scopeNote "Temperature bracket groupings are mutually exclusive and, taken together, exhaustive; their implied probabilities should sum to approximately one, and the excess over one is a useful measure of the spread and fee drag." .
 
-ksh:yesBidCents a owl:DatatypeProperty ; rdfs:label "yes bid cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
-    skos:definition "The highest price, in cents, at which a resting order to buy yes contracts existed as of the quote's reference time." .
+ksh:yesBidDollars a owl:DatatypeProperty ; rdfs:label "yes bid dollars" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The highest price, in US dollars, at which a resting order to buy yes contracts existed as of the quote's reference time." .
 
-ksh:yesAskCents a owl:DatatypeProperty ; rdfs:label "yes ask cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
-    skos:definition "The lowest price, in cents, at which a resting order to sell yes contracts existed as of the quote's reference time." .
-ksh:lastPriceCents a owl:DatatypeProperty ; rdfs:label "last price cents" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
-    skos:definition "The price in cents at which the market's most recent trade executed, as of the quote's reference time." ;
-    skos:scopeNote """Cents against a one dollar payout per contract, kept in cents rather than converted to a
-probability so that the source datum and the derived belief stay distinct. Decimal rather than
-integer because prices are not whole cents in general: a market's tick grid is given by its
-price_ranges, and most Kalshi markets now quote in tenths of a cent or finer. Weather markets
-still use a whole-cent grid, so integer values here are correct but incidentally so.""" .
+ksh:yesAskDollars a owl:DatatypeProperty ; rdfs:label "yes ask dollars" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The lowest price, in US dollars, at which a resting order to sell yes contracts existed as of the quote's reference time." .
+ksh:lastPriceDollars a owl:DatatypeProperty ; rdfs:label "last price dollars" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
+    skos:definition "The price in US dollars at which the market's most recent trade executed, as of the quote's reference time." ;
+    skos:scopeNote """Dollars against a one dollar payout per contract, so under the naive transformation the
+price and the derived probability are the same number -- which is why they are two properties:
+the source datum and the derived belief stay distinct. Decimal because the API emits
+fixed-point strings to six places and a market's tick grid is given by its
+price_level_structure; weather markets still quote whole cents, so two-place values here are
+correct but incidentally so.""" .
 
 ksh:volume a owl:DatatypeProperty ; rdfs:label "volume" ; rdfs:domain ksh:Quote ; rdfs:range xsd:decimal ;
     skos:definition "The quantity of contracts traded in the market up to the quote's reference time." ;
@@ -563,9 +627,9 @@ ksh:orderQuantity a owl:DatatypeProperty ; rdfs:label "order quantity" ; rdfs:do
     skos:definition "The quantity of contracts the order instructs the exchange to buy or sell." ;
     skos:scopeNote "Decimal for the same reason as ksh:volume: Kalshi contracts are fractional to a granularity of 0.01." .
 
-ksh:limitPriceCents a owl:DatatypeProperty ; rdfs:label "limit price cents" ;
+ksh:limitPriceDollars a owl:DatatypeProperty ; rdfs:label "limit price dollars" ;
     rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Order ksh:PriceLevel ) ] ; rdfs:range xsd:decimal ;
-    skos:definition "The price in cents, on the side concerned, at which the order or level rests: the worst price a buy will pay, or the worst a sell will accept." ;
+    skos:definition "The price in US dollars, on the side concerned, at which the order or level rests: the worst price a buy will pay, or the worst a sell will accept." ;
     skos:scopeNote """Not checked against the price a trade executes at. A buy filled above its limit, or a sell
 filled below one, is a real defect class and a purely local one -- both orders and the price
 are in hand -- but no example exercises a partial or crossed fill, so a check would be
@@ -574,9 +638,9 @@ asserting the arithmetic of a case nothing has ever produced.""" .
 ksh:restingQuantity a owl:DatatypeProperty ; rdfs:label "resting quantity" ; rdfs:domain ksh:PriceLevel ; rdfs:range xsd:decimal ;
     skos:definition "The quantity of contracts resting unfilled at the level's price and side as of the snapshot's reference time." .
 
-ksh:executionPriceCents a owl:DatatypeProperty ; rdfs:label "execution price cents" ; rdfs:domain ksh:Trade ; rdfs:range xsd:decimal ;
-    skos:definition "The price in cents at which the trade matched." ;
-    skos:scopeNote "Stated on the yes side by convention, as the exchange reports it. The no side paid one hundred cents minus this; the two prices of a matched trade sum to the payout, which is what makes a binary market self-collateralising." .
+ksh:executionPriceDollars a owl:DatatypeProperty ; rdfs:label "execution price dollars" ; rdfs:domain ksh:Trade ; rdfs:range xsd:decimal ;
+    skos:definition "The price in US dollars at which the trade matched." ;
+    skos:scopeNote "Stated on the yes side by convention, as the exchange reports it. The no side paid one dollar minus this; the two prices of a matched trade sum to the payout, which is what makes a binary market self-collateralising." .
 
 ksh:contractQuantity a owl:DatatypeProperty ; rdfs:label "contract quantity" ; rdfs:domain ksh:BinaryContract ; rdfs:range xsd:decimal ;
     skos:definition "The quantity of contracts on identical terms that the lot comprises." ;
@@ -584,11 +648,12 @@ ksh:contractQuantity a owl:DatatypeProperty ; rdfs:label "contract quantity" ; r
 
 ksh:positionQuantity a owl:DatatypeProperty ; rdfs:label "position quantity" ; rdfs:domain ksh:Position ; rdfs:range xsd:decimal ;
     skos:definition "The net quantity of contracts held in the market as of the position's reference time, positive for a net yes holding and negative for a net no holding." ;
-    skos:scopeNote "Signed, as the API's `position` field is, rather than split into two properties: a trader is net one way or the other, and two unsigned quantities admit the meaningless state of being long both sides of the same market." .
+    skos:scopeNote "Signed, as the API's `position_fp` field is, rather than split into two properties: a trader is net one way or the other, and two unsigned quantities admit the meaningless state of being long both sides of the same market." .
 
 ksh:payoutAmountCents a owl:DatatypeProperty ; rdfs:label "payout amount cents" ; rdfs:domain ksh:Payout ; rdfs:range xsd:decimal ;
     skos:definition "The sum in cents transferred to the holder by the payout." ;
-    skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived so that scripts/validate.py has two independent statements to compare; see check_payouts." .
+    skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived so that scripts/validate.py has two independent statements to compare; see check_payouts." ;
+    skos:scopeNote "No API field is this. Settlement `revenue` is in cents too, but it sums every lot the holder had in the market, where a payout here pays one lot." .
 
 ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant from which orders are accepted in the market." .
@@ -616,9 +681,80 @@ ksh:expirationTime
     dcterms:isReplacedBy ksh:expectedExpirationTime , ksh:latestExpirationTime ;
     skos:historyNote "Retired in 0.7.0: it fused the instant after which a market can no longer resolve with the instant the settlement source is expected to have published, which lie days apart. Split into ksh:latestExpirationTime and ksh:expectedExpirationTime." .
 
+ksh:yesBidCents
+    rdfs:label "yes bid cents" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:yesBidDollars ;
+    skos:historyNote "Retired in 0.19.0 (FM-0015): the Kalshi API reports this price only in dollars (yes_bid_dollars) and no longer in cents. Replaced by ksh:yesBidDollars, whose values are this property's divided by one hundred." .
+
+ksh:yesAskCents
+    rdfs:label "yes ask cents" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:yesAskDollars ;
+    skos:historyNote "Retired in 0.19.0 (FM-0015): the Kalshi API reports this price only in dollars (yes_ask_dollars) and no longer in cents. Replaced by ksh:yesAskDollars, whose values are this property's divided by one hundred." .
+
+ksh:lastPriceCents
+    rdfs:label "last price cents" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:lastPriceDollars ;
+    skos:historyNote "Retired in 0.19.0 (FM-0015): the Kalshi API reports this price only in dollars (last_price_dollars) and no longer in cents. Replaced by ksh:lastPriceDollars, whose values are this property's divided by one hundred." .
+
+ksh:limitPriceCents
+    rdfs:label "limit price cents" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:limitPriceDollars ;
+    skos:historyNote "Retired in 0.19.0 (FM-0015): the Kalshi API reports this price only in dollars (yes_price_dollars and no_price_dollars) and no longer in cents. Replaced by ksh:limitPriceDollars, whose values are this property's divided by one hundred." .
+
+ksh:executionPriceCents
+    rdfs:label "execution price cents" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:executionPriceDollars ;
+    skos:historyNote "Retired in 0.19.0 (FM-0015): the Kalshi API reports this price only in dollars (yes_price_dollars) and no longer in cents. Replaced by ksh:executionPriceDollars, whose values are this property's divided by one hundred." .
+
 ksh:settlementValue a owl:DatatypeProperty ;
     rdfs:subPropertyOf fm:realizedValue ;
     rdfs:label "settlement value" ;
     rdfs:domain ksh:Resolution ; rdfs:range xsd:decimal ;
     skos:definition "The value the exchange determined for the observation target and applied to the market's condition." ;
     skos:scopeNote "May diverge from the value in the observational record if the settlement source issued a correction after settlement. Both are worth keeping; see wx:ReportCorrection." .
+
+################################################################
+# API field names
+#
+# The Kalshi API field each property is read from, checked against Trade API 3.31.0 on
+# 2026-09-25 by shapes/vocabulary.ttl. Unmapped on purpose: ksh:limitPriceDollars (the
+# order's price field depends on its direction, see FM-0019), ksh:restingQuantity (order
+# book levels are unnamed arrays), ksh:payoutAmountCents (see its scope note). `side` and
+# `action` are deprecated in favour of `outcome_side`; FM-0019 decides the migration.
+# ksh:settlementValue is `expiration_value`: `settlement_value_dollars` is a payout.
+################################################################
+
+ksh:marketTicker           skos:notation "ticker"^^ksh:MarketFieldName .
+ksh:openTime               skos:notation "open_time"^^ksh:MarketFieldName .
+ksh:closeTime              skos:notation "close_time"^^ksh:MarketFieldName .
+ksh:expectedExpirationTime skos:notation "expected_expiration_time"^^ksh:MarketFieldName .
+ksh:latestExpirationTime   skos:notation "latest_expiration_time"^^ksh:MarketFieldName .
+fm:floorValue              skos:notation "floor_strike"^^ksh:MarketFieldName .
+fm:capValue                skos:notation "cap_strike"^^ksh:MarketFieldName .
+fm:hasComparator           skos:notation "strike_type"^^ksh:MarketFieldName .
+ksh:yesBidDollars          skos:notation "yes_bid_dollars"^^ksh:MarketFieldName .
+ksh:yesAskDollars          skos:notation "yes_ask_dollars"^^ksh:MarketFieldName .
+ksh:lastPriceDollars       skos:notation "last_price_dollars"^^ksh:MarketFieldName .
+ksh:volume                 skos:notation "volume_fp"^^ksh:MarketFieldName .
+ksh:openInterest           skos:notation "open_interest_fp"^^ksh:MarketFieldName .
+ksh:settlementValue        skos:notation "expiration_value"^^ksh:MarketFieldName .
+ksh:hasStatus              skos:notation "status"^^ksh:MarketFieldName .
+ksh:resolvesTo             skos:notation "result"^^ksh:MarketFieldName .
+ksh:inEventGrouping        skos:notation "event_ticker"^^ksh:MarketFieldName .
+ksh:eventTicker            skos:notation "event_ticker"^^ksh:EventFieldName .
+ksh:mutuallyExclusive      skos:notation "mutually_exclusive"^^ksh:EventFieldName .
+ksh:inSeries               skos:notation "series_ticker"^^ksh:EventFieldName .
+ksh:seriesTicker           skos:notation "ticker"^^ksh:SeriesFieldName .
+ksh:orderInMarket          skos:notation "ticker"^^ksh:OrderFieldName .
+ksh:orderQuantity          skos:notation "initial_count_fp"^^ksh:OrderFieldName .
+ksh:hasSide                skos:notation "side"^^ksh:OrderFieldName .
+ksh:hasAction              skos:notation "action"^^ksh:OrderFieldName .
+ksh:executionPriceDollars  skos:notation "yes_price_dollars"^^ksh:TradeFieldName .
+ksh:contractQuantity       skos:notation "count_fp"^^ksh:TradeFieldName .
+ksh:positionQuantity       skos:notation "position_fp"^^ksh:PositionFieldName .
+ksh:positionInMarket       skos:notation "ticker"^^ksh:PositionFieldName .
