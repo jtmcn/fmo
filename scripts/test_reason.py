@@ -41,6 +41,7 @@ from reasoner import ReasonerBroken, robot_command  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
+EXPORT = "examples/export/thermaledge-kxhighaus-2026-08-22.ttl"
 
 # (name, path-to-mutate, find, replace), then optionally the substrings the reasoner's
 # report must contain -- defaulting to "inconsistent", the shape a data mistake takes --
@@ -211,6 +212,16 @@ ksh:TraderRole a owl:Class ;""",
         EXAMPLE,
         "ex:ForecastProb-82-83 a fm:ForecastProbability ;",
         "ex:ForecastProb-82-83 a fm:ForecastProbability , fm:MarketImpliedProbability ;",
+    ),
+    (
+        # FM-0013: the export fixture is reasoned on its own, so this reasons over
+        # the modules and the export alone -- the examples would answer for nothing.
+        "an exported market also typed as an event grouping",
+        EXPORT,
+        "    a ksh:WeatherMarket ;",
+        "    a ksh:WeatherMarket , ksh:EventGrouping ;",
+        "inconsistent",
+        ("src/fmo.ttl", EXPORT),
     ),
 ]
 

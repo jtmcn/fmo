@@ -1625,6 +1625,71 @@ def check_branch_disjointness(g: Graph) -> None:
              always=True)
 
 
+def domain_range_crossings(schema: Graph, g: Graph) -> tuple[int, list[str]]:
+    """Uses whose rdfs:domain or rdfs:range types a node across the continuant/occurrent line.
+
+    A domain or range never rejects a triple; it adds a type. The export shapes run
+    with rdfs inference, so fm:basedOnRecord written on a settlement process quietly
+    makes that process an information content entity. Returns (uses checked, messages);
+    validate_shapes.py calls it too, because the exports never reach validate.py.
+    Only triples absent from `schema` count, so the vocabulary's own individuals do not
+    keep the guard lit; and only nodes with an asserted branch, since an untyped one
+    cannot cross.
+    """
+    supers: dict[Node, set[Node]] = {}
+    for p in set(g.subjects(RDFS.subPropertyOf, None)) | set(g.subjects(RDFS.domain, None)) \
+            | set(g.subjects(RDFS.range, None)):
+        seen, stack = {p}, [p]
+        while stack:
+            for q in g.objects(stack.pop(), RDFS.subPropertyOf):
+                if q not in seen:
+                    seen.add(q)
+                    stack.append(q)
+        supers[p] = seen
+
+    def implied(p: Node, axis: URIRef) -> set[URIRef]:
+        return {c for q in supers.get(p, ()) for c in g.objects(q, axis) if isinstance(c, URIRef)}
+
+    branch_cache: dict[Node, set] = {}
+
+    def branch(node: Node) -> set:
+        if node not in branch_cache:
+            branch_cache[node] = {CONTINUANT, OCCURRENT} & types_of(g, node)
+        return branch_cache[node]
+
+    uses, messages = 0, []
+    for s, p, o in g:
+        if (s, p, o) in schema:
+            continue
+        for node, axis in ((s, RDFS.domain), (o, RDFS.range)):
+            if isinstance(node, Literal):
+                continue
+            classes = implied(p, axis)
+            if not classes or not (asserted := branch(node)):
+                continue
+            uses += 1
+            for cls in sorted(classes, key=str):
+                entailed = ancestors(g, cls) | {cls}
+                for mine, other in ((CONTINUANT, OCCURRENT), (OCCURRENT, CONTINUANT)):
+                    if mine in asserted and other in entailed:
+                        side = "domain" if axis == RDFS.domain else "range"
+                        messages.append(f"{p} types {node} as {cls} by its {side}, "
+                                        f"across the continuant/occurrent line from its asserted type")
+    return uses, messages
+
+
+@check(takes=("schema", "data"))
+def check_domain_range_typing(g: Graph, ex: Graph) -> None:
+    """No property use types an example node into the other BFO branch (FM-0013)."""
+    uses, messages = domain_range_crossings(g, ex)
+    for message in messages:
+        fail(message)
+    coverage("domain/range typing", uses,
+             "property use(s) checked for a type across the continuant/occurrent line",
+             "no typed node is the subject of a domain-bearing property or the object of "
+             "a range-bearing one")
+
+
 @check(takes=("schema",), population="example-files",
        reason="re-parses the example files itself, not the graph handed to it")
 def check_declared_properties(g: Graph) -> None:

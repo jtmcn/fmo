@@ -11,6 +11,8 @@ BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
+# Not in EXAMPLES: each export is an independent graph, reasoned on its own.
+EXPORTS := $(wildcard examples/export/*.ttl)
 PYSCRIPTS := $(wildcard scripts/*.py)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 SHAPEPIN := shapes/thermaledge-export.pin.json
@@ -134,7 +136,8 @@ cq:
 cq-update:
 	$(PY) scripts/run_competency.py --update
 
-## HermiT consistency over the schema, then over schema plus examples.
+## HermiT consistency over the schema, then over schema plus examples, then over
+## schema plus each export fixture on its own.
 reason: $(BUILD)/merged.owl $(BUILD)/full.owl
 	@$(call robot_cmd,reason); \
 	 set -e; \
@@ -142,6 +145,13 @@ reason: $(BUILD)/merged.owl $(BUILD)/full.owl
 	 (set -x; $$cmd reason --input $(BUILD)/merged.owl --reasoner HermiT --output $(BUILD)/reasoned.owl); \
 	 echo "== reasoning over schema + examples =="; \
 	 (set -x; $$cmd reason --input $(BUILD)/full.owl --reasoner HermiT --output $(BUILD)/full-reasoned.owl); \
+	 [ -n "$(EXPORTS)" ] || { echo "no export fixtures to reason over"; exit 1; }; \
+	 for e in $(EXPORTS); do \
+	   out=$(BUILD)/export-$$(basename $$e .ttl); \
+	   echo "== reasoning over schema + $$e =="; \
+	   (set -x; $$cmd merge --input $(TOP) --input $$e --catalog $(CATALOG) --output $$out.owl); \
+	   (set -x; $$cmd reason --input $$out.owl --reasoner HermiT --output $$out-reasoned.owl); \
+	 done; \
 	 echo "consistent"
 
 ## Prove the reasoner-only guards fire: the axioms validate.py cannot check.

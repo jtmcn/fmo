@@ -436,6 +436,29 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "subclass cycle: https://w3id.org/forecast-market-ontology/kalshi#Listing is its own ancestor",
     ),
     (
+        # FM-0013: a domain adds a type rather than refusing a triple, so the
+        # assessment's property on the settlement makes a process an information
+        # content entity. Exercises check_domain_range_typing, domain side.
+        "a truth assessment's property written on the settlement process",
+        EXAMPLE,
+        """ex:Settlement-B82 a ksh:MarketSettlement ;""",
+        """ex:Settlement-B82 a ksh:MarketSettlement ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;""",
+        "core#basedOnRecord types https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Settlement-B82 as https://w3id.org/forecast-market-ontology/"
+        "core#TruthAssessment by its domain",
+    ),
+    (
+        # The range side: a process named where a document belongs.
+        "a settlement process named as the document an assessment consulted",
+        EXAMPLE,
+        "    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;",
+        "    fm:basedOnRecord ex:Settlement-B82 ;",
+        "core#basedOnRecord types https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Settlement-B82 as https://w3id.org/forecast-market-ontology/"
+        "core#Document by its range",
+    ),
+    (
         # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
         # was missing from the first one. A vocabulary outside them lets one
         # individual be typed into two at once, which is legal OWL that every other
@@ -1133,6 +1156,17 @@ SHAPES_CASES = [
         """    wx:underProtocol <https://thermal-edge.dev/id/protocol/weather_co> ;""",
         """    wx:underProtocol <https://ex.test/dangling-protocol> ;""",
         "a protocol must state its rules",
+    ),
+    (
+        # FM-0013: the export shapes run with rdfs inference, so a crossing there is
+        # typed silently before any shape looks. validate.py never reads the exports.
+        "an export settlement carrying a truth assessment's property",
+        EXPORT,
+        """    a ksh:MarketSettlement ;""",
+        """    a ksh:MarketSettlement ;
+    fm:basedOnRecord <https://thermal-edge.dev/id/report/weather_co/2026-08-23> ;""",
+        "domain/range typing: https://w3id.org/forecast-market-ontology/core#basedOnRecord"
+        " types https://thermal-edge.dev/id/settlement/KXHIGHAUS-26AUG22-B88",
     ),
 ]
 

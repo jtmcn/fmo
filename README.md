@@ -274,8 +274,9 @@ self-consistent and resting on the wrong determination, and paying the right amo
 party is the same mistake about the other end of the transfer. Every term `CONTEXT.md` names in
 backticks must still be declared, since nothing else reads that file and a rename would leave the
 vocabulary pointing at a term that no longer exists. `make
-reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
-prove the defined class actually fires.
+reason` adds HermiT consistency — over the schema, the examples, and each export fixture on its
+own — and re-derives `ksh:WeatherMarket` from a weakened assertion to prove the defined class
+actually fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
 `.expected` files. **An empty result set fails** — a query matching nothing is how a broken
@@ -297,6 +298,12 @@ never load them: they are data under test, not worked data. The positive fixture
 because the repo's own examples are a *superset* of any export — they carry the sites, day
 boundaries and model runs an export omits — so conformance there showed only that the
 shapes were satisfiable by something richer than the thing they describe.
+
+The shapes run with RDFS inference, so a property's `rdfs:domain` and `rdfs:range` type nodes
+before any shape looks — and a domain adds a type, it never refuses a triple. `fm:basedOnRecord`
+written on a settlement process would quietly make that process an information content entity.
+`validate_shapes.py` refuses any use that types a node across the continuant/occurrent line
+from its asserted type, before SHACL runs; `validate.py` makes the same check over the examples.
 
 `make export-check` runs production CQ mode both ways: the export fixture must pass and the
 target-mismatch fixture must fail **on CQ2 specifically**. It also fails CQ4, so asserting
