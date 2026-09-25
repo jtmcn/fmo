@@ -1,0 +1,20 @@
+{
+  "_comment": "Every wx quality class and weather variable with no CF standard name mapping is here with a reason. scripts/validate.py (check_cf_mappings) fails on an unmapped term in neither category, on an entry naming a term outside the population, and on an entry for a term that has since been mapped. no-counterpart: CF names no variable for it. ambiguous: FMO's own definition does not pick one CF name, so the fault is ours; each entry names the open spec resolving it, which is checked to exist under .fmo/specs/.",
+
+  "no-counterpart": {
+    "wx:AtmosphericQuality": {
+      "reason": "A grouping class: every CF standard name names one quantity, and none names 'some quality of a portion of air'. Its subclasses carry the mappings."
+    }
+  },
+
+  "ambiguous": {
+    "wx:SnowDepth": {
+      "reason": "Defined as the settled depth of accumulated snow, which reads as snow on the ground (CF surface_snow_thickness), yet it sits under wx:PrecipitationDepth, whose members inhere in a portion of precipitate: new snow over an interval (CF thickness_of_snowfall_amount). The definition and the parent disagree, so either mapping would be a guess.",
+      "tracked_by": "FM-0010"
+    },
+    "wx:TotalSnowfall": {
+      "reason": "Defined as the accumulated settled depth of snow over an interval. NWS reports new snowfall and snow depth as separate values; this could be either, which is CF thickness_of_snowfall_amount with time: sum or surface_snow_thickness with some other method.",
+      "tracked_by": "FM-0010"
+    }
+  }
+}

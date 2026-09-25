@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """The set arithmetic every checked-in ledger needs, in one place.
 
-A ledger records, per item, why something is not proved the usual way. Three
-exist -- queries/axiom-expectations.json, queries/class-coverage-expectations.json
-and queries/production-expectations.json -- and each grew its own copy of the same
-invariants. The copies drifted: production-expectations checked that every query
-had an entry and never that every entry had a query, so a stale exemption sat
-there reading as a decision about today's query set.
+A ledger records, per item, why something is not proved the usual way. Four
+exist -- queries/axiom-expectations.json, queries/class-coverage-expectations.json,
+queries/production-expectations.json and queries/cf-mapping-expectations.json. The
+first three each grew their own copy of the same invariants, and the copies drifted:
+production-expectations checked that every query had an entry and never that every
+entry had a query, so a stale exemption sat there reading as a decision about
+today's query set. The fourth was written against this module from the start.
 
 CONTEXT.md already stated the rule for all three, and the third was written
 without it. A rule enforced by memory is enforced wherever someone remembered,
 which is this repo's argument for a check over a paragraph.
 
-The three files do NOT share a shape, and this does not pretend otherwise:
+The files do NOT share a shape, and this does not pretend otherwise:
 
     axiom-expectations           category -> name -> string
     class-coverage-expectations  category -> name -> object
+    cf-mapping-expectations      category -> name -> object
     production-expectations      name -> object, the category implicit in
                                  which key the entry sets
 

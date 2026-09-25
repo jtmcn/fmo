@@ -138,8 +138,8 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   cannot move for reasons that have nothing to do with the model improving. See
   `docs/adr/0001-classify-unexercised-classes.md`.
 - **Every checked-in ledger goes through `scripts/ledger.py`.** A ledger records,
-  per item, why something is not proved the usual way; three exist, and each grew
-  its own copy of the same set arithmetic. The copies drifted —
+  per item, why something is not proved the usual way; four exist, and the first
+  three each grew their own copy of the same set arithmetic. The copies drifted —
   `production-expectations.json` checked that every query had an entry and never
   that every entry had a query, so a stale exemption read as a decision about
   today's query set. `CONTEXT.md` §4 had stated the rule for all three, and the
