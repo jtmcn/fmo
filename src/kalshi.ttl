@@ -12,7 +12,8 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.17.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.17.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -20,7 +21,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.17.0" ;
+    owl:versionInfo "0.18.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -346,6 +347,8 @@ ksh:Finalized   a ksh:MarketStatus, owl:NamedIndividual ; rdfs:label "finalized"
 # Declared the way bfo-core declares the SKOS annotations it uses. OWLAPI would infer
 # it; declaring it keeps the typed literals out of HermiT's view by statement, not guess.
 skos:notation a owl:AnnotationProperty .
+# An IRI object, so undeclared it could be read as an object property on a tombstone.
+dcterms:isReplacedBy a owl:AnnotationProperty .
 
 ksh:StatusCode a rdfs:Datatype ;
     rdfs:label "status code" ;
@@ -605,6 +608,13 @@ point by which the settlement source is expected to have published, which is
 ksh:expectedExpirationTime. The two are far apart in practice — for KXHIGHNY-26AUG15-B82.5,
 six hours after the close against six days after it. The API's `expiration_time`
 is a deprecated legacy field carrying this value; read it from `latest_expiration_time`.""" .
+
+# Tombstone: retired terms keep their IRI, never their declaration or axioms (ADR 0003).
+ksh:expirationTime
+    rdfs:label "expiration time" ;
+    owl:deprecated true ;
+    dcterms:isReplacedBy ksh:expectedExpirationTime , ksh:latestExpirationTime ;
+    skos:historyNote "Retired in 0.7.0: it fused the instant after which a market can no longer resolve with the instant the settlement source is expected to have published, which lie days apart. Split into ksh:latestExpirationTime and ksh:expectedExpirationTime." .
 
 ksh:settlementValue a owl:DatatypeProperty ;
     rdfs:subPropertyOf fm:realizedValue ;

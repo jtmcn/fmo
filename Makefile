@@ -36,7 +36,7 @@ PY      := $(PY_BIN) python3
 # a JVM, and `make typecheck` should not pay for a question it never asks.
 robot_cmd = cmd=$$($(PY) scripts/reasoner.py $(1)) || exit 1; [ -n "$$cmd" ] || exit 0
 
-.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta lineage lineage-negative shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -70,6 +70,15 @@ validate:
 ## Negative tests: prove the validator actually fails on each defect it claims to catch.
 validate-negative:
 	$(PY) scripts/test_validate.py
+
+## Version lineage against the prior version in git history (ADR 0003). Needs the
+## full history; a shallow clone fails rather than skipping.
+lineage:
+	$(PY) scripts/lineage.py
+
+## Negative tests: prove the lineage audit fails on each defect it claims to catch.
+lineage-negative:
+	$(PY) scripts/test_lineage.py
 
 ## Tests about the checks themselves: every check must fail with nothing to check.
 meta:
@@ -232,7 +241,7 @@ $(BUILD)/full.owl: $(BUILD)/merged.owl $(EXAMPLES)
 	   --catalog $(CATALOG) --output $@
 
 ## Everything.
-test: typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
+test: typecheck typecheck-negative validate validate-negative lineage lineage-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
 
 clean:
 	rm -rf $(BUILD)

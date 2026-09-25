@@ -33,6 +33,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          # make lineage reads the prior version out of history.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         id: py
@@ -98,6 +101,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          # make lineage reads the prior version out of history.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         id: py

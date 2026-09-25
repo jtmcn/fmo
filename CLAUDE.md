@@ -17,6 +17,8 @@ make typecheck          # static types over scripts/, via ty (pinned exactly)
 make typecheck-negative # negative tests: prove ty fails, and refuses to check nothing
 make validate           # structure, BFO grounding, disjointness, units, docs (no Java)
 make validate-negative  # negative tests: prove the validator fails when it should
+make lineage            # priorVersion, IRI continuity, tombstones vs the prior version (full history)
+make lineage-negative   # negative tests for the lineage audit
 make shapes             # SHACL conformance: examples union, each export fixture, then the API codes
 make shapes-negative    # tests about the shapes: vacuity, mutants, dead constraints
 make export-check       # production CQ mode: exports pass, the mismatch fixture fails on CQ2
@@ -49,9 +51,13 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
   there rather than keeping its own copy. A stale copy fails silently — the shapes run
   against a smaller ontology, `sh:class` matches fewer nodes, and fewer matched nodes
   means *conformance*, not an error.
-- **Version bumps touch all four modules** — `owl:versionIRI` and `owl:versionInfo` in
-  `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status line in
-  `README.md`.
+- **Version bumps touch all four modules** — `owl:versionIRI`, `owl:versionInfo` and
+  `owl:priorVersion` in `core.ttl`, `weather.ttl`, `kalshi.ttl`, `fmo.ttl`, plus the status
+  line in `README.md`. Minor when any term's signature moves, patch otherwise, and
+  `owl:incompatibleWith` when conformant data stops conforming. Never delete a term: retire
+  it to a tombstone, and give a term redefined in place a `skos:changeNote`. `make lineage`
+  checks the `priorVersion`, the tombstones and that no released IRI went dark; the bump size
+  and the change note are review's to catch. See `docs/adr/0003-retiring-and-redefining-terms.md`.
 - **Editing `shapes/thermaledge-export.ttl` means re-pinning.** `make shape-signatures`
   audits it against `shapes/thermaledge-export.pin.json` and fails on *any* verdict,
   weakened or merely changed — a widened numeric range is the second kind and is the
