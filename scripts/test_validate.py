@@ -459,6 +459,24 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "core#Document by its range",
     ),
     (
+        # FM-0014: a climatological-day boundary with its offset stripped moves by
+        # hours and says nothing. Exercises check_timestamp_offsets.
+        "a day boundary with no timezone offset",
+        EXAMPLE,
+        '"2026-08-15T01:00:00-04:00"^^xsd:dateTime',
+        '"2026-08-15T01:00:00"^^xsd:dateTime',
+        "core#instantDateTime on https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Instant-Start has no timezone offset",
+    ),
+    (
+        # Z is an offset too, and the other spelling the pattern must accept and require.
+        "an issuance time with its Z dropped",
+        EXAMPLE,
+        '    wx:issuanceTime "2026-08-15T09:40:00Z"^^xsd:dateTime ;',
+        '    wx:issuanceTime "2026-08-15T09:40:00"^^xsd:dateTime ;',
+        "weather#issuanceTime on",
+    ),
+    (
         # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
         # was missing from the first one. A vocabulary outside them lets one
         # individual be typed into two at once, which is legal OWL that every other
