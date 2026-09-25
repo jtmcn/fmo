@@ -9,6 +9,17 @@ touches:
   - queries/cf-mapping-expectations.json
   - queries/class-coverage-expectations.json
   - CONTEXT.md
+  # Added at resolution: the version bump, the axiom ledger and reasoner cases for
+  # the new disjointness, re-anchored negative cases, and the prose that described
+  # the snow terms as unmapped.
+  - src/core.ttl
+  - src/kalshi.ttl
+  - src/fmo.ttl
+  - queries/axiom-expectations.json
+  - scripts/test_reason.py
+  - scripts/test_validate.py
+  - README.md
+  - docs/design-notes.md
 forbidden:
   - src/imports/**
   - shapes/thermaledge-export.ttl
@@ -94,4 +105,31 @@ anchored on the snow entries now inject their own entry, and a third case
 proves that citing this spec, now in `done/`, fails as "tracks no open spec".
 The two new classes are `unwritten` in the class-coverage ledger. No variable
 for snow depth on the ground was added, since no market needs one yet.
+
+**2026-09-25 — reworked after review.** Review found that the first resolution
+fixed the confusion for settled depth and brought it back for water
+equivalent. With `wx:SnowCover` under `wx:PortionOfPrecipitate`, the bearer of
+`wx:PrecipitationDepth` (the water equivalent of what fell) included snow on
+the ground as well, which CF names separately
+(`lwe_thickness_of_surface_snow_amount`). The fault was in the bearer, so the
+rework fixes it there:
+
+- `wx:SnowCover` is now a sibling of `wx:PortionOfPrecipitate` under material
+  entity. A cover persists while gaining and losing matter, including drifted
+  snow that never fell at the site. A portion is individuated by the process
+  that output it.
+- `wx:PortionOfPrecipitate`'s definition is narrowed to "output at a surface by
+  a precipitation process", which is how the rain example already used it.
+- The three depths are one `owl:AllDisjointClasses` block. A third reasoner
+  case (new snow depth filed under snow depth) pins it, and it was seen
+  accepted before the block went in. My earlier argument that snow on bare
+  ground "is both" was about the bearer, and it fails once cover and portion
+  are distinct.
+- Cover and portion are not declared disjoint. `inheres in` is not functional
+  in BFO 2020, so disjoint bearers would not make their qualities disjoint,
+  and the qualities are disjoint directly.
+- The "usually less" claim is gone from `wx:TotalSnowfall`, and the spec id is
+  gone from `wx:SnowDepth`'s scope note.
+- Version 0.14.0, across the four modules and README. The first resolution
+  claimed FM-0008 as precedent for not bumping; FM-0008 did bump.
 

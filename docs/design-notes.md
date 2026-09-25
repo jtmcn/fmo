@@ -222,24 +222,29 @@ argument, for interoperability deferred until the ontology is published for reus
 then, starting with `closeMatch` links rather than an import.
 
 **Mapping the snow terms exposed a misfiling.** FMO did not say whether `wx:SnowDepth` and
-`wx:TotalSnowfall` meant new snow or snow on the ground, which CF and the NWS keep apart. The
-cause was a parent: `wx:SnowDepth` sat under `wx:PrecipitationDepth`, which is a
-liquid-water-equivalent depth, while its own definition was a settled depth. The two are
-different qualities of the same snow, differing by its density. FM-0010 split them:
+`wx:TotalSnowfall` meant new snow or snow on the ground, which CF and the NWS keep apart.
+CF's snow names vary along two independent axes: which snow (what fell over an interval, or
+what lies on the ground) and how it is measured (settled thickness, or liquid-water
+equivalent). FMO had split neither. FM-0010 splits both, the bearer first:
 
-- `wx:SnowCover` is the snow lying on the ground, a portion of precipitate.
-- `wx:SnowDepth` is its settled depth (`surface_snow_thickness`), no longer a precipitation
-  depth.
+- `wx:PortionOfPrecipitate` is what a precipitation process output, individuated by that
+  process, as in the rain example.
+- `wx:SnowCover` is the snow lying on the ground. It is a sibling material entity, not a
+  portion of precipitate: it persists while gaining and losing matter, including snow drifted
+  in that never fell at the site. Filing it under portion of precipitate made
+  `wx:PrecipitationDepth`, the water equivalent of what fell, cover snow on the ground too.
+- `wx:SnowDepth` is the cover's settled depth (`surface_snow_thickness`).
 - `wx:NewSnowDepth` is the settled depth of one snowfall's output
-  (`thickness_of_snowfall_amount`). It inheres in that output, as the rain example's
-  precipitation depth inheres in the rainfall's output.
-- `wx:TotalSnowfall` sums `wx:NewSnowDepth` over the interval (`time: sum`), which is the NWS
-  daily snowfall.
+  (`thickness_of_snowfall_amount`), and `wx:TotalSnowfall` sums it (`time: sum`), which is the
+  NWS daily snowfall.
 
-Both settled depths are declared disjoint from `wx:PrecipitationDepth`, so filing either
-back under it is an unsatisfiable class, and `scripts/test_reason.py` has a case for each.
-They are not declared disjoint from each other: snow falling on bare ground is both a
-snowfall's output and the snow cover.
+The three depths are pairwise disjoint, one `owl:AllDisjointClasses` block, with a
+`scripts/test_reason.py` case filing each snow depth under another. On the first snowfall
+onto bare ground the stake and the snowboard agree, and they are still two quantities. The
+cover's liquid-water equivalent (`lwe_thickness_of_surface_snow_amount`) is not modelled,
+since no market settles on it. The cover and the portion are not declared disjoint: that
+would commit on material coincidence, and would buy nothing, because BFO 2020's `inheres in`
+is not functional, so disjoint bearers would not make their qualities disjoint.
 
 ## Bugs the checks caught
 

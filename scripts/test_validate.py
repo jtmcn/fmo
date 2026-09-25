@@ -962,9 +962,8 @@ wx:DewPoint a owl:Class ;""",
         "not a CF cell method: wx:MeanAirTemperature",
     ),
     (
-        # An ambiguity with nobody tracking it is an unmapped term with a story. The
-        # one unmapped term is already under no-counterpart, so these two cases also
-        # read as duplicates; each expects the tracking failure by name.
+        # An ambiguity with nobody tracking it is an unmapped term with a story. These
+        # two cases also read as duplicates, so each expects its failure by name.
         "an ambiguous CF ledger entry tracked by no spec at all",
         "queries/cf-mapping-expectations.json",
         '  "ambiguous": {}',

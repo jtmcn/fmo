@@ -86,7 +86,7 @@
       "reason": "The bearer that atmospheric qualities inhere in. Since none of those qualities is instantiated, nothing yet needs the bearer; wx:PortionOfPrecipitate shows the analogous class is assertable once a process is recorded."
     },
     "wx:SnowCover": {
-      "reason": "Snow on the ground, a portion of precipitate like the rain example's. Nothing structural bars an example; it needs a snow-depth market worked through, which has not been done."
+      "reason": "Snow on the ground. Nothing structural bars an example; it needs a snow-depth market worked through, which has not been done."
     },
     "wx:SnowDepth": {
       "reason": "A quality of a snow cover, assertable the way wx:PrecipitationDepth is in the rain example. It needs a snow-depth market worked through, which has not been done."

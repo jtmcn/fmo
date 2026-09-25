@@ -9,8 +9,7 @@
     "kalshi.ttl: ksh:BinaryContract subClassOf or(ksh:YesContract, ksh:NoContract)": "a contract side disjoint from both under the binary partition",
     "kalshi.ttl: ksh:Payout subClassOf [max 1 fm:hasInput ksh:BinaryContract]": "a payout naming two lots on opposite sides",
     "kalshi.ttl: ksh:YesContract disjointWith ksh:NoContract": "one lot typed as both a yes and a no contract",
-    "weather.ttl: wx:NewSnowDepth disjointWith wx:PrecipitationDepth": "new snow depth filed under precipitation depth",
-    "weather.ttl: wx:SnowDepth disjointWith wx:PrecipitationDepth": "snow depth filed back under precipitation depth",
+    "weather.ttl: AllDisjointClasses(wx:PrecipitationDepth, wx:SnowDepth, wx:NewSnowDepth)": "new snow depth filed under snow depth",
     "weather.ttl: wx:alternativeDeterminationOf a IrreflexiveProperty": "a target declared an alternative determination of itself"
   },
   "exempt": {

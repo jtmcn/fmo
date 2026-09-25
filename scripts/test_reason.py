@@ -171,6 +171,18 @@ ksh:TraderRole a owl:Class ;""",
     rdfs:subClassOf wx:PrecipitationDepth ;""",
         "unsatisfiable",
     ),
+    (
+        # A stake reading and a snowboard reading are different quantities even when
+        # they agree, as on the first snowfall onto bare ground.
+        "new snow depth filed under snow depth",
+        "src/weather.ttl",
+        """wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality""",
+        """wx:NewSnowDepth a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000019 ;   # quality
+    rdfs:subClassOf wx:SnowDepth ;""",
+        "unsatisfiable",
+    ),
 ]
 
 
