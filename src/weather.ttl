@@ -99,28 +99,35 @@ wx:AirTemperature a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ;
     rdfs:label "air temperature" ;
     skos:definition "The atmospheric quality of a portion of air in virtue of the mean kinetic energy of its constituent molecules." ;
-    skos:scopeNote "Instances are quality instances that vary continuously. \"Yesterday's high\" is not an instance of this class; it is a measurement datum reporting the maximum magnitude this quality attained over an interval." .
+    skos:scopeNote "Instances are quality instances that vary continuously. \"Yesterday's high\" is not an instance of this class; it is a measurement datum reporting the maximum magnitude this quality attained over an interval." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> .
 
 wx:DewPoint a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "dew point" ;
-    skos:definition "The atmospheric quality corresponding to the temperature at which the portion of air would become saturated with water vapour at constant pressure." .
+    skos:definition "The atmospheric quality corresponding to the temperature at which the portion of air would become saturated with water vapour at constant pressure." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/dew_point_temperature/> .
 
 wx:RelativeHumidity a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "relative humidity" ;
-    skos:definition "The atmospheric quality corresponding to the ratio of the partial pressure of water vapour in the portion of air to its saturation vapour pressure at the same temperature." .
+    skos:definition "The atmospheric quality corresponding to the ratio of the partial pressure of water vapour in the portion of air to its saturation vapour pressure at the same temperature." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/relative_humidity/> .
 
 wx:AtmosphericPressure a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "atmospheric pressure" ;
-    skos:definition "The atmospheric quality corresponding to the force per unit area exerted by the weight of the atmosphere above the portion of air." .
+    skos:definition "The atmospheric quality corresponding to the force per unit area exerted by the weight of the atmosphere above the portion of air." ;
+    skos:scopeNote "Ambient pressure where the portion of air is, so CF air_pressure rather than air_pressure_at_mean_sea_level, which is a reduction of it to a reference level." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_pressure/> .
 
 wx:WindSpeed a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "wind speed" ;
     skos:definition "The atmospheric quality corresponding to the rate at which a portion of air moves past a fixed point, independent of the direction of that motion." ;
-    skos:scopeNote "Wind is the motion of a portion of air, which is a process. Wind speed is retained as a quality because it is what instruments report and what markets settle on; the underlying process is wx:AirMotion." .
+    skos:scopeNote "Wind is the motion of a portion of air, which is a process. Wind speed is retained as a quality because it is what instruments report and what markets settle on; the underlying process is wx:AirMotion." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed/> .
 
 wx:WindDirection a owl:Class ;
     rdfs:subClassOf wx:AtmosphericQuality ; rdfs:label "wind direction" ;
-    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." .
+    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_from_direction/> .
 
 wx:PrecipitationDepth a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000019 ;   # quality
@@ -128,7 +135,9 @@ wx:PrecipitationDepth a owl:Class ;
     rdfs:subClassOf [ a owl:Restriction ;
         owl:onProperty bfo:BFO_0000197 ;
         owl:someValuesFrom wx:PortionOfPrecipitate ] ;
-    skos:definition "The quality of a portion of precipitate in virtue of the depth of water, or liquid-water equivalent, it would occupy over a unit horizontal area." .
+    skos:definition "The quality of a portion of precipitate in virtue of the depth of water, or liquid-water equivalent, it would occupy over a unit horizontal area." ;
+    skos:scopeNote "CF lwe_thickness_of_precipitation_amount, a length, not precipitation_amount, which is a mass per unit area and has a different dimension." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/lwe_thickness_of_precipitation_amount/> .
 
 wx:SnowDepth a owl:Class ;
     rdfs:subClassOf wx:PrecipitationDepth ; rdfs:label "snow depth" ;
@@ -208,12 +217,16 @@ wx:WeatherVariable a owl:Class ;
 wx:MaximumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "maximum air temperature" ;
     skos:definition "The greatest magnitude attained by air temperature at an observing site over a temporal interval." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> ;
+    wx:cfCellMethods "time: maximum" ;
     fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
 wx:MinimumAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "minimum air temperature" ;
     skos:definition "The least magnitude attained by air temperature at an observing site over a temporal interval." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> ;
+    wx:cfCellMethods "time: minimum" ;
     fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
@@ -221,12 +234,16 @@ wx:MeanAirTemperature a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "mean air temperature" ;
     skos:definition "The arithmetic mean of the maximum and minimum air temperature at an observing site over a temporal interval." ;
     skos:scopeNote "The NWS daily mean is the midpoint of the day's max and min, not a time-weighted average. A market settling on \"average temperature\" needs its protocol checked against this." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> ;
+    wx:cfCellMethods "time: mid_range" ;
     fm:hasQuantityKind quantitykind:Temperature ;
     wx:conventionalUnit unit:DEG_F , unit:DEG_C .
 
 wx:TotalPrecipitation a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "total precipitation" ;
     skos:definition "The accumulated liquid-water-equivalent precipitation depth at an observing site over a temporal interval." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/lwe_thickness_of_precipitation_amount/> ;
+    wx:cfCellMethods "time: sum" ;
     fm:hasQuantityKind quantitykind:Length ;
     wx:conventionalUnit unit:IN , unit:MilliM .
 
@@ -241,12 +258,16 @@ wx:MaximumSustainedWindSpeed a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "maximum sustained wind speed" ;
     skos:definition "The greatest wind speed sustained over the averaging period stated by the measurement protocol, at an observing site over a temporal interval." ;
     skos:scopeNote "The averaging period is part of the protocol, not of the variable. US practice is a one-minute mean; WMO practice is ten minutes. The two give materially different numbers for the same wind." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed/> ;
+    wx:cfCellMethods "time: maximum" ;
     fm:hasQuantityKind quantitykind:Velocity ;
     wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC , unit:KiloM-PER-HR .
 
 wx:PeakWindGust a wx:WeatherVariable, owl:NamedIndividual ;
     rdfs:label "peak wind gust" ;
     skos:definition "The greatest instantaneous wind speed recorded at an observing site over a temporal interval." ;
+    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed_of_gust/> ;
+    wx:cfCellMethods "time: maximum" ;
     fm:hasQuantityKind quantitykind:Velocity ;
     wx:conventionalUnit unit:MI-PER-HR , unit:KN , unit:M-PER-SEC .
 
@@ -481,3 +502,15 @@ wx:issuanceTime a owl:DatatypeProperty ;
     rdfs:range xsd:dateTime ;
     skos:definition "The instant at which an information content entity was made publicly available by its issuing agent." ;
     skos:scopeNote "Distinct from the interval the content concerns, and from a model run cycle time. A CLI report is issued the morning after the day it covers." .
+
+################################################################
+# Annotation properties
+################################################################
+
+# Declared so the modules stay OWL DL, as skos:notation is in kalshi.ttl.
+skos:closeMatch a owl:AnnotationProperty .
+
+wx:cfCellMethods a owl:AnnotationProperty ;
+    rdfs:label "CF cell methods" ;
+    skos:definition "The CF cell_methods string stating the statistic a weather variable applies to its quality over the temporal interval, spelled as the CF conventions spell it." ;
+    skos:scopeNote "Carried beside the skos:closeMatch to a CF standard name, because the standard name names the quality and not the statistic: a daily maximum temperature is air_temperature with time: maximum. The methods are those of CF 1.12 Appendix E. The mean air temperature is time: mid_range, the average of maximum and minimum, because that is what the NWS daily mean is; time: mean would claim a time-weighted average." .

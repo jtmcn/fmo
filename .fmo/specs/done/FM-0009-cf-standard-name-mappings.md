@@ -19,12 +19,13 @@ forbidden:
   - examples/**
   - src/kalshi.ttl
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       Every subclass of wx:AtmosphericQuality and wx:PrecipitationDepth, and
       every wx:WeatherVariable individual, either carries exactly one CF
       standard name mapping or is listed as unmapped with a reason.
-    witness: validate.py check for CF mappings (new), under make validate
+    witness: check_cf_mappings, under make validate
   - claim: >-
       The check fails on a term with neither a mapping nor an unmapped entry,
       on an unmapped entry naming a term that has since gained a mapping, and on
@@ -38,7 +39,7 @@ acceptance:
       No CF IRI is declared an owl:Class, and none is linked by
       owl:equivalentClass or rdfs:subClassOf. The mapping is annotation, not
       import.
-    witness: the CF mapping check (asserts it), plus make reason staying consistent
+    witness: check_cf_mappings (asserts it), plus make reason staying consistent
   - claim: >-
       The mapping predicate is declared an owl:AnnotationProperty, so the
       modules stay OWL DL, as skos:notation already is in kalshi.ttl.
@@ -161,3 +162,27 @@ reasoning either way. If it goes in, add the matching mutant alongside
 **Version.** Additive annotations only, so no bump, following FM-0008.
 
 ## Comments
+
+**2026-09-25 — resolved.** Every claim's witness passes under `make test`,
+with HermiT reporting the modules and examples consistent.
+
+- 13 of 16 terms are mapped: six qualities with `skos:closeMatch`, six weather
+  variables with the name plus `wx:cfCellMethods`. Verified against CF
+  standard name table v95 (2026-09-16) and CF 1.12 Appendix E. All 10 names
+  resolve at `http://vocab.nerc.ac.uk/standard_name/<name>/`, and a bogus one
+  404s. `mid_range` is in Appendix E ("Average of maximum and minimum"), so
+  `wx:MeanAirTemperature` uses it.
+- 3 are in `queries/cf-mapping-expectations.json`: `wx:AtmosphericQuality`
+  under `no-counterpart`, and both snow terms under `ambiguous`, tracked by
+  **FM-0010**. The snow finding held up: `wx:SnowDepth`'s definition reads as
+  snow on the ground while its parent is precipitate.
+- The check refuses the P07 collection form. It names the same concept, but
+  ingest would have to resolve a second spelling.
+- `check_documentation` now covers minted annotation properties.
+  `wx:cfCellMethods` is the first one, and would otherwise have been skipped.
+- Signatures: the mapping and the cell method are both in `semantics_sha256`,
+  since ingest resolves by them as it does by API code. Each has a mutant in
+  `term_signatures.py --check`, and each was seen to fail with its line
+  removed from the rendering.
+- No version bump: additive annotations only, as in FM-0008.
+

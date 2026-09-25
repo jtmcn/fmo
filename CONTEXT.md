@@ -94,6 +94,16 @@ forecast against what happened (`examples/verification-synthetic.ttl`, CQ6). Val
 lead time. Both are kept on purpose (`docs/design-notes.md`); neither name covers the
 other.
 
+**CF standard name**: the name a CF-conventions dataset gives a variable, e.g.
+`air_temperature`. A `wx:` quality or `wx:WeatherVariable` points at one with
+`skos:closeMatch`, never `exactMatch` or an equivalence: a BFO quality and a variable
+name are different kinds of thing. A variable also carries its **cell method**
+(`wx:cfCellMethods`, e.g. `"time: maximum"`), because the standard name names the
+quality and not the statistic. `check_cf_mappings` requires one or the other of a
+mapping and an entry in `queries/cf-mapping-expectations.json`.
+_Avoid_: "CF variable" for the name (a variable is the dataset's array), and "the CF
+term".
+
 ---
 
 ## 3. Market side (`ksh:`)
@@ -203,14 +213,15 @@ written one).
 > unlisted.
 
 **Ledger**: a checked-in JSON file recording, per item, why something is not proved
-the usual way. Three: `queries/axiom-expectations.json` for axioms with no reasoner
-case, `queries/class-coverage-expectations.json` for classes no example exercises, and
-`queries/production-expectations.json` for the per-query floors in production mode.
-All three fail on an item in no category, and all three fail on an entry naming
+the usual way. Four: `queries/axiom-expectations.json` for axioms with no reasoner
+case, `queries/class-coverage-expectations.json` for classes no example exercises,
+`queries/production-expectations.json` for the per-query floors in production mode, and
+`queries/cf-mapping-expectations.json` for `wx:` terms with no CF standard name.
+All four fail on an item in no category, and all four fail on an entry naming
 something that no longer exists, because a stale exemption reads as authoritative and
 is not — `production-expectations.json` was written without that second guard, which
 is why the arithmetic now lives in `scripts/ledger.py` rather than in this paragraph.
-The three files do not share a *shape*; each flattens its own into `ledger.Entry` rows.
+The four files do not all share a *shape*; each flattens its own into `ledger.Entry` rows.
 Per-entry verification stays with each checker, because the reasons are not equally
 verifiable (`docs/adr/0001-classify-unexercised-classes.md`).
 _Avoid_: "the exemptions file", "the allowlist" — nothing here grants permission; an

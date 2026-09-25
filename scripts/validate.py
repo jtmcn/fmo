@@ -59,6 +59,10 @@ go wrong when hand-authoring a BFO application ontology:
      queries/class-coverage-expectations.json with a reason, and the ledger is made to
      shrink: an entry for a class an example now reaches, or for one that no longer
      exists, fails. No count is pinned.
+  14. Every wx quality class and weather variable carries one CF standard name
+     mapping, or is classified in queries/cf-mapping-expectations.json with a reason.
+     A mapped variable also names its CF cell method, and no CF IRI is used for more
+     than a skos:closeMatch target: the mapping is annotation, not import.
 
 Checks 6 and 7 fail on ambiguous input rather than picking one: two units on a term,
 or two targets on a forecast, mean the answer would come from whichever triple rdflib
@@ -1429,6 +1433,132 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
              always=True)
 
 
+CF_LEDGER = ROOT / "queries" / "cf-mapping-expectations.json"
+CF_CATEGORIES = ("no-counterpart", "ambiguous")
+CF_HOST = "http://vocab.nerc.ac.uk/"
+# The one IRI form ingest resolves. NERC also serves each name as a P07 collection
+# member; that is the same concept under a second spelling, and refused as one.
+CF_STANDARD_NAME = re.compile(r"http://vocab\.nerc\.ac\.uk/standard_name/[a-z0-9_]+/")
+CF_CELL_METHODS = URIRef(WX + "cfCellMethods")
+# CF 1.12, Appendix E, Table E.1.
+CF_METHODS = frozenset({
+    "point", "sum", "maximum", "maximum_absolute_value", "median", "mid_range",
+    "minimum", "minimum_absolute_value", "mean", "mean_absolute_value",
+    "mean_of_upper_decile", "mode", "range", "root_mean_square", "standard_deviation",
+    "sum_of_squares", "variance",
+})
+CELL_METHOD = re.compile(r"time: ([a-z_]+)")
+QUALITY = URIRef(BFO + "BFO_0000019")
+WEATHER_VARIABLE = URIRef(WX + "WeatherVariable")
+SPECS = ROOT / ".fmo" / "specs"
+
+
+@check(takes=("schema",), population="schema",
+       reason="its population is the wx qualities and the weather variable individuals, "
+              "both declared in src/")
+def check_cf_mappings(g: Graph) -> None:
+    """Every wx quality and weather variable maps to one CF standard name, or says why not.
+
+    Forecast output names its variables in CF; settlement is described in NWS terms.
+    The mapping is what lets ingest resolve one to the other, so a term without one
+    is a term a forecast cannot reach.
+    """
+    qualities = [c for c in minted_classes(g)
+                 if str(c).startswith(WX) and QUALITY in ancestors(g, c)]
+    variables = sorted((s for s in g.subjects(RDF.type, WEATHER_VARIABLE)
+                        if isinstance(s, URIRef)), key=str)
+
+    # closeMatch is reserved for CF today, so any other target is a slip rather than
+    # a second vocabulary. Revisit when a second one arrives.
+    mapped: dict[URIRef, list[Node]] = {}
+    for s, o in g.subject_objects(SKOS.closeMatch):
+        if not isinstance(s, URIRef) or not is_ours(s):
+            continue
+        if not CF_STANDARD_NAME.fullmatch(str(o)):
+            fail(f"CF mapping outside the standard name namespace: {prefixed(s)} -> {o}")
+            continue
+        mapped.setdefault(s, []).append(o)
+    for s, targets in sorted(mapped.items()):
+        if len(targets) > 1:
+            fail(f"more than one CF mapping: {prefixed(s)} -> "
+                 f"{', '.join(sorted(str(t) for t in targets))}")
+
+    # Annotation, not import: an equivalence or a subclass axiom would pull CF's
+    # variable-name semantics into a BFO quality.
+    mentions = 0
+    for s, p, o in g:
+        if str(s).startswith(CF_HOST) or (isinstance(o, URIRef) and str(o).startswith(CF_HOST)):
+            mentions += 1
+            if p != SKOS.closeMatch:
+                shown = " ".join(prefixed(n) if isinstance(n, URIRef) else str(n)
+                                 for n in (s, p, o))
+                fail(f"CF IRI used as more than a mapping target: {shown}")
+
+    cell_checked = 0
+    for v in variables:
+        if v not in mapped:
+            continue
+        cell_checked += 1
+        methods = list(g.objects(v, CF_CELL_METHODS))
+        if not methods:
+            fail(f"CF-mapped weather variable carries no cell methods: {prefixed(v)} -- "
+                 f"the standard name names the quality, not the statistic")
+        elif len(methods) > 1:
+            fail(f"more than one cell methods string: {prefixed(v)}")
+        else:
+            m = CELL_METHOD.fullmatch(str(methods[0]))
+            if not m or m.group(1) not in CF_METHODS:
+                fail(f"not a CF cell method: {prefixed(v)} says {str(methods[0])!r}")
+
+    ledger = L.load(CF_LEDGER, CF_CATEGORIES)
+    rows: list[L.Entry] = []
+    tracked: dict[str, str] = {}
+    for category in CF_CATEGORIES:
+        for name, entry in ledger.get(category, {}).items():
+            entry = entry if isinstance(entry, dict) else {}
+            rows.append(L.Entry(name, category, entry.get("reason", "")))
+            if category == "ambiguous":
+                tracked.setdefault(name, str(entry.get("tracked_by", "")))
+
+    population = {prefixed(t) for t in qualities + variables}
+    unmapped = {prefixed(t) for t in qualities + variables if t not in mapped}
+    # Every term mapped is the goal state, so EMPTY_POPULATION is not rendered.
+    for f in L.audit(unmapped, rows, universe=population,
+                     handles=(L.DUPLICATE, L.UNCOVERED, L.STALE_UNKNOWN, L.STALE_LEFT,
+                              L.BLANK_REASON, L.EMPTY_POPULATION)):
+        if f.kind == L.DUPLICATE:
+            fail(f"in the CF ledger twice: {f.name} -- in {f.other} and {f.category}")
+        elif f.kind == L.UNCOVERED:
+            fail(f"no CF mapping and not in the CF ledger: {f.name} -- map it with "
+                 f"skos:closeMatch or add it to {CF_LEDGER.name}")
+        elif f.kind == L.STALE_UNKNOWN:
+            fail(f"CF ledger names a term outside the population: {f.name} -- "
+                 f"renamed or retired, so its entry in {f.category} is stale")
+        elif f.kind == L.STALE_LEFT:
+            fail(f"in the CF ledger but mapped: {f.name} -- drop it from {f.category}")
+        elif f.kind == L.BLANK_REASON:
+            fail(f"in the CF ledger with no reason given: {f.name} in {f.category}")
+
+    # An ambiguity is FMO's to resolve, so each one names the open spec doing it. A
+    # spec moved to done/ has resolved it, and the entry should have gone with it.
+    for name, spec in sorted(tracked.items()):
+        if name in unmapped and not any(SPECS.glob(f"{spec}-*.md")):
+            fail(f"ambiguous CF entry tracks no open spec: {name} names {spec or 'nothing'}")
+
+    coverage("CF mappings (qualities)", len(qualities),
+             "wx quality class(es) checked for a CF standard name",
+             "no wx class reaches bfo:quality -- the WX namespace no longer matches src/",
+             always=True)
+    coverage("CF mappings (variables)", len(variables),
+             "weather variable(s) checked for a CF standard name",
+             "no individual is typed wx:WeatherVariable", always=True)
+    coverage("CF cell methods", cell_checked,
+             "CF-mapped weather variable(s) checked for a cell method",
+             "no weather variable is mapped, so no cell method was read", always=True)
+    coverage("CF IRI use", mentions, "triple(s) naming a CF IRI checked for how",
+             "no triple names a CF IRI, so no mapping exists to misuse", always=True)
+
+
 @check(takes=("schema",), population="schema",
        reason="its population is the minted classes, which example data cannot empty")
 def check_bfo_grounding(g: Graph) -> None:
@@ -1592,7 +1722,8 @@ def check_documentation(g: Graph) -> None:
     terms = minted_classes(g) + sorted(
         {
             s
-            for t in (OWL.ObjectProperty, OWL.DatatypeProperty, RDFS.Datatype)
+            for t in (OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty,
+                      RDFS.Datatype)
             for s in g.subjects(RDF.type, t)
             if is_ours(s)
         },

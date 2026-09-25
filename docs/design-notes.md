@@ -188,6 +188,44 @@ units in `core.ttl` exists to turn that class of mistake into a HermiT inconsist
 reintroducing the bug and confirming the reasoner reports it. Automated in
 `scripts/test_reason.py`.
 
+## CF standard names, and not SOSA
+
+Added in FM-0009. The `wx:` qualities and weather variables point at CF standard names, so
+forecast output named in CF can be resolved to the terms markets settle on. Checked against
+CF standard name table version 95 (2026-09-16) and CF conventions 1.12 for cell methods. The
+IRIs are the NERC Vocabulary Server's `http://vocab.nerc.ac.uk/standard_name/<name>/`; NERC
+also serves each name as a P07 collection member, and the check refuses that second spelling
+so ingest has one form to resolve.
+
+**Annotation, not import.** `skos:closeMatch`, not `skos:exactMatch`, which is transitive and
+too strong between a BFO quality and a variable name. Never `owl:equivalentClass`, which
+would pull CF's variable-name semantics into a quality. `check_cf_mappings` fails on a CF IRI
+used as anything but a `closeMatch` target.
+
+**The statistic travels separately.** CF names the quality and expresses the aggregate as a
+cell method, so `wx:MaximumAirTemperature` is `air_temperature` plus `time: maximum`, carried
+in `wx:cfCellMethods`. `wx:MeanAirTemperature` is `time: mid_range`, CF's "average of
+maximum and minimum", which is what the NWS daily mean is. `time: mean` would claim a
+time-weighted average, the confusion that term's scope note already warns about.
+`wx:MaximumSustainedWindSpeed` is `wind_speed` with `time: maximum` and no averaging
+interval, because the interval belongs to the protocol.
+
+**The mapping is part of a term's semantics signature.** Ingest looks a variable up by its CF
+name, as it looks a Kalshi designation up by its API code, so remapping one moves
+`semantics_sha256`. `scripts/term_signatures.py --check` proves it with a mutant for each.
+
+**Why not SOSA.** SOSA is an observation pattern, and `weather.ttl` already has one grounded
+in BFO. SOSA makes no BFO commitment, so importing it would mean grounding its classes the
+way `qudt:Unit` was, and `sosa:Observation` is an act where FMO's observation record is an
+information content entity. That would give a second observation model and a modelling
+argument, for interoperability deferred until the ontology is published for reuse. Revisit
+then, starting with `closeMatch` links rather than an import.
+
+**The snow terms are unmapped.** Mapping them exposed that FMO does not say whether
+`wx:SnowDepth` and `wx:TotalSnowfall` mean new snow or snow on the ground, which CF (and NWS)
+keep apart. That is FMO's ambiguity, filed as FM-0010, and the ledger's `ambiguous` entries
+name it.
+
 ## Bugs the checks caught
 
 Recorded because they are representative of what goes wrong, not for posterity.

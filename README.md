@@ -62,6 +62,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `examples/negative/` | fixtures that must FAIL, so the checks are known to bite |
 | `queries/production-expectations.json` | per-query floors and exemptions for production mode |
 | `queries/class-coverage-expectations.json` | why each unexercised class is unexercised |
+| `queries/cf-mapping-expectations.json` | why each `wx:` quality or weather variable has no CF standard name |
 | `scripts/validate_shapes.py` | runs the shapes over a data file, or the examples union |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
@@ -229,6 +230,17 @@ Checking uses two strengths, because there are two questions:
 Dimension equality is necessary, never sufficient. Snowfall depth and liquid precipitation are
 both lengths; percent and degrees are both dimensionless. This catches unit mistakes, not
 quantity confusions.
+
+## CF standard names
+
+Forecast model output names its variables with [CF standard names](https://cfconventions.org/Data/cf-standard-names/current/build/cf-standard-name-table.html).
+Each `wx:` quality points at its name with `skos:closeMatch`, and each `wx:WeatherVariable`
+adds the CF cell method for its statistic: `wx:MaximumAirTemperature` is `air_temperature`
+with `time: maximum`, and `wx:MeanAirTemperature` is `time: mid_range`, because the NWS
+daily mean is the midpoint of max and min. These are annotations, not an import;
+`check_cf_mappings` fails on a CF IRI used any other way, and on an unmapped term that
+`queries/cf-mapping-expectations.json` does not explain. The snow terms are unmapped
+pending FM-0010.
 
 One trap worth naming, because it bit during this work: `wx:conventionalUnit` is deliberately
 **not** a sub-property of `fm:hasUnit`. `hasUnit` is functional, so making a multi-valued

@@ -373,8 +373,8 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         # validator failed without one.
         "a term left without a skos:definition",
         "src/weather.ttl",
-        """    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." .""",
-        """    skos:scopeNote "Reported as the bearing the wind blows FROM." .""",
+        """    skos:definition "The atmospheric quality corresponding to the compass bearing from which a portion of air is moving." ;""",
+        """    skos:scopeNote "Reported as the bearing the wind blows FROM." ;""",
         "no skos:definition: https://w3id.org/forecast-market-ontology/weather#WindDirection",
     ),
     (
@@ -846,6 +846,119 @@ wx:DewPoint a owl:Class ;""",
         '"reason": "Inherits the unresolved argument on wx:Storm."\n    },\n    "wx:TropicalCyclone"',
         '"reason": "   "\n    },\n    "wx:TropicalCyclone"',
         "classified with no reason given: wx:Thunderstorm in unwritten",
+    ),
+    (
+        # A new quality joins the population silently otherwise, and forecast ingest
+        # finds no CF name to resolve it by. Exercises check_cf_mappings.
+        "a wx quality with no CF mapping and no CF ledger entry",
+        "src/weather.ttl",
+        "wx:DewPoint a owl:Class ;",
+        """wx:Visibility a owl:Class ;
+    rdfs:subClassOf wx:AtmosphericQuality ;
+    rdfs:label "visibility" ;
+    skos:definition "An injected quality, unmapped and unclassified." .
+
+wx:DewPoint a owl:Class ;""",
+        "no CF mapping and not in the CF ledger: wx:Visibility",
+    ),
+    (
+        # The individuals are the second half of the population, found by a different
+        # lookup; a typo in it empties that half while the qualities stay green.
+        "a weather variable with no CF mapping and no CF ledger entry",
+        "src/weather.ttl",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed_of_gust/> ;\n",
+        "",
+        "no CF mapping and not in the CF ledger: wx:PeakWindGust",
+    ),
+    (
+        "the CF ledger excusing a term that is mapped",
+        "queries/cf-mapping-expectations.json",
+        '  "no-counterpart": {',
+        '  "no-counterpart": {\n    "wx:AirTemperature": {\n'
+        '      "reason": "An injected entry for a mapped term."\n    },',
+        "in the CF ledger but mapped: wx:AirTemperature",
+    ),
+    (
+        "the CF ledger naming a term outside the population",
+        "queries/cf-mapping-expectations.json",
+        '"wx:AtmosphericQuality": {',
+        '"wx:AtmosphericQuality_renamed": {',
+        "CF ledger names a term outside the population: wx:AtmosphericQuality_renamed",
+    ),
+    (
+        "a term in the CF ledger under both categories",
+        "queries/cf-mapping-expectations.json",
+        '  "no-counterpart": {',
+        '  "no-counterpart": {\n    "wx:SnowDepth": {\n'
+        '      "reason": "An injected duplicate of an ambiguous entry."\n    },',
+        "in the CF ledger twice: wx:SnowDepth",
+    ),
+    (
+        # The displaced text stays in the file as a second key, so the JSON parses.
+        "a CF ledger entry with no reason given",
+        "queries/cf-mapping-expectations.json",
+        '"reason": "A grouping class',
+        '"reason": "   ", "was": "A grouping class',
+        "in the CF ledger with no reason given: wx:AtmosphericQuality",
+    ),
+    (
+        # The P07 form names the same concept, but a second IRI form is a second
+        # spelling ingest has to know about.
+        "a CF mapping outside the standard name namespace",
+        "src/weather.ttl",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> .",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/collection/P07/current/CFSN0023/> .",
+        "CF mapping outside the standard name namespace: wx:AirTemperature",
+    ),
+    (
+        "a term with two CF mappings",
+        "src/weather.ttl",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed/> .",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/wind_speed/> ,\n"
+        "        <http://vocab.nerc.ac.uk/standard_name/wind_speed_of_gust/> .",
+        "more than one CF mapping: wx:WindSpeed",
+    ),
+    (
+        # The mapping is annotation. An equivalence would import CF's variable-name
+        # semantics into a BFO quality, which is the import the spec ruled out.
+        "a CF IRI asserted equivalent to a wx class",
+        "src/weather.ttl",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> .",
+        "    skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/air_temperature/> ;\n"
+        "    owl:equivalentClass <http://vocab.nerc.ac.uk/standard_name/air_temperature/> .",
+        "CF IRI used as more than a mapping target",
+    ),
+    (
+        # Without the statistic, a daily total and an instantaneous rate share a name.
+        "a CF-mapped weather variable with no cell methods",
+        "src/weather.ttl",
+        '    wx:cfCellMethods "time: sum" ;\n',
+        "",
+        "CF-mapped weather variable carries no cell methods: wx:TotalPrecipitation",
+    ),
+    (
+        "a cell method CF does not define",
+        "src/weather.ttl",
+        '"time: mid_range"',
+        '"time: average"',
+        "not a CF cell method: wx:MeanAirTemperature",
+    ),
+    (
+        # An ambiguity with nobody tracking it is an unmapped term with a story.
+        "an ambiguous CF ledger entry tracked by no open spec",
+        "queries/cf-mapping-expectations.json",
+        '"tracked_by": "FM-0010"\n    },\n    "wx:TotalSnowfall"',
+        '"tracked_by": "FM-0099"\n    },\n    "wx:TotalSnowfall"',
+        "tracks no open spec: wx:SnowDepth",
+    ),
+    (
+        # wx:cfCellMethods is the first minted annotation property; documentation
+        # covered classes, properties and datatypes and would have skipped it.
+        "a minted annotation property with no definition",
+        "src/weather.ttl",
+        'skos:definition "The CF cell_methods string',
+        'skos:editorialNote "The CF cell_methods string',
+        "no skos:definition: https://w3id.org/forecast-market-ontology/weather#cfCellMethods",
     ),
 ]
 
