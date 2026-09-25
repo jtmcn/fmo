@@ -388,6 +388,54 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "no skos:definition: https://w3id.org/forecast-market-ontology/kalshi#ActionCode",
     ),
     (
+        # Individuals were outside it too, and fm:True, fm:False and ksh:Kalshi had
+        # no definition (FM-0016). Exercises check_documentation.
+        "an individual left without a skos:definition",
+        "src/kalshi.ttl",
+        """    rdfs:label "Kalshi" ;
+    skos:definition "The CFTC-designated contract market that lists the weather markets this ontology models." .""",
+        """    rdfs:label "Kalshi" .""",
+        "no skos:definition: https://w3id.org/forecast-market-ontology/kalshi#Kalshi",
+    ),
+    (
+        # The pair FM-0016 separated: class and property, one label.
+        # Exercises check_label_uniqueness.
+        "a property relabelled with its range class's label",
+        "src/kalshi.ttl",
+        'rdfs:label "has settlement source" ;',
+        'rdfs:label "settlement source" ;',
+        "label shared by 2 terms: 'settlement source'",
+    ),
+    (
+        # The original collision differed from its twin only in case at the IRI, so
+        # the comparison has to ignore case in the label too.
+        "a label that differs from another only in case",
+        "src/kalshi.ttl",
+        'rdfs:label "has settlement source" ;',
+        'rdfs:label "Settlement Source" ;',
+        "label shared by 2 terms: 'settlement source'",
+    ),
+    (
+        # An altLabel is a lookup key; one naming a sibling sends the lookup there.
+        "an altLabel that is another term's label",
+        "src/kalshi.ttl",
+        'skos:altLabel "event" ;',
+        'skos:altLabel "market" ;',
+        "altLabel 'market' on https://w3id.org/forecast-market-ontology/kalshi#EventGrouping"
+        " is the label of https://w3id.org/forecast-market-ontology/kalshi#Market",
+    ),
+    (
+        # HermiT reads a cycle as equivalence and carries on. Exercises
+        # check_subclass_cycles.
+        "a subclass cycle",
+        "src/kalshi.ttl",
+        """ksh:Listing a owl:Class ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;""",
+        """ksh:Listing a owl:Class ;
+    rdfs:subClassOf fm:DirectiveInformationEntity , ksh:Market ;""",
+        "subclass cycle: https://w3id.org/forecast-market-ontology/kalshi#Listing is its own ancestor",
+    ),
+    (
         # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
         # was missing from the first one. A vocabulary outside them lets one
         # individual be typed into two at once, which is legal OWL that every other

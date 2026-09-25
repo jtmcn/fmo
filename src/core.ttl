@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.15.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.16.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ;
     dcterms:title "FMO Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.15.0" .
+    owl:versionInfo "0.16.0" .
 
 ################################################################
 # Information content entities
@@ -119,15 +119,17 @@ fm:TruthValue a owl:Class ;
     rdfs:label "truth value" ;
     skos:definition "A designation assigned to a proposition once its subject matter is determinate." .
 
-fm:True    a fm:TruthValue, owl:NamedIndividual ; rdfs:label "true" .
-fm:False   a fm:TruthValue, owl:NamedIndividual ; rdfs:label "false" .
+fm:True    a fm:TruthValue, owl:NamedIndividual ; rdfs:label "true" ;
+    skos:definition "The truth value of a proposition whose truth condition is satisfied." .
+fm:False   a fm:TruthValue, owl:NamedIndividual ; rdfs:label "false" ;
+    skos:definition "The truth value of a proposition whose truth condition is not satisfied." .
 fm:Indeterminate a fm:TruthValue, owl:NamedIndividual ; rdfs:label "indeterminate" ;
-    skos:definition "Assigned when the authoritative record needed to evaluate the proposition was not produced, or was produced but is unusable." .
+    skos:definition "The truth value assigned when the authoritative document needed to evaluate the proposition was not produced, or was produced but is unusable." .
 
 fm:TruthAssessment a owl:Class ;
     rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "truth assessment" ;
-    skos:definition "An information content entity stating the truth value assigned to a proposition by an evaluation process, together with the record consulted and the time of assessment." ;
+    skos:definition "An information content entity stating the truth value assigned to a proposition by an evaluation process, together with the document consulted and the time of assessment." ;
     skos:scopeNote """Reified because a truth value is not stable. It is a function of the
 proposition AND the state of the authoritative record at a time. When a settlement source
 issues a correction, the assessment changes while the proposition and the exchange's
@@ -150,7 +152,8 @@ fm:GreaterThan        a fm:Comparator, owl:NamedIndividual ; rdfs:label "greater
 fm:GreaterThanOrEqual a fm:Comparator, owl:NamedIndividual ; rdfs:label "greater than or equal" ; skos:definition "Realized value >= floor value." .
 fm:LessThan           a fm:Comparator, owl:NamedIndividual ; rdfs:label "less than" ;             skos:definition "Realized value < cap value." .
 fm:LessThanOrEqual    a fm:Comparator, owl:NamedIndividual ; rdfs:label "less than or equal" ;    skos:definition "Realized value <= cap value." .
-fm:Between            a fm:Comparator, owl:NamedIndividual ; rdfs:label "between" ;               skos:definition "Floor value <= realized value <= cap value. Bound inclusivity is a property of the issuing venue's rules and should be checked against those rules." .
+fm:Between            a fm:Comparator, owl:NamedIndividual ; rdfs:label "between" ;               skos:definition "Floor value <= realized value <= cap value." ;
+    skos:scopeNote "Bound inclusivity is a property of the issuing venue's rules and should be checked against those rules." .
 fm:EqualTo            a fm:Comparator, owl:NamedIndividual ; rdfs:label "equal to" ;              skos:definition "Realized value = floor value." .
 fm:Custom             a fm:Comparator, owl:NamedIndividual ; rdfs:label "custom" ;                skos:definition "The condition is stated in natural language in the governing rules and is not reducible to a numeric threshold comparison." .
 
@@ -249,13 +252,13 @@ fm:ScoringRule a owl:Class ;
 
 fm:BrierScore a fm:ScoringRule, owl:NamedIndividual ;
     rdfs:label "Brier score" ;
-    skos:definition "The squared difference between the assigned probability and the outcome coded as 1 for true and 0 for false. Lower is better; 0 is perfect, 1 is maximally wrong." ;
-    skos:scopeNote "Proper: minimised in expectation by reporting one's actual belief, so it cannot be gamed by hedging. Bounded, unlike the logarithmic score." .
+    skos:definition "The squared difference between the assigned probability and the outcome coded as 1 for true and 0 for false." ;
+    skos:scopeNote "Lower is better; 0 is perfect, 1 is maximally wrong. Proper: minimised in expectation by reporting one's actual belief, so it cannot be gamed by hedging. Bounded, unlike the logarithmic score." .
 
 fm:LogarithmicScore a fm:ScoringRule, owl:NamedIndividual ;
     rdfs:label "logarithmic score" ;
-    skos:definition "The negative natural logarithm of the probability assigned to the outcome that occurred. Lower is better." ;
-    skos:scopeNote "Also proper, and more sensitive to confident errors, but unbounded: assigning 0 to something that then happens scores infinitely badly. Needs a floor in practice." .
+    skos:definition "The negative natural logarithm of the probability assigned to the outcome that occurred." ;
+    skos:scopeNote "Lower is better. Also proper, and more sensitive to confident errors, but unbounded: assigning 0 to something that then happens scores infinitely badly. Needs a floor in practice." .
 
 [] a owl:AllDifferent ;
    owl:distinctMembers ( fm:BrierScore fm:LogarithmicScore ) .
@@ -368,7 +371,7 @@ fm:PredictionProcess a owl:Class ;
 fm:EvaluationProcess a owl:Class ;
     rdfs:subClassOf fm:InformationProcess ;
     rdfs:label "evaluation process" ;
-    skos:definition "An information process that takes a proposition and an authoritative record as input and assigns a truth value to that proposition." ;
+    skos:definition "An information process that takes a proposition and an authoritative document as input and assigns a truth value to that proposition." ;
     skos:scopeNote "Market settlement is a species of this, as is the scoring of a forecast." .
 
 ################################################################
@@ -379,7 +382,8 @@ fm:isAbout a owl:ObjectProperty ;
     rdfs:label "is about" ;
     rdfs:domain fm:InformationContentEntity ;
     rdfs:range bfo:BFO_0000001 ;   # entity
-    skos:definition "Relates an information content entity to the entity it concerns. Asserting this commits to the existence of the relatum, so it is NOT used for propositions about the future." ;
+    skos:definition "Relates an information content entity to the entity it concerns." ;
+    skos:scopeNote "Asserting this commits to the existence of the relatum, so it is NOT used for propositions about the future." ;
     owl:inverseOf fm:isSubjectOf .
 
 fm:isSubjectOf a owl:ObjectProperty ;
@@ -476,8 +480,8 @@ fm:overTemporalInterval a owl:ObjectProperty ;
     rdfs:label "over temporal interval" ;
     rdfs:domain fm:InformationContentEntity ;
     rdfs:range bfo:BFO_0000202 ;   # temporal interval
-    skos:definition "Relates an information content entity to the temporal interval its content concerns. Distinct from BFO 'occupies temporal region', which relates an occurrent to when it happens." ;
-    skos:scopeNote "A forecast issued Monday about Friday's weather occupies Monday but is 'over' Friday." .
+    skos:definition "Relates an information content entity to the temporal interval its content concerns." ;
+    skos:scopeNote "Distinct from BFO 'occupies temporal region', which relates an occurrent to when it happens. A forecast issued Monday about Friday's weather occupies Monday but is 'over' Friday." .
 
 ################################################################
 # Data properties
@@ -533,7 +537,8 @@ fm:statedAs a owl:DatatypeProperty ;
     rdfs:label "stated as" ;
     rdfs:domain fm:InformationContentEntity ;
     rdfs:range xsd:string ;
-    skos:definition "A natural language rendering of the content, for human inspection. Not authoritative." .
+    skos:definition "A natural language rendering of the content, for human inspection." ;
+    skos:scopeNote "Not authoritative: the axioms say what the content is, and a rendering that disagrees with them is wrong." .
 
 fm:referenceTime a owl:DatatypeProperty ;
     rdfs:label "reference time" ;

@@ -19,6 +19,7 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       No two minted terms share an rdfs:label, compared case-insensitively, and
@@ -83,3 +84,21 @@ forbids makes the forbidden word authoritative.
   gets the sentence verbatim unless it duplicates one already there.
 
 ## Comments
+
+**2026-09-25 — resolved in 0.16.0.** Two new registered checks,
+`check_label_uniqueness` (case-insensitive, and altLabels against other terms'
+labels) and `check_subclass_cycles`, and `check_documentation` now covers named
+individuals: 190 terms checked became 226. Five negative tests, one per defect;
+`make meta` sweeps all three checks.
+
+`ksh:settlementSource` is labelled "has settlement source". `fm:True`,
+`fm:False` and `ksh:Kalshi` have definitions. "record" became "document" in the
+three definitions CONTEXT.md §1 names, following `fm:basedOnRecord`'s range;
+"station" became "observing site" in `wx:ClimatologicalDay` and the
+`ksh:SettlementSource` example, and "weather station" in `wx:stationIdentifier`.
+Usage advice moved verbatim from eight definitions into scope notes, merged into
+the existing note where there was one.
+
+Digest churn for ThermalEdge: `label_sha256` on `ksh:settlementSource`;
+`definition_sha256` on the thirteen reworded terms and the three newly defined
+individuals; `semantics_sha256` wherever a scope note gained a sentence.

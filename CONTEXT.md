@@ -142,8 +142,8 @@ exactly where a validator check lives.
 **Settlement source**: two terms, and neither one is the publisher.
 - `ksh:SettlementSource` — the class: the ICE **designating** the publication an exchange
   consults. A naming document, not the organisation and not the data.
-- `ksh:settlementSource` — the property: relates a **listing** to that designation. It
-  declares no domain and is resolved market → grouping → series; it does not hang off
+- `ksh:settlementSource` — the property, labelled "has settlement source" so the two
+  labels differ: relates a **listing** to that designation. It declares no domain and is resolved market → grouping → series; it does not hang off
   `ksh:MarketRules`.
 
 When the question is what a number *means*, name the protocol, not the source:
