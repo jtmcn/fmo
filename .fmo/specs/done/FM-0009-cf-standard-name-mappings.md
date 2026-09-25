@@ -12,6 +12,10 @@ touches:
   - CONTEXT.md
   - README.md
   - docs/design-notes.md
+  - queries/cf-mapping-expectations.json  # the unmapped ledger, added at resolution
+  - scripts/ledger.py  # docstring: four ledgers, added at resolution
+  - CLAUDE.md  # the ledger count, added at resolution
+  - .fmo/specs/FM-0010-snow-depth-and-snowfall-conflated.md  # filed per the notes
 forbidden:
   - src/imports/**
   - shapes/thermaledge-export.ttl
@@ -166,7 +170,7 @@ reasoning either way. If it goes in, add the matching mutant alongside
 **2026-09-25 — resolved.** Every claim's witness passes under `make test`,
 with HermiT reporting the modules and examples consistent.
 
-- 13 of 16 terms are mapped: six qualities with `skos:closeMatch`, six weather
+- 13 of 16 terms are mapped: seven qualities with `skos:closeMatch`, six weather
   variables with the name plus `wx:cfCellMethods`. Verified against CF
   standard name table v95 (2026-09-16) and CF 1.12 Appendix E. All 10 names
   resolve at `http://vocab.nerc.ac.uk/standard_name/<name>/`, and a bogus one
@@ -184,5 +188,7 @@ with HermiT reporting the modules and examples consistent.
   since ingest resolves by them as it does by API code. Each has a mutant in
   `term_signatures.py --check`, and each was seen to fail with its line
   removed from the rendering.
-- No version bump: additive annotations only, as in FM-0008.
+- No version bump here. The stated precedent was wrong: FM-0008 did bump
+  (0.12.0 to 0.13.0) for an additive change. The bump is made once, to
+  0.14.0, by FM-0010, which lands with this in one stack.
 

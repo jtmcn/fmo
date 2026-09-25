@@ -937,6 +937,23 @@ wx:DewPoint a owl:Class ;""",
         "CF-mapped weather variable carries no cell methods: wx:TotalPrecipitation",
     ),
     (
+        "a weather variable with two cell methods",
+        "src/weather.ttl",
+        'air_temperature/> ;\n    wx:cfCellMethods "time: maximum" ;',
+        'air_temperature/> ;\n    wx:cfCellMethods "time: maximum" , "time: mean" ;',
+        "more than one cell methods string: wx:MaximumAirTemperature",
+    ),
+    (
+        # The subject-side half of the misuse guard: a CF name declared a class.
+        "a CF IRI declared an owl:Class",
+        "src/weather.ttl",
+        "skos:closeMatch a owl:AnnotationProperty .",
+        "skos:closeMatch a owl:AnnotationProperty .\n\n"
+        "<http://vocab.nerc.ac.uk/standard_name/air_temperature/> a owl:Class .",
+        "CF IRI used as more than a mapping target: "
+        "http://vocab.nerc.ac.uk/standard_name/air_temperature/",
+    ),
+    (
         "a cell method CF does not define",
         "src/weather.ttl",
         '"time: mid_range"',

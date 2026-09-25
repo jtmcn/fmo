@@ -42,7 +42,7 @@ from rdflib.namespace import SKOS
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import axioms  # noqa: E402
-from registry import ONTOLOGY_PREFIXES, SRC  # noqa: E402
+from registry import ONTOLOGY_PREFIXES, OUR_NS, SRC  # noqa: E402
 
 CF_CELL_METHODS = URIRef(ONTOLOGY_PREFIXES["wx"] + "cfCellMethods")
 
@@ -136,7 +136,7 @@ def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
     """
     g = minted_graph()
     keyed = sorted((s, o) for s, o in g.subject_objects(predicate)
-                   if isinstance(s, URIRef) and str(s).startswith(tuple(ONTOLOGY_PREFIXES.values())))
+                   if isinstance(s, URIRef) and str(s).startswith(OUR_NS))
     if not keyed:
         return f"no term carries a {what}, so the {what} mutant tested nothing"
     subject, value = keyed[0]
@@ -158,7 +158,7 @@ def notation_mutant(sigs: dict[str, dict]) -> str | None:
                          lambda n: Literal(f"{n}-remapped", datatype=getattr(n, "datatype", None)))
 
 
-def mapping_mutant(sigs: dict[str, dict]) -> str | None:
+def cf_name_mutant(sigs: dict[str, dict]) -> str | None:
     """Remap one CF standard name."""
     return _remap_mutant(sigs, SKOS.closeMatch, "CF mapping",
                          lambda o: URIRef(f"{str(o).rstrip('/')}_remapped/"))
@@ -186,7 +186,7 @@ def main() -> int:
         if not sigs:
             print("FAIL: no terms signed, so this check verified nothing", file=sys.stderr)
             return 1
-        for mutant in (notation_mutant, mapping_mutant, cell_methods_mutant):
+        for mutant in (notation_mutant, cf_name_mutant, cell_methods_mutant):
             moved = mutant(sigs)
             if moved is not None:
                 print(f"FAIL: {moved}", file=sys.stderr)

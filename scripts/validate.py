@@ -59,7 +59,7 @@ go wrong when hand-authoring a BFO application ontology:
      queries/class-coverage-expectations.json with a reason, and the ledger is made to
      shrink: an entry for a class an example now reaches, or for one that no longer
      exists, fails. No count is pinned.
-  14. Every wx quality class and weather variable carries one CF standard name
+ 14. Every wx quality class and weather variable carries one CF standard name
      mapping, or is classified in queries/cf-mapping-expectations.json with a reason.
      A mapped variable also names its CF cell method, and no CF IRI is used for more
      than a skos:closeMatch target: the mapping is annotation, not import.
@@ -1469,7 +1469,8 @@ def check_cf_mappings(g: Graph) -> None:
                         if isinstance(s, URIRef)), key=str)
 
     # closeMatch is reserved for CF today, so any other target is a slip rather than
-    # a second vocabulary. Revisit when a second one arrives.
+    # a second vocabulary. Revisit when a second one arrives. No coverage() here: an
+    # empty table fails every term below as unmapped.
     mapped: dict[URIRef, list[Node]] = {}
     for s, o in g.subject_objects(SKOS.closeMatch):
         if not isinstance(s, URIRef) or not is_ours(s):
@@ -1541,6 +1542,7 @@ def check_cf_mappings(g: Graph) -> None:
 
     # An ambiguity is FMO's to resolve, so each one names the open spec doing it. A
     # spec moved to done/ has resolved it, and the entry should have gone with it.
+    # Unguarded like the ledger itself: no ambiguity left is the goal state.
     for name, spec in sorted(tracked.items()):
         if name in unmapped and not any(SPECS.glob(f"{spec}-*.md")):
             fail(f"ambiguous CF entry tracks no open spec: {name} names {spec or 'nothing'}")
