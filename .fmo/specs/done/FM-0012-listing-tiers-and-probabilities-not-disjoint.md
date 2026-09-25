@@ -18,6 +18,7 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       An individual typed both ksh:Series and ksh:Market (and each other pair of
@@ -33,7 +34,7 @@ acceptance:
   - claim: >-
       Every other sibling set under a minted class was decided, disjoint or
       deliberately not, and the "not" cases say why.
-    witness: src/*.ttl scope notes, reviewed
+    witness: docs/design-notes.md, the per-sibling-set table under Placements worth defending, reviewed
 ---
 
 ## Context
@@ -74,3 +75,18 @@ Disjointness across the continuant/occurrent line; BFO already provides it.
 - This is a minor version bump across all four modules.
 
 ## Comments
+
+**2026-09-25 — resolved in 0.15.0.** `owl:AllDisjointClasses` over the three
+Listing tiers in `kalshi.ttl`, and `fm:ForecastProbability owl:disjointWith
+fm:MarketImpliedProbability` in `core.ttl`. Four reasoner cases, one per
+Listing pair plus the probability pair; `make reason-negative` reports 17/17 and
+`make axioms` 12 pinned, 12 verified. Every existing example stayed consistent,
+so nothing in the data was silently double-typed.
+
+The wider sibling sets are decided in a table in `docs/design-notes.md` rather
+than in scope notes, which changes the fourth claim's witness. A scope note on
+each parent class would have moved that class's `semantics_sha256` for no
+semantic change, and one table reads better than decisions spread over thirteen
+classes. Five sets turned out to overlap in fact — a price-to-probability
+derivation meets the prediction process definition, a correction is itself a
+daily report — so disjointness there would have been wrong, not merely unneeded.
