@@ -41,8 +41,10 @@ competency question, run its `queries/cqNN-*.rq` by hand against the same graph
 
 - **Every minted class and property needs `rdfs:label` and `skos:definition`.** The
   validator fails without them. `skos:scopeNote` carries the "why here, not there"; use
-  it for anything a future reader would otherwise re-litigate. Term IRIs are readable
-  local names, not opaque IDs.
+  it for anything a future reader would otherwise re-litigate, about the domain only. A
+  pointer into the repo — a script, a check, a CQ, an example file — goes in
+  `skos:editorialNote`, which the semantics digest leaves out and `check_note_kinds` resolves.
+  Term IRIs are readable local names, not opaque IDs.
 - **Every minted term must reach `bfo:entity` via `rdfs:subClassOf`.** Bridged external
   classes (QUDT) get grounded in `core.ttl` too — four classes once floated under
   `owl:Thing` and the check exists because of it.

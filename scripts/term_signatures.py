@@ -128,8 +128,10 @@ def signatures(g: Graph | None = None) -> dict[str, dict]:
 
 def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
                   remap: Callable[[Node], Node],
-                  keep: Callable[[Graph, Node], bool] = lambda g, s: True) -> str | None:
-    """Remap the first `predicate` value; exactly that term's semantics_sha256 must move.
+                  keep: Callable[[Graph, Node], bool] = lambda g, s: True,
+                  moves: bool = True) -> str | None:
+    """Remap the first `predicate` value; exactly that term's semantics_sha256 must move,
+    or with `moves=False`, no digest may.
 
     Returns a failure message, or None. A digest that ignored the lookup key would
     pass the reproducibility check and still let a remapped key reach a consumer
@@ -147,9 +149,10 @@ def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
     moved = sorted(k for k in sigs if sigs[k]["semantics_sha256"] != mutated[k]["semantics_sha256"])
     prose = sorted(k for k in sigs if sigs[k]["definition_sha256"] != mutated[k]["definition_sha256"])
     expected = axioms.curie(g, subject)
-    if moved != [expected] or prose:
+    if moved != ([expected] if moves else []) or prose:
         return (f"remapping {expected}'s {what} moved semantics_sha256 for {moved} "
-                f"and definition_sha256 for {prose}; expected only {expected}'s semantics")
+                f"and definition_sha256 for {prose}; expected "
+                + (f"only {expected}'s semantics" if moves else "no digest to move"))
     return None
 
 
@@ -166,6 +169,19 @@ def field_name_mutant(sigs: dict[str, dict]) -> str | None:
                          lambda n: Literal(f"{n}-remapped", datatype=getattr(n, "datatype", None)),
                          lambda g, s: any((s, RDF.type, t) in g
                                           for t in (OWL.ObjectProperty, OWL.DatatypeProperty)))
+
+
+def scope_note_mutant(sigs: dict[str, dict]) -> str | None:
+    """Reword one scope note; that term's semantics must move (FM-0017)."""
+    return _remap_mutant(sigs, SKOS.scopeNote, "scope note",
+                         lambda n: Literal(f"{n} Reworded."))
+
+
+def editorial_note_mutant(sigs: dict[str, dict]) -> str | None:
+    """Reword one editorial note; no digest may move. Repo pointers live there so that
+    renaming a check does not tell a consumer a term's meaning changed (FM-0017)."""
+    return _remap_mutant(sigs, SKOS.editorialNote, "editorial note",
+                         lambda n: Literal(f"{n} Reworded."), moves=False)
 
 
 def cf_name_mutant(sigs: dict[str, dict]) -> str | None:
@@ -196,7 +212,8 @@ def main() -> int:
         if not sigs:
             print("FAIL: no terms signed, so this check verified nothing", file=sys.stderr)
             return 1
-        for mutant in (notation_mutant, field_name_mutant, cf_name_mutant, cell_methods_mutant):
+        for mutant in (notation_mutant, field_name_mutant, scope_note_mutant,
+                       editorial_note_mutant, cf_name_mutant, cell_methods_mutant):
             moved = mutant(sigs)
             if moved is not None:
                 print(f"FAIL: {moved}", file=sys.stderr)

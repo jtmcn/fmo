@@ -12,8 +12,8 @@
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.19.0> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/core/0.18.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.20.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/core/0.19.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ;
     dcterms:title "FMO Core: information, propositions, and probability" ;
@@ -27,7 +27,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and the one consumer reads FMO's own. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.19.0" .
+    owl:versionInfo "0.20.0" .
 
 ################################################################
 # Information content entities
@@ -134,12 +134,13 @@ fm:TruthAssessment a owl:Class ;
     skos:scopeNote """Reified because a truth value is not stable. It is a function of the
 proposition AND the state of the authoritative record at a time. When a settlement source
 issues a correction, the assessment changes while the proposition and the exchange's
-resolution both stay fixed -- and that divergence is the whole subject of CQ7.
+resolution both stay fixed, and that divergence is what an assessment exists to record.
 
 fm:hasTruthValue cannot express this: it is functional and untimed, so asserting both a
 settlement-era and a post-correction value would force fm:True and fm:False to be the same
 individual. Use assessments wherever a record can be superseded; keep fm:hasTruthValue for
 the simple case where it cannot.""" ;
+    skos:editorialNote "CQ7 asks exactly this: which settled markets a later correction contradicted." ;
     rdfs:subClassOf
         [ a owl:Restriction ; owl:onProperty fm:assessesProposition ; owl:cardinality "1"^^xsd:nonNegativeInteger ] ,
         [ a owl:Restriction ; owl:onProperty fm:assessedTruthValue ; owl:cardinality "1"^^xsd:nonNegativeInteger ] .
@@ -521,9 +522,10 @@ fm:hasUnit a owl:ObjectProperty ;
     a owl:FunctionalProperty ;
     skos:definition "Relates an entity carrying a numeric magnitude to the measurement unit in which that magnitude is expressed." ;
     skos:scopeNote """Was an xsd:string in 0.1.0. Now a QUDT unit individual, so that
-scripts/validate.py can check dimensional compatibility between a proposition's threshold
-and the target it is asserted over. Degrees Fahrenheit and Celsius both occur in this domain,
-as do inches and millimetres for precipitation; a string could not catch the mismatch.""" .
+dimensional compatibility between a proposition's threshold and the target it is asserted
+over can be checked. Degrees Fahrenheit and Celsius both occur in this domain,
+as do inches and millimetres for precipitation; a string could not catch the mismatch.""" ;
+    skos:editorialNote "check_dimensions in scripts/validate.py does the check." .
 
 fm:hasQuantityKind a owl:ObjectProperty ;
     rdfs:label "has quantity kind" ;
