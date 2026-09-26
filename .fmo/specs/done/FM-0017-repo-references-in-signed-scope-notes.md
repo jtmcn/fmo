@@ -76,9 +76,13 @@ Rewriting the domain content of those notes. Only the repo references move.
 
 ## Comments
 
-**2026-09-25 — resolved in 0.20.0.** Nine terms, not the eight listed above.
-`wx:TropicalCyclone` cited `docs/design-notes.md`, which the pattern list here
-did not cover.
+**2026-09-25 — resolved in 0.20.0.** Fifteen terms, not the eight listed
+above. `wx:TropicalCyclone` cited `docs/design-notes.md`, and review found six
+more citing a bare file name or "the validator": `ksh:BinaryContract`,
+`ksh:FunctionalStrike`, `ksh:limitPriceDollars`, `wx:NewSnowDepth`,
+`wx:conventionalUnit`, `wx:alternativeDeterminationOf`. The pattern list here
+missed all seven, so it grew; "narrow" was about prose like "make it", and no
+domain note trips the wider list.
 
 **What moved.** Each note was split: the domain sentences stayed in
 `skos:scopeNote`, reworded where they had leaned on the reference ("the stored
@@ -88,20 +92,23 @@ naming the specific check, such as `check_lead_times` or `check_protocols`.
 **`check_note_kinds`.** It refuses a scope note that cites:
 - a path under `src/`, `scripts/`, `queries/`, `shapes/`, `docs/` or
   `examples/`;
+- a bare file name (`README.md`, `core.ttl`);
+- the word "validator";
 - a `check_` name;
 - a CQ number;
-- a make target, counted only when the Makefile defines it, so
-  `fm:SkillScore`'s "make it" passes, as the baseline proves.
+- a make target, backticked or not, counted only when the Makefile defines
+  it, so `fm:SkillScore`'s "make it" passes, as the baseline proves.
 
-It also goes one step past the spec: every path and check name an editorial
-note gives must exist. Editorial notes are outside the digest, so nothing else
-would notice one rot. There are six negative tests, one per scope-note pattern
-and one per resolution failure.
+It also goes one step past the spec: every path, bare file name, check name
+and CQ an editorial note gives must exist. Editorial notes are outside the
+digest, so nothing else would notice one rot. Make targets are not resolved,
+because no editorial note names one. There are eleven negative tests, one per
+scope-note pattern and one per resolution failure.
 
 **`term_signatures.py --check`** gains `scope_note_mutant` (that term's
 semantics moves, and nothing else) and `editorial_note_mutant` (no digest
 moves).
 
-**Digest churn for ThermalEdge.** `semantics_sha256` moves on the nine terms
+**Digest churn for ThermalEdge.** `semantics_sha256` moves on the fifteen terms
 whose scope notes were reworded. That is the last time a repo rename can move
 one.

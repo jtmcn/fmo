@@ -128,8 +128,10 @@ def signatures(g: Graph | None = None) -> dict[str, dict]:
 
 def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
                   remap: Callable[[Node], Node],
-                  keep: Callable[[Graph, Node], bool] = lambda g, s: True) -> str | None:
-    """Remap the first `predicate` value; exactly that term's semantics_sha256 must move.
+                  keep: Callable[[Graph, Node], bool] = lambda g, s: True,
+                  moves: bool = True) -> str | None:
+    """Remap the first `predicate` value; exactly that term's semantics_sha256 must move,
+    or with `moves=False`, no digest may.
 
     Returns a failure message, or None. A digest that ignored the lookup key would
     pass the reproducibility check and still let a remapped key reach a consumer
@@ -147,9 +149,10 @@ def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
     moved = sorted(k for k in sigs if sigs[k]["semantics_sha256"] != mutated[k]["semantics_sha256"])
     prose = sorted(k for k in sigs if sigs[k]["definition_sha256"] != mutated[k]["definition_sha256"])
     expected = axioms.curie(g, subject)
-    if moved != [expected] or prose:
+    if moved != ([expected] if moves else []) or prose:
         return (f"remapping {expected}'s {what} moved semantics_sha256 for {moved} "
-                f"and definition_sha256 for {prose}; expected only {expected}'s semantics")
+                f"and definition_sha256 for {prose}; expected "
+                + (f"only {expected}'s semantics" if moves else "no digest to move"))
     return None
 
 
@@ -177,20 +180,8 @@ def scope_note_mutant(sigs: dict[str, dict]) -> str | None:
 def editorial_note_mutant(sigs: dict[str, dict]) -> str | None:
     """Reword one editorial note; no digest may move. Repo pointers live there so that
     renaming a check does not tell a consumer a term's meaning changed (FM-0017)."""
-    g = minted_graph()
-    notes = sorted((s, o) for s, o in g.subject_objects(SKOS.editorialNote)
-                   if isinstance(s, URIRef) and str(s).startswith(OUR_NS))
-    if not notes:
-        return "no term carries a skos:editorialNote, so the editorial mutant tested nothing"
-    subject, value = notes[0]
-    g.remove((subject, SKOS.editorialNote, value))
-    g.add((subject, SKOS.editorialNote, Literal(f"{value} Reworded.")))
-    mutated = signatures(g)
-    moved = sorted(k for k in sigs if sigs[k] != mutated[k])
-    if moved:
-        return (f"rewording {axioms.curie(g, subject)}'s editorial note moved the signatures "
-                f"of {moved}; editorial notes must stay outside the digest")
-    return None
+    return _remap_mutant(sigs, SKOS.editorialNote, "editorial note",
+                         lambda n: Literal(f"{n} Reworded."), moves=False)
 
 
 def cf_name_mutant(sigs: dict[str, dict]) -> str | None:

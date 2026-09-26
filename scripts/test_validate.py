@@ -522,6 +522,13 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "names a missing competency question: CQ97",
     ),
     (
+        "an editorial note naming a missing bare file",
+        "src/kalshi.ttl",
+        "an open question in README.md.",
+        "an open question in READ-ME.md.",
+        "names a missing file: READ-ME.md",
+    ),
+    (
         "a scope note citing a bare file name",
         "src/kalshi.ttl",
         "and is not this case.",

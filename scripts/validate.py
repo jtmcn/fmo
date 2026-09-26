@@ -1869,7 +1869,8 @@ def check_label_uniqueness(g: Graph) -> None:
              always=True)
 
 
-NOTE_PATH = re.compile(r"\b((?:src|scripts|queries|shapes|docs|examples)/[\w./-]*\w)")
+NOTE_DIRS = ("src", "scripts", "queries", "shapes", "docs", "examples")
+NOTE_PATH = re.compile(rf"\b((?:{'|'.join(NOTE_DIRS)})/[\w./-]*\w)")
 NOTE_FILE = re.compile(r"(?<![\w/-])([\w-]+\.(?:ttl|md|py|rq|json))\b")
 NOTE_TOOL = re.compile(r"\b(validator)\b")
 NOTE_CHECK = re.compile(r"\b(check_[a-z_]+)\b")
@@ -1885,6 +1886,9 @@ def check_note_kinds(g: Graph) -> None:
     """
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     targets = set(re.findall(r"^([a-z][a-z-]*):", makefile, re.M))
+    if not targets:
+        # A side input, not the population, so not coverage(); empty would pass every make citation.
+        fail("no target parsed from the Makefile, so make citations in scope notes went unchecked")
     scope = [(s, str(o)) for s, o in g.subject_objects(SKOS.scopeNote) if is_ours(s)]
     for term, note in sorted(scope):
         cited = (NOTE_PATH.findall(note) + NOTE_FILE.findall(note) + NOTE_TOOL.findall(note)
@@ -1894,26 +1898,35 @@ def check_note_kinds(g: Graph) -> None:
             fail(f"scope note on {term} cites the repo ({', '.join(sorted(set(cited)))}); "
                  f"move that to a skos:editorialNote")
     checks = {c.name for c in CHECKS}
-    editorial_refs = 0
-    for term, note in sorted((s, str(o)) for s, o in g.subject_objects(SKOS.editorialNote) if is_ours(s)):
-        for rel in NOTE_PATH.findall(note):
-            editorial_refs += 1
-            if not (ROOT / rel).exists():
-                fail(f"editorial note on {term} names a missing path: {rel}")
-        for name in NOTE_CHECK.findall(note):
-            editorial_refs += 1
-            if name not in checks:
-                fail(f"editorial note on {term} names a missing check: {name}")
-        for n in NOTE_CQ.findall(note):
-            editorial_refs += 1
-            # ponytail: CQ3 has no .rq (it is the reasoner re-derivation); add a case if one is cited
-            if not list((ROOT / "queries").glob(f"cq{int(n):02d}*.rq")):
-                fail(f"editorial note on {term} names a missing competency question: CQ{n}")
+    editorial = sorted((s, str(o)) for s, o in g.subject_objects(SKOS.editorialNote) if is_ours(s))
+    paths = [(t, rel) for t, note in editorial for rel in NOTE_PATH.findall(note)]
+    files = [(t, name) for t, note in editorial for name in NOTE_FILE.findall(note)]
+    names = [(t, name) for t, note in editorial for name in NOTE_CHECK.findall(note)]
+    cqs = [(t, n) for t, note in editorial for n in NOTE_CQ.findall(note)]
+    for term, rel in paths:
+        if not (ROOT / rel).exists():
+            fail(f"editorial note on {term} names a missing path: {rel}")
+    for term, name in files:
+        # A bare name resolves at the root or one level down; deeper, write the path.
+        if not any((ROOT / d / name).exists() for d in ("", *NOTE_DIRS)):
+            fail(f"editorial note on {term} names a missing file: {name}")
+    for term, name in names:
+        if name not in checks:
+            fail(f"editorial note on {term} names a missing check: {name}")
+    for term, n in cqs:
+        # ponytail: CQ3 has no .rq (it is the reasoner re-derivation); add a case if one is cited
+        if not list((ROOT / "queries").glob(f"cq{int(n):02d}*.rq")):
+            fail(f"editorial note on {term} names a missing competency question: CQ{n}")
     coverage("scope notes", len(scope), "scope note(s) checked for repo references",
              "no minted term carries a skos:scopeNote", always=True)
-    coverage("editorial references", editorial_refs,
-             "path(s), check name(s) and CQ(s) in editorial notes resolved",
-             "no editorial note names a path, a check or a CQ, so none was resolved", always=True)
+    coverage("editorial paths", len(paths), "path(s) in editorial notes resolved",
+             "no editorial note names a path -- if that is intended, drop this half", always=True)
+    coverage("editorial files", len(files), "bare file name(s) in editorial notes resolved",
+             "no editorial note names a bare file -- if that is intended, drop this half", always=True)
+    coverage("editorial checks", len(names), "check name(s) in editorial notes resolved",
+             "no editorial note names a check -- if that is intended, drop this half", always=True)
+    coverage("editorial CQs", len(cqs), "CQ(s) in editorial notes resolved",
+             "no editorial note names a CQ -- if that is intended, drop this half", always=True)
 
 
 @check(takes=("schema",), population="schema", reason="its population is the minted classes")
