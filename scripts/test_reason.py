@@ -2,13 +2,14 @@
 """Negative tests for the axioms that only a reasoner enforces.
 
 scripts/validate.py is deliberately Java-free, so the guards whose whole job is to turn
-a mistake into a HermiT rejection have no coverage there. One case per guard, eight in
-all: the owl:AllDifferent blocks in core.ttl over the units and over the truth values,
-the irreflexivity of wx:alternativeDeterminationOf, the disjointness of the two contract
+a mistake into a HermiT rejection have no coverage there. At least one case per guard:
+the owl:AllDifferent blocks in core.ttl over the units and over the truth values, the
+irreflexivity of wx:alternativeDeterminationOf, the disjointness of the two contract
 sides, the cardinality restriction on ksh:Payout, the facet on fm:probabilityValue, the
-AllDisjointClasses block over the designation vocabularies, and the union axiom that
-makes ksh:BinaryContract a partition. Each case injects the mistake its guard exists for
-and asserts ROBOT rejects the result.
+AllDisjointClasses blocks over the designation vocabularies, the three depths and the
+Listing tiers, the disjointness of the two probability classes, and the union axiom
+that makes ksh:BinaryContract a partition. Each case injects the mistake its guard
+exists for and asserts ROBOT rejects the result.
 
 A guard can be violated in two shapes and the reasoner reports them differently. Bad data
 makes the ontology *inconsistent*; a bad class definition with no individuals leaves it
@@ -182,6 +183,34 @@ ksh:TraderRole a owl:Class ;""",
     rdfs:subClassOf bfo:BFO_0000019 ;   # quality
     rdfs:subClassOf wx:SnowDepth ;""",
         "unsatisfiable",
+    ),
+    (
+        # FM-0012: README decision 1 keeps the Listing tiers apart. One case per
+        # pair, since AllDisjointClasses answering for one pair says nothing of the rest.
+        "a series also typed as an event grouping",
+        EXAMPLE,
+        "ex:KXHIGHNY a ksh:Series ;",
+        "ex:KXHIGHNY a ksh:Series , ksh:EventGrouping ;",
+    ),
+    (
+        "an event grouping also typed as a market",
+        EXAMPLE,
+        "ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;",
+        "ex:KXHIGHNY-26AUG15 a ksh:EventGrouping , ksh:Market ;",
+    ),
+    (
+        "a series also typed as a market",
+        EXAMPLE,
+        "ex:KXHIGHNY a ksh:Series ;",
+        "ex:KXHIGHNY a ksh:Series , ksh:Market ;",
+    ),
+    (
+        # CQ2 subtracts a market-implied probability from a forecast one; an
+        # assignment typed as both makes its own gap zero.
+        "a forecast probability also typed as market implied",
+        EXAMPLE,
+        "ex:ForecastProb-82-83 a fm:ForecastProbability ;",
+        "ex:ForecastProb-82-83 a fm:ForecastProbability , fm:MarketImpliedProbability ;",
     ),
 ]
 

@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.14.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.15.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ;
     dcterms:title "FMO Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.14.0" .
+    owl:versionInfo "0.15.0" .
 
 ################################################################
 # Information content entities
@@ -230,6 +230,9 @@ fm:MarketImpliedProbability a owl:Class ;
     rdfs:label "market implied probability" ;
     skos:definition "A probability assignment derived by transformation from the price of a contract in a market whose payout is conditional on the proposition." ;
     skos:scopeNote "This is derived, not observed. The transformation from price to probability is not identity: it ignores fees, the bid-ask spread, the cost of capital over the holding period, and any risk premium. Record the derivation used." .
+
+# CQ2 subtracts one from the other; an assignment typed as both would make the gap zero.
+fm:ForecastProbability owl:disjointWith fm:MarketImpliedProbability .
 
 ################################################################
 # Scoring

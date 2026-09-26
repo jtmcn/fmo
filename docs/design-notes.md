@@ -149,6 +149,31 @@ contract known not to be one side is the other.
 This is the class-level construct only. It says nothing about whether a *bracket ladder* tiles
 the line, which is a claim about numeric coverage by individuals and remains open (see README).
 
+**Disjointness is decided per sibling set, and most sets are deliberately left open.** A
+disjointness axiom earns its place where a real ingest or modelling mistake would type one
+individual into two siblings and every check would stay green. That is true of the Listing
+tiers — README decision 1 — and of the two probability classes, which CQ2 subtracts; both are
+asserted as of 0.15.0 and pinned in `queries/axiom-expectations.json`. For the other sets
+under a minted class:
+
+| Parent | Decision | Why |
+|---|---|---|
+| `fm:Designation` | disjoint | the vocabulary block above |
+| `ksh:BinaryContract` | partition | the union above |
+| `fm:InformationProcess` | open, overlap real | a `ksh:PriceToProbabilityDerivation` meets `fm:PredictionProcess`'s definition, and a `wx:ForecastVerification` that yields a skill score is also a measurement |
+| `wx:ClimatologicalReport` | open, overlap real | a `wx:ReportCorrection` is itself a daily report for the day it corrects |
+| `wx:Forecast` | open, overlap real | an NWS point forecast states single values and probabilities in one product |
+| `wx:PrecipitationProcess` | open, overlap real | mixed rain and snow is one process with both outputs |
+| `wx:Storm` | open, overlap real | a tropical cyclone is convective and can carry lightning |
+| `fm:InformationContentEntity` | open, not pairwise decided | 120 pairs, and some overlap (a `ksh:Resolution` states a truth value); the conflations that matter sit one level down, in the designation block and the Listing tiers |
+| `fm:MeasurementDatum` | open, no mistake to catch | nothing ingests market data and weather data into one node |
+| `fm:DirectiveInformationEntity` | open, no mistake to catch | the Listing tiers are the live risk and sit one level down |
+| `fm:Agent`, `fm:Plan`, `fm:EvaluationProcess`, `wx:MeteorologicalProcess`, `wx:AtmosphericQuality` | open, no mistake to catch | the siblings differ in kind, and no source types an individual as two of them |
+
+"No mistake to catch" is a claim about today's ingest, and a new source can falsify it: a
+feed that reports agents without saying whether each is a person is the kind of thing that
+would move `fm:Agent` to disjoint.
+
 ## Units
 
 Adopted QUDT in 0.2.0, replacing the `xsd:string` unit of 0.1.0. Sixteen units and ten quantity
