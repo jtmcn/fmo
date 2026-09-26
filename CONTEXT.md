@@ -211,6 +211,13 @@ _Avoid_: "deleted", "removed" for a term; "deprecated" alone, which reads as sti
 **Redefine in place**: change what a term means while keeping its IRI, recorded in a
 `skos:changeNote`. The alternative to a retirement, not a synonym for one.
 
+**Scope note** / **editorial note**: a `skos:scopeNote` says why a term is drawn where it
+is, in the domain's words, and is signed into `semantics_sha256`. A `skos:editorialNote`
+points into the repo — a path, a check, a CQ — and is not signed, so a rename moves no
+consumer's pin. `check_note_kinds` keeps the two apart and resolves what an editorial note
+names.
+_Avoid_: "comment" for either; `rdfs:comment` is a third thing and FMO does not use it.
+
 **Exercised** / **unexercised**: a minted class is *exercised* when example data
 instantiates it, directly or through a subclass. A schema individual does not exercise
 its class — that is the ontology asserting its own enumerations, not data reaching the

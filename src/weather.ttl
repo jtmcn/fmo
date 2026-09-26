@@ -164,7 +164,7 @@ wx:NewSnowDepth a owl:Class ;
         owl:onProperty bfo:BFO_0000197 ;
         owl:someValuesFrom wx:PortionOfPrecipitate ] ;
     skos:definition "The quality of the portion of precipitate output by a snowfall in virtue of its settled depth, measured before it merges with the snow already on the ground." ;
-    skos:scopeNote "What a snowboard measures and the NWS reports as snowfall. The bearer is the snowfall's output, as the rain example's precipitation depth inheres in the rainfall's output, not the snow cover it joins: new snow on a deep snow cover leaves wx:SnowDepth rising by less than this, because the cover settles." ;
+    skos:scopeNote "What a snowboard measures and the NWS reports as snowfall. The bearer is the snowfall's output, as a rainfall's precipitation depth inheres in the rainfall's output, not the snow cover it joins: new snow on a deep snow cover leaves wx:SnowDepth rising by less than this, because the cover settles." ;
     skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> .
 
 # Three depths, measured three ways. Two of them agree on the first snowfall onto bare
@@ -427,12 +427,13 @@ wx:conventionalUnit a owl:ObjectProperty ;
     skos:scopeNote """Deliberately NOT a sub-property of fm:hasUnit. fm:hasUnit is functional --
 one entity, one unit -- so making this a sub-property of it would force every unit listed for a
 variable to be inferred identical, silently identifying degrees Fahrenheit with degrees Celsius.
-The owl:AllDifferent assertion in core.ttl turns that mistake into an inconsistency rather than
+An owl:AllDifferent assertion over the units turns that mistake into an inconsistency rather than
 a wrong answer.""" ;
     rdfs:domain wx:WeatherVariable ;
     rdfs:range qudt:Unit ;
     skos:definition "Relates a weather variable to a measurement unit in which it is conventionally reported by meteorological authorities." ;
-    skos:scopeNote "Advisory, not restrictive. A target may legitimately use a dimensionally compatible unit not listed here; validation checks the dimension vector, not membership of this set." .
+    skos:scopeNote "Advisory, not restrictive. A target may legitimately use a dimensionally compatible unit not listed here; what it must share is the variable's dimension vector, not membership of this set." ;
+    skos:editorialNote "check_dimensions in scripts/validate.py checks the dimension vector." .
 
 wx:atSite a owl:ObjectProperty ;
     rdfs:label "at site" ;
@@ -456,16 +457,14 @@ wx:alternativeDeterminationOf a owl:ObjectProperty ;
     skos:definition "Relates an observation target to another specifying the same variable, site, and temporal interval but a different measurement protocol, and therefore intended to capture the same physical quantity while being permitted to disagree about its value." ;
     skos:scopeNote """Licenses nothing. It does not permit a value reported under one protocol to count as
 reporting for the other, and it is not an equivalence relation. It exists so that the
-relationship between two authorities' determinations is sayable and checkable at all, which it
-was not: the examples aligned forecast verification with market settlement by hand, and nothing
-would have complained had they drifted apart. Asserting this relation is what lets the validator
-say so.""" ;
+relationship between two authorities' determinations is sayable and checkable at all.""" ;
+    skos:editorialNote "The examples once aligned forecast verification with market settlement by hand; check_forecast_targets in scripts/validate.py reads this relation to diagnose a cross-authority mismatch." ;
     skos:scopeNote """Symmetric and irreflexive, deliberately not transitive. Not transitive because the
 assertion is a modeller's judgement about a specific pair of protocols, not a fact a reasoner
 may extend -- chaining would manufacture pairs nobody asserted, across protocols nobody
 compared. Irreflexive because a target is not an alternative determination of itself, which
 makes that assertion a HermiT inconsistency rather than a quietly wrong answer: the same move
-core.ttl makes with owl:AllDifferent for the conventionalUnit trap.""" .
+the owl:AllDifferent over units makes for the conventionalUnit trap.""" .
 
 wx:stationOfRecord a owl:ObjectProperty ;
     rdfs:label "station of record" ;

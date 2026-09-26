@@ -138,8 +138,8 @@ ksh:NoContract is the exclusivity half. Read it precisely: it does not refuse a 
 it forces one into ksh:YesContract or ksh:NoContract, so minting an undecorated third side stays
 consistent and correctly so. What it refuses is a side that is genuinely a third -- disjoint
 from both -- and what it buys is the inference that a binary contract known not to be one side
-is the other. A scalar market settles to a number rather than to a side and is not this case;
-see the open question in README.md.""" .
+is the other. A scalar market settles to a number rather than to a side and is not this case.""" ;
+    skos:editorialNote "The scalar market is an open question in README.md." .
 
 ksh:YesContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "yes contract" ;
@@ -418,7 +418,8 @@ ksh:FunctionalStrike a fm:Comparator, owl:NamedIndividual ;
     rdfs:label "functional strike" ;
     skos:notation "functional"^^ksh:StrikeTypeCode ;
     skos:definition "The market settles to a value given by a stated mapping from the realized value, rather than to the truth of a threshold comparison." ;
-    skos:scopeNote "Defined from the API schema alone, which describes `functional_strike` as a mapping from expiration values to settlement values and nothing more (Kalshi Trade API 3.31.0, checked 2026-09-25). It strains fm:Comparator's definition, which is about the truth of a proposition, and sits closer to the unmodelled scalar market than to a binary one. No example uses it." .
+    skos:scopeNote "Defined from the API schema alone, which describes `functional_strike` as a mapping from expiration values to settlement values and nothing more (Kalshi Trade API 3.31.0, checked 2026-09-25). It strains fm:Comparator's definition, which is about the truth of a proposition, and sits closer to the unmodelled scalar market than to a binary one." ;
+    skos:editorialNote "No example uses it." .
 
 ksh:StructuredStrike a fm:Comparator, owl:NamedIndividual ;
     rdfs:label "structured strike" ;
@@ -632,7 +633,7 @@ ksh:orderQuantity a owl:DatatypeProperty ; rdfs:label "order quantity" ; rdfs:do
 ksh:limitPriceDollars a owl:DatatypeProperty ; rdfs:label "limit price dollars" ;
     rdfs:domain [ a owl:Class ; owl:unionOf ( ksh:Order ksh:PriceLevel ) ] ; rdfs:range xsd:decimal ;
     skos:definition "The price in US dollars, on the side concerned, at which the order or level rests: the worst price a buy will pay, or the worst a sell will accept." ;
-    skos:scopeNote """Not checked against the price a trade executes at. A buy filled above its limit, or a sell
+    skos:editorialNote """Not checked against the price a trade executes at. A buy filled above its limit, or a sell
 filled below one, is a real defect class and a purely local one -- both orders and the price
 are in hand -- but no example exercises a partial or crossed fill, so a check would be
 asserting the arithmetic of a case nothing has ever produced.""" .

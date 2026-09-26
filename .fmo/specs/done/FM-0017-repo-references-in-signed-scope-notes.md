@@ -26,7 +26,7 @@ acceptance:
       No skos:scopeNote names a file under scripts/, examples/ or queries/, a
       check_ function, a make target, or a CQ number; those references live in
       skos:editorialNote.
-    witness: check_note_kinds in scripts/validate.py, with four negative tests in scripts/test_validate.py
+    witness: check_note_kinds in scripts/validate.py, with a negative test per pattern in scripts/test_validate.py
   - claim: >-
       Editing a skos:editorialNote does not move semantics_sha256; editing a
       skos:scopeNote still does.

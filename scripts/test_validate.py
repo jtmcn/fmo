@@ -515,6 +515,34 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "names a missing check: check_dimension",
     ),
     (
+        "an editorial note naming a missing competency question",
+        "src/core.ttl",
+        "CQ7 asks exactly this",
+        "CQ97 asks exactly this",
+        "names a missing competency question: CQ97",
+    ),
+    (
+        "a scope note citing a bare file name",
+        "src/kalshi.ttl",
+        "and is not this case.",
+        "and is not this case; see README.md.",
+        "BinaryContract cites the repo (README.md)",
+    ),
+    (
+        "a scope note citing the validator",
+        "src/weather.ttl",
+        "is sayable and checkable at all.",
+        "is sayable and checkable at all, which the validator does.",
+        "alternativeDeterminationOf cites the repo (validator)",
+    ),
+    (
+        "a scope note citing a make target in backticks",
+        "src/kalshi.ttl",
+        "than to a binary one.",
+        "than to a binary one; run make `validate`.",
+        "FunctionalStrike cites the repo (make validate)",
+    ),
+    (
         # Z is an offset too, and the other spelling the pattern must accept and require.
         "an issuance time with its Z dropped",
         EXAMPLE,
