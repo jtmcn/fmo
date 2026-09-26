@@ -1774,7 +1774,9 @@ def check_label_uniqueness(g: Graph) -> None:
     coverage("label uniqueness", len(terms), "minted term(s) checked for a label no other shares",
              "no minted terms found -- the namespaces in registry.py no longer match src/",
              always=True)
-    notes.append(f"altLabels: {alts} checked against other terms' labels")
+    coverage("altLabel collisions", alts, "altLabel(s) checked against other terms' labels",
+             "no skos:altLabel on any minted term -- if that is intended, drop this half",
+             always=True)
 
 
 @check(takes=("schema",), population="schema", reason="its population is the minted classes")
