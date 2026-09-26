@@ -8,13 +8,13 @@
 #
 # THE OVERSHOOT IS NOT PURE PROFIT. It is what the market charges for immediacy.
 # Reading it as an arbitrage requires the ask side, which is why this query
-# reports cents alongside the derived probabilities:
+# reports dollars alongside the derived probabilities:
 #
-#   sumAskCents  -- cost of buying every bracket, which guarantees exactly $1 back.
-#                   At or below 100 this is free money, and in practice means
+#   sumAskDollars -- cost of buying every bracket, which guarantees exactly $1 back.
+#                   At or below 1 this is free money, and in practice means
 #                   stale quotes or a misparse rather than an actual arbitrage.
-#   sumBidCents  -- proceeds from selling every bracket against a $1 liability.
-#                   At or above 100, the same thing in reverse.
+#   sumBidDollars -- proceeds from selling every bracket against a $1 liability.
+#                   At or above 1, the same thing in reverse.
 #
 # ?arbitrageCheck flags either case. On sane data it reads "none".
 #
@@ -40,15 +40,15 @@
 #                  probabilities or quotes exist and one of each was picked.
 
 SELECT ?eventTicker ?asOf ?marketCount ?sourceRows ?sumImplied ?overshoot
-       ?sumBidCents ?sumAskCents ?arbitrageCheck
+       ?sumBidDollars ?sumAskDollars ?arbitrageCheck
 WHERE {
     {
         SELECT ?grouping ?asOf
                (COUNT(?market) AS ?marketCount)
                (SUM(?rows) AS ?sourceRows)
                (SUM(?p)    AS ?sumImplied)
-               (SUM(?bid)  AS ?sumBidCents)
-               (SUM(?ask)  AS ?sumAskCents)
+               (SUM(?bid)  AS ?sumBidDollars)
+               (SUM(?ask)  AS ?sumAskDollars)
         WHERE {
             # One row per market before anything is summed. MAX rather than SAMPLE
             # so a duplicate gives the same answer on every run and the .expected
@@ -73,8 +73,8 @@ WHERE {
                 # Same ?asOf on both sides: one snapshot, not a mixture.
                 ?quote ksh:quoteForMarket ?market ;
                        fm:referenceTime ?asOf ;
-                       ksh:yesBidCents ?bidv ;
-                       ksh:yesAskCents ?askv .
+                       ksh:yesBidDollars ?bidv ;
+                       ksh:yesAskDollars ?askv .
             }
             GROUP BY ?grouping ?asOf ?market
         }
@@ -84,8 +84,8 @@ WHERE {
     ?grouping ksh:eventTicker ?eventTicker .
 
     BIND((?sumImplied - 1) AS ?overshoot)
-    BIND(IF(?sumAskCents <= 100, "buy-side: ladder costs <= $1 for a guaranteed $1",
-         IF(?sumBidCents >= 100, "sell-side: ladder sells for >= $1 against a $1 liability",
+    BIND(IF(?sumAskDollars <= 1, "buy-side: ladder costs <= $1 for a guaranteed $1",
+         IF(?sumBidDollars >= 1, "sell-side: ladder sells for >= $1 against a $1 liability",
             "none")) AS ?arbitrageCheck)
 }
 ORDER BY ?eventTicker ?asOf

@@ -388,6 +388,95 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "no skos:definition: https://w3id.org/forecast-market-ontology/kalshi#ActionCode",
     ),
     (
+        # Individuals were outside it too, and fm:True, fm:False and ksh:Kalshi had
+        # no definition (FM-0016). Exercises check_documentation.
+        "an individual left without a skos:definition",
+        "src/kalshi.ttl",
+        """    rdfs:label "Kalshi" ;
+    skos:definition "The CFTC-designated contract market that lists the weather markets this ontology models." .""",
+        """    rdfs:label "Kalshi" .""",
+        "no skos:definition: https://w3id.org/forecast-market-ontology/kalshi#Kalshi",
+    ),
+    (
+        # The pair FM-0016 separated: class and property, one label.
+        # Exercises check_label_uniqueness.
+        "a property relabelled with its range class's label",
+        "src/kalshi.ttl",
+        'rdfs:label "has settlement source" ;',
+        'rdfs:label "settlement source" ;',
+        "label shared by 2 terms: 'settlement source'",
+    ),
+    (
+        # The original collision differed from its twin only in case at the IRI, so
+        # the comparison has to ignore case in the label too.
+        "a label that differs from another only in case",
+        "src/kalshi.ttl",
+        'rdfs:label "has settlement source" ;',
+        'rdfs:label "Settlement Source" ;',
+        "label shared by 2 terms: 'settlement source'",
+    ),
+    (
+        # An altLabel is a lookup key; one naming a sibling sends the lookup there.
+        "an altLabel that is another term's label",
+        "src/kalshi.ttl",
+        'skos:altLabel "event" ;',
+        'skos:altLabel "market" ;',
+        "altLabel 'market' on https://w3id.org/forecast-market-ontology/kalshi#EventGrouping"
+        " is the label of https://w3id.org/forecast-market-ontology/kalshi#Market",
+    ),
+    (
+        # HermiT reads a cycle as equivalence and carries on. Exercises
+        # check_subclass_cycles.
+        "a subclass cycle",
+        "src/kalshi.ttl",
+        """ksh:Listing a owl:Class ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;""",
+        """ksh:Listing a owl:Class ;
+    rdfs:subClassOf fm:DirectiveInformationEntity , ksh:Market ;""",
+        "subclass cycle: https://w3id.org/forecast-market-ontology/kalshi#Listing is its own ancestor",
+    ),
+    (
+        # FM-0013: a domain adds a type rather than refusing a triple, so the
+        # assessment's property on the settlement makes a process an information
+        # content entity. Exercises check_domain_range_typing, domain side.
+        "a truth assessment's property written on the settlement process",
+        EXAMPLE,
+        """ex:Settlement-B82 a ksh:MarketSettlement ;""",
+        """ex:Settlement-B82 a ksh:MarketSettlement ;
+    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;""",
+        "core#basedOnRecord types https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Settlement-B82 as https://w3id.org/forecast-market-ontology/"
+        "core#TruthAssessment by its domain",
+    ),
+    (
+        # The range side: a process named where a document belongs.
+        "a settlement process named as the document an assessment consulted",
+        EXAMPLE,
+        "    fm:basedOnRecord ex:TWCRecord-2026-08-16 ;",
+        "    fm:basedOnRecord ex:Settlement-B82 ;",
+        "core#basedOnRecord types https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Settlement-B82 as https://w3id.org/forecast-market-ontology/"
+        "core#Document by its range",
+    ),
+    (
+        # FM-0014: a climatological-day boundary with its offset stripped moves by
+        # hours and says nothing. Exercises check_timestamp_offsets.
+        "a day boundary with no timezone offset",
+        EXAMPLE,
+        '"2026-08-15T01:00:00-04:00"^^xsd:dateTime',
+        '"2026-08-15T01:00:00"^^xsd:dateTime',
+        "core#instantDateTime on https://w3id.org/forecast-market-ontology/examples/"
+        "kxhighny-2026-08-15#Instant-Start has no timezone offset",
+    ),
+    (
+        # Z is an offset too, and the other spelling the pattern must accept and require.
+        "an issuance time with its Z dropped",
+        EXAMPLE,
+        '    wx:issuanceTime "2026-08-15T09:40:00Z"^^xsd:dateTime ;',
+        '    wx:issuanceTime "2026-08-15T09:40:00"^^xsd:dateTime ;',
+        "weather#issuanceTime on",
+    ),
+    (
         # The disjointness blocks are hand-written enumerations, and fm:ScoringRule
         # was missing from the first one. A vocabulary outside them lets one
         # individual be typed into two at once, which is legal OWL that every other
@@ -1086,6 +1175,17 @@ SHAPES_CASES = [
         """    wx:underProtocol <https://ex.test/dangling-protocol> ;""",
         "a protocol must state its rules",
     ),
+    (
+        # FM-0013: the export shapes run with rdfs inference, so a crossing there is
+        # typed silently before any shape looks. validate.py never reads the exports.
+        "an export settlement carrying a truth assessment's property",
+        EXPORT,
+        """    a ksh:MarketSettlement ;""",
+        """    a ksh:MarketSettlement ;
+    fm:basedOnRecord <https://thermal-edge.dev/id/report/weather_co/2026-08-23> ;""",
+        "domain/range typing: https://w3id.org/forecast-market-ontology/core#basedOnRecord"
+        " types https://thermal-edge.dev/id/settlement/KXHIGHAUS-26AUG22-B88",
+    ),
 ]
 
 # Defects that must break a competency question rather than quietly changing its answer.
@@ -1130,8 +1230,8 @@ ex:ForecastProb-82-83 a fm:ForecastProbability ;
     (
         "ladder priced so the whole set costs under a dollar",
         EXAMPLE,
-        """    ksh:yesAskCents 62 ;""",
-        """    ksh:yesAskCents 30 ;""",
+        """    ksh:yesAskDollars 0.62 ;""",
+        """    ksh:yesAskDollars 0.30 ;""",
         "differs from",
     ),
     (
@@ -2211,6 +2311,12 @@ def main() -> int:
             else "scripts/validate_shapes.py --examples"))
         for case in SHAPES_CASES
     ]
+    with tempfile.TemporaryDirectory() as tmp:
+        work = copy_tree(tmp)
+        (work / "untyped.ttl").write_text("<urn:x:a> <urn:x:p> <urn:x:b> .\n", encoding="utf-8")
+        results.append(expect_failure(
+            work, "scripts/validate_shapes.py untyped.ttl",
+            "an export with nothing for the crossing guard to check", "crossing guard checked nothing"))
 
     print("\n  -- competency questions --")
     results += [
@@ -2326,7 +2432,7 @@ def check_payouts(g: Graph) -> None:""",
     results.append(run_case(
         "cq-update reporting success on a query that returned nothing",
         TRADING,
-        "    ksh:executionPriceCents 60 ;\n",
+        "    ksh:executionPriceDollars 0.60 ;\n",
         "",
         "returned 0 rows",
         script="scripts/run_competency.py --update",

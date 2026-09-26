@@ -32,6 +32,7 @@ from rdflib import Graph
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from registry import MODULES, SRC, SHAPES, VOCABULARY_SHAPES, examples, exports  # noqa: E402
+from validate import domain_range_crossings  # noqa: E402
 
 
 def main(argv: list[str]) -> int:
@@ -93,11 +94,25 @@ def check(shapes_path: Path, data_paths: list[Path]) -> int:
     # Modules are loaded alongside the data so sh:class constraints can see the
     # class hierarchy; rdfs inferencing gives subclass reasoning, which SPARQL
     # and SHACL both lack by default (the same trap CQ2 hit).
-    data = Graph()
+    schema = Graph()
     for rel in MODULES:
-        data.parse(SRC / rel, format="turtle")
+        schema.parse(SRC / rel, format="turtle")
+    data = Graph()
+    data += schema
     for path in data_paths:
         data.parse(path, format="turtle")
+
+    # rdfs inference below adds whatever types the domains and ranges imply, so
+    # refuse the ones that cross the BFO branch line before SHACL sees them.
+    uses, crossings = domain_range_crossings(schema, data)
+    if data_paths and not uses:
+        print("domain/range typing: no data triple has a domain or range to check, "
+              "so the crossing guard checked nothing")
+        return 1
+    if crossings:
+        for message in crossings:
+            print(f"domain/range typing: {message}")
+        return 1
 
     conforms, _results_graph, report = validate(
         data,

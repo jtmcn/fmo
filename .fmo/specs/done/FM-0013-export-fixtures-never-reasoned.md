@@ -15,11 +15,12 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       make reason runs HermiT over the modules plus each file in
       examples/export/, and fails if any is inconsistent.
-    witness: make reason, and a validate-negative case that adds a disjointness-violating triple to a copy of the export fixture
+    witness: make reason, and the reason-negative case "an exported market also typed as an event grouping" in scripts/test_reason.py
   - claim: >-
       No individual in the examples or the export fixture acquires, through
       rdfs:domain or rdfs:range, a type on the other side of the
@@ -65,3 +66,24 @@ asserted graph with `a/rdfs:subClassOf*` on purpose (`docs/design-notes.md`).
   useful in production mode (`make export-check`). It should.
 
 ## Comments
+
+**2026-09-25 — resolved.** `make reason` now merges the modules with each
+file in `examples/export/` separately and runs HermiT on each, and fails
+if the glob matches nothing. The export fixture is consistent. The negative
+case lives in `scripts/test_reason.py`, not `test_validate.py`, which moves
+the first claim's witness: that file is where the HermiT cases live, and a
+case there can name its own inputs (modules plus the export alone). It
+cross-types the exported market into `ksh:EventGrouping` using FM-0012's
+new axiom.
+
+The Java-free half is `domain_range_crossings`, in `validate.py`:
+- `check_domain_range_typing` runs it over the examples. It counts only
+  triples absent from the schema; the vocabulary's own individuals once
+  counted 41 uses on a graph with no example data and kept the guard lit.
+- `validate_shapes.py` calls it over each export before SHACL runs, since
+  that is where RDFS inference types export nodes and `validate.py` never
+  reads an export.
+
+Three negative tests cover a domain crossing, a range crossing, and a
+crossing in the export fixture through `--exports`. The current data has
+no crossing across 7,714 uses.

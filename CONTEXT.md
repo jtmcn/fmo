@@ -142,9 +142,9 @@ exactly where a validator check lives.
 **Settlement source**: two terms, and neither one is the publisher.
 - `ksh:SettlementSource` — the class: the ICE **designating** the publication an exchange
   consults. A naming document, not the organisation and not the data.
-- `ksh:settlementSource` — the property: relates a **listing** to that designation. It
-  declares no domain and is resolved market → grouping → series; it does not hang off
-  `ksh:MarketRules`.
+- `ksh:settlementSource` — the property, labelled "has settlement source" so the two
+  labels differ: relates a **listing** to that designation. It declares no domain and is
+  resolved market → grouping → series; it does not hang off `ksh:MarketRules`.
 
 When the question is what a number *means*, name the protocol, not the source:
 `ksh:sourceProtocol` is what the validator checks against the target's protocol.
@@ -174,6 +174,13 @@ by the field it appears in — `ksh:StatusCode`, `ksh:ResultCode`, `ksh:SideCode
 `ksh:ResolvedYes` in a different field. `ksh:Voided` has no code.
 _Avoid_: "the label" for the code, "the enum value", "the status string".
 
+**Field name** (`skos:notation` on a property): the Kalshi API field a property is read
+from, typed by the API schema it belongs to — `ksh:MarketFieldName`, `ksh:OrderFieldName`
+and so on — because `ticker` names a different thing in each. `ksh:settlementValue` is
+`expiration_value`; `settlement_value_dollars` is a payout.
+_Avoid_: "API code" for a field name. A code is a value the API sends; a field name is where
+a value is read from.
+
 ---
 
 ## 4. Repo mechanics
@@ -195,6 +202,14 @@ attributed to the shape under test. `scripts/test_meta.py` (`make meta`) proves 
 check function fails when handed a graph that empties its traversal, so a check with
 nothing to check cannot pass.
 _Avoid_: "test" bare — it reads as any of the three, and they fail for different reasons.
+
+**Retire** / **tombstone**: a term is *retired* by reducing it to a *tombstone* — its IRI and
+label, `owl:deprecated true`, a `skos:historyNote`, and `dcterms:isReplacedBy` when something
+replaces it — and never by deleting it. A tombstone is not declared and keeps no axiom.
+_Avoid_: "deleted", "removed" for a term; "deprecated" alone, which reads as still usable.
+
+**Redefine in place**: change what a term means while keeping its IRI, recorded in a
+`skos:changeNote`. The alternative to a retirement, not a synonym for one.
 
 **Exercised** / **unexercised**: a minted class is *exercised* when example data
 instantiates it, directly or through a subclass. A schema individual does not exercise

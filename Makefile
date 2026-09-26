@@ -11,6 +11,8 @@ BUILD   := build
 CATALOG := $(SRC)/catalog-v001.xml
 TOP     := $(SRC)/fmo.ttl
 EXAMPLES := $(wildcard examples/*.ttl)
+# Not in EXAMPLES: each export is an independent graph, reasoned on its own.
+EXPORTS := $(wildcard examples/export/*.ttl)
 PYSCRIPTS := $(wildcard scripts/*.py)
 MISMATCH := examples/negative/thermaledge-target-mismatch.ttl
 SHAPEPIN := shapes/thermaledge-export.pin.json
@@ -34,7 +36,7 @@ PY      := $(PY_BIN) python3
 # a JVM, and `make typecheck` should not pay for a question it never asks.
 robot_cmd = cmd=$$($(PY) scripts/reasoner.py $(1)) || exit 1; [ -n "$$cmd" ] || exit 0
 
-.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
+.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta lineage lineage-negative shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check clean
 
 all: validate
 
@@ -68,6 +70,15 @@ validate:
 ## Negative tests: prove the validator actually fails on each defect it claims to catch.
 validate-negative:
 	$(PY) scripts/test_validate.py
+
+## Version lineage against the prior version in git history (ADR 0003). Needs the
+## full history; a shallow clone fails rather than skipping.
+lineage:
+	$(PY) scripts/lineage.py
+
+## Negative tests: prove the lineage audit fails on each defect it claims to catch.
+lineage-negative:
+	$(PY) scripts/test_lineage.py
 
 ## Tests about the checks themselves: every check must fail with nothing to check.
 meta:
@@ -134,7 +145,8 @@ cq:
 cq-update:
 	$(PY) scripts/run_competency.py --update
 
-## HermiT consistency over the schema, then over schema plus examples.
+## HermiT consistency over the schema, then over schema plus examples, then over
+## schema plus each export fixture on its own.
 reason: $(BUILD)/merged.owl $(BUILD)/full.owl
 	@$(call robot_cmd,reason); \
 	 set -e; \
@@ -142,6 +154,13 @@ reason: $(BUILD)/merged.owl $(BUILD)/full.owl
 	 (set -x; $$cmd reason --input $(BUILD)/merged.owl --reasoner HermiT --output $(BUILD)/reasoned.owl); \
 	 echo "== reasoning over schema + examples =="; \
 	 (set -x; $$cmd reason --input $(BUILD)/full.owl --reasoner HermiT --output $(BUILD)/full-reasoned.owl); \
+	 [ -n "$(EXPORTS)" ] || { echo "no export fixtures to reason over"; exit 1; }; \
+	 for e in $(EXPORTS); do \
+	   out=$(BUILD)/export-$$(basename $$e .ttl); \
+	   echo "== reasoning over schema + $$e =="; \
+	   (set -x; $$cmd merge --input $(TOP) --input $$e --catalog $(CATALOG) --output $$out.owl); \
+	   (set -x; $$cmd reason --input $$out.owl --reasoner HermiT --output $$out-reasoned.owl); \
+	 done; \
 	 echo "consistent"
 
 ## Prove the reasoner-only guards fire: the axioms validate.py cannot check.
@@ -222,7 +241,7 @@ $(BUILD)/full.owl: $(BUILD)/merged.owl $(EXAMPLES)
 	   --catalog $(CATALOG) --output $@
 
 ## Everything.
-test: typecheck typecheck-negative validate validate-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
+test: typecheck typecheck-negative validate validate-negative lineage lineage-negative meta shapes shapes-negative export-check verification-data-check diagram-check cq reason reason-negative axioms signatures shape-signatures competency
 
 clean:
 	rm -rf $(BUILD)

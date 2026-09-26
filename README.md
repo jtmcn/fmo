@@ -6,10 +6,13 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.14.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All eight competency questions are mechanically tested. Kalshi field names and enumerations
-were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
-each designation carries its API code, checked against that enumeration by `make shapes`.
+Status: **0.19.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+All eight competency questions are mechanically tested. Kalshi enumerations were checked
+against the live API on 2026-08-17, and the precipitation series on 2026-08-23; each designation
+carries its API code, checked against that enumeration by `make shapes`. Field names were
+re-checked against Trade API 3.31.0 on 2026-09-25: each property that mirrors a field carries
+its name, checked against that schema's field list by `make shapes`, and prices are in dollars
+because the API no longer reports cents.
 Worked markets: a temperature bracket ladder and a settled rain market. Term coverage is
 deliberately shallow in places; see [Open questions](#open-questions).
 
@@ -54,6 +57,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
 | `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
+| `scripts/lineage.py` | version lineage against the prior version in git history: `owl:priorVersion`, no released IRI gone dark, tombstone form |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `shapes/thermaledge-export.ttl` | SHACL shapes: what a valid ThermalEdge export must contain |
 | `shapes/thermaledge-export.pin.json` | FMO's pin on those shapes, audited by `make shape-signatures` (generated) |
@@ -73,8 +77,9 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
 Namespaces are `https://w3id.org/forecast-market-ontology/{core,weather,kalshi}#`. These are deliberately
-non-resolving: the ontology has no external consumers, so `src/catalog-v001.xml` handles
-resolution locally and registering w3id redirects would buy nothing. Tools that want to
+non-resolving: the ontology's one consumer, ThermalEdge, pins terms by digest and never
+dereferences an IRI, so `src/catalog-v001.xml` handles resolution locally and registering w3id
+redirects would buy nothing. Tools that want to
 dereference the IRIs need the catalog, which Protégé and ROBOT both pick up automatically.
 
 ## Usage
@@ -93,6 +98,7 @@ make export-check                    # production CQ mode: export passes, mismat
 make reason                          # HermiT consistency (needs robot.jar)
 make axioms                          # every axiom pinned by a case, or exempt with a reason
 make signatures                      # per-term semantic digests, for downstream pinning
+make lineage                         # priorVersion, IRI continuity and tombstones vs the prior version
 make shape-signatures                # per-shape signatures, audited against FMO's pin
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check
@@ -253,7 +259,9 @@ mistake into a HermiT inconsistency instead of a wrong answer; the guard is veri
 `rdfs:subClassOf`, that bridged external classes are grounded too, that nothing is both
 continuant and occurrent, that examples use only declared properties and reference only
 individuals that exist, that a forecast scores the same target the market settles on, unit
-coherence, and documentation coverage. Stored derived values are checked against what they are
+coherence, and documentation coverage. Every value of a time property carries a timezone offset:
+they range over `xsd:dateTimeStamp`, which HermiT enforces and `validate.py` checks without it,
+because a climatological-day boundary without an offset moves by hours. Stored derived values are checked against what they are
 derived from: `wx:leadTimeHours` against issuance and interval start, and a `fm:SkillScore`
 under `fm:BrierScore` against the probability it scores and the outcome it was scored against. A
 score resting on a superseded record fails — scoring against a retracted value is the specific
@@ -274,8 +282,9 @@ self-consistent and resting on the wrong determination, and paying the right amo
 party is the same mistake about the other end of the transfer. Every term `CONTEXT.md` names in
 backticks must still be declared, since nothing else reads that file and a rename would leave the
 vocabulary pointing at a term that no longer exists. `make
-reason` adds HermiT consistency and re-derives `ksh:WeatherMarket` from a weakened assertion to
-prove the defined class actually fires.
+reason` adds HermiT consistency — over the schema, the examples, and each export fixture on its
+own — and re-derives `ksh:WeatherMarket` from a weakened assertion to prove the defined class
+actually fires.
 
 `make cq` runs the competency questions in `queries/` and diffs the results against checked-in
 `.expected` files. **An empty result set fails** — a query matching nothing is how a broken
@@ -297,6 +306,12 @@ never load them: they are data under test, not worked data. The positive fixture
 because the repo's own examples are a *superset* of any export — they carry the sites, day
 boundaries and model runs an export omits — so conformance there showed only that the
 shapes were satisfiable by something richer than the thing they describe.
+
+The shapes run with RDFS inference, so a property's `rdfs:domain` and `rdfs:range` type nodes
+before any shape looks — and a domain adds a type, it never refuses a triple. `fm:basedOnRecord`
+written on a settlement process would quietly make that process an information content entity.
+`validate_shapes.py` refuses any use that types a node across the continuant/occurrent line
+from its asserted type, before SHACL runs; `validate.py` makes the same check over the examples.
 
 `make export-check` runs production CQ mode both ways: the export fixture must pass and the
 target-mismatch fixture must fail **on CQ2 specifically**. It also fails CQ4, so asserting
@@ -472,7 +487,7 @@ Flagged rather than silently decided:
   which quietly assumes binary: a scalar market settles to a number, not to the truth of one
   proposition. `ksh:ResolvedScalar` exists so the outcome enumeration matches the API's, but
   nothing else accommodates the case.
-- **Prices are typed decimal but not gridded.** `ksh:lastPriceCents` and the bid/ask properties
+- **Prices are typed decimal but not gridded.** `ksh:lastPriceDollars` and the bid/ask properties
   are decimal because most Kalshi markets now quote in tenths of a cent or finer. Which prices
   are *valid* is per-market, given by the API's `price_ranges` bands; nothing here represents
   that grid, so an off-tick price is expressible.

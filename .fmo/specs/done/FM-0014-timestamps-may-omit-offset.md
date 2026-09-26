@@ -17,6 +17,7 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       Every time-valued datatype property has range xsd:dateTimeStamp.
@@ -62,3 +63,20 @@ about the export contract.
 - The new check is population `data` and needs `coverage()`.
 
 ## Comments
+
+**2026-09-25 — resolved in 0.17.0.** The eight time properties range over
+`xsd:dateTimeStamp`. Their literals stay typed `xsd:dateTime`: a value with an
+offset is in the narrower value space, and HermiT accepts every example and
+the export fixture as they stand.
+
+The range is enforced twice:
+- **With a reasoner.** A new case in `scripts/test_reason.py` strips the offset
+  from a climatological-day boundary and gets an inconsistency, so the range is
+  a working guard rather than documentation.
+- **Without one.** `check_timestamp_offsets` reads the property set off the
+  schema rather than a list, so declaring the range is enough to cover a new
+  time property. It checks 1,101 values across 8 properties; two negative tests
+  cover a numeric offset and a `Z`.
+
+`fm:instantDateTime`'s scope note now says the range refuses a value with no
+offset, where it used to ask for one.

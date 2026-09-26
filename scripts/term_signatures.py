@@ -127,7 +127,8 @@ def signatures(g: Graph | None = None) -> dict[str, dict]:
 
 
 def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
-                  remap: Callable[[Node], Node]) -> str | None:
+                  remap: Callable[[Node], Node],
+                  keep: Callable[[Graph, Node], bool] = lambda g, s: True) -> str | None:
     """Remap the first `predicate` value; exactly that term's semantics_sha256 must move.
 
     Returns a failure message, or None. A digest that ignored the lookup key would
@@ -136,7 +137,7 @@ def _remap_mutant(sigs: dict[str, dict], predicate: URIRef, what: str,
     """
     g = minted_graph()
     keyed = sorted((s, o) for s, o in g.subject_objects(predicate)
-                   if isinstance(s, URIRef) and str(s).startswith(OUR_NS))
+                   if isinstance(s, URIRef) and str(s).startswith(OUR_NS) and keep(g, s))
     if not keyed:
         return f"no term carries a {what}, so the {what} mutant tested nothing"
     subject, value = keyed[0]
@@ -156,6 +157,15 @@ def notation_mutant(sigs: dict[str, dict]) -> str | None:
     """Remap one API code."""
     return _remap_mutant(sigs, SKOS.notation, "skos:notation",
                          lambda n: Literal(f"{n}-remapped", datatype=getattr(n, "datatype", None)))
+
+
+def field_name_mutant(sigs: dict[str, dict]) -> str | None:
+    """Remap one API field name. The first notation overall is a designation's code, so
+    without this nothing proved a property's field name reaches its digest (FM-0015)."""
+    return _remap_mutant(sigs, SKOS.notation, "field name",
+                         lambda n: Literal(f"{n}-remapped", datatype=getattr(n, "datatype", None)),
+                         lambda g, s: any((s, RDF.type, t) in g
+                                          for t in (OWL.ObjectProperty, OWL.DatatypeProperty)))
 
 
 def cf_name_mutant(sigs: dict[str, dict]) -> str | None:
@@ -186,7 +196,7 @@ def main() -> int:
         if not sigs:
             print("FAIL: no terms signed, so this check verified nothing", file=sys.stderr)
             return 1
-        for mutant in (notation_mutant, cf_name_mutant, cell_methods_mutant):
+        for mutant in (notation_mutant, field_name_mutant, cf_name_mutant, cell_methods_mutant):
             moved = mutant(sigs)
             if moved is not None:
                 print(f"FAIL: {moved}", file=sys.stderr)

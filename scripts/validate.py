@@ -89,7 +89,7 @@ from typing import NamedTuple
 
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
 from rdflib.term import Node
-from rdflib.namespace import SKOS
+from rdflib.namespace import SKOS, XSD
 
 BFO = "http://purl.obolibrary.org/obo/"
 ENTITY = URIRef(BFO + "BFO_0000001")
@@ -1050,7 +1050,7 @@ def check_trades(g: Graph) -> None:
     """A match outputs two lots: opposite sides, equal quantity.
 
     "The two sides of a match sum to the payout" is what collateralises a binary
-    market, and both CQ8's derived price and ksh:executionPriceCents' scope note
+    market, and both CQ8's derived price and ksh:executionPriceDollars' scope note
     rest on it. Nothing enforced it: ksh:contractQuantity was read by check_payouts
     alone, and only for a lot that had a payout, so the losing lot could state any
     quantity at all and only a .expected diff would notice.
@@ -1625,6 +1625,96 @@ def check_branch_disjointness(g: Graph) -> None:
              always=True)
 
 
+def domain_range_crossings(schema: Graph, g: Graph) -> tuple[int, list[str]]:
+    """Uses whose rdfs:domain or rdfs:range types a node across the continuant/occurrent line.
+
+    A domain or range never rejects a triple; it adds a type. The export shapes run
+    with rdfs inference, so fm:basedOnRecord written on a settlement process quietly
+    makes that process an information content entity. Returns (uses checked, messages);
+    validate_shapes.py calls it too, because the exports never reach validate.py.
+    Only triples absent from `schema` count, so the vocabulary's own individuals do not
+    keep the guard lit; and only nodes with an asserted branch, since an untyped one
+    cannot cross.
+    """
+    supers: dict[Node, set[Node]] = {}
+    for p in set(g.subjects(RDFS.subPropertyOf, None)) | set(g.subjects(RDFS.domain, None)) \
+            | set(g.subjects(RDFS.range, None)):
+        seen, stack = {p}, [p]
+        while stack:
+            for q in g.objects(stack.pop(), RDFS.subPropertyOf):
+                if q not in seen:
+                    seen.add(q)
+                    stack.append(q)
+        supers[p] = seen
+
+    def implied(p: Node, axis: URIRef) -> set[URIRef]:
+        return {c for q in supers.get(p, ()) for c in g.objects(q, axis) if isinstance(c, URIRef)}
+
+    branch_cache: dict[Node, set] = {}
+
+    def branch(node: Node) -> set:
+        if node not in branch_cache:
+            branch_cache[node] = {CONTINUANT, OCCURRENT} & types_of(g, node)
+        return branch_cache[node]
+
+    uses, messages = 0, []
+    for s, p, o in g:
+        if (s, p, o) in schema:
+            continue
+        for node, axis in ((s, RDFS.domain), (o, RDFS.range)):
+            if isinstance(node, Literal):
+                continue
+            classes = implied(p, axis)
+            if not classes or not (asserted := branch(node)):
+                continue
+            uses += 1
+            for cls in sorted(classes, key=str):
+                entailed = ancestors(g, cls) | {cls}
+                for mine, other in ((CONTINUANT, OCCURRENT), (OCCURRENT, CONTINUANT)):
+                    if mine in asserted and other in entailed:
+                        side = "domain" if axis == RDFS.domain else "range"
+                        messages.append(f"{p} types {node} as {cls} by its {side}, "
+                                        f"across the continuant/occurrent line from its asserted type")
+    return uses, messages
+
+
+@check(takes=("schema", "data"))
+def check_domain_range_typing(g: Graph, ex: Graph) -> None:
+    """No property use types an example node into the other BFO branch (FM-0013)."""
+    uses, messages = domain_range_crossings(g, ex)
+    for message in messages:
+        fail(message)
+    coverage("domain/range typing", uses,
+             "property use(s) checked for a type across the continuant/occurrent line",
+             "no typed node is the subject of a domain-bearing property or the object of "
+             "a range-bearing one")
+
+
+TIMEZONED = re.compile(r"(Z|[+-]\d{2}:\d{2})$")
+
+
+@check(takes=("data",))
+def check_timestamp_offsets(ex: Graph) -> None:
+    """Every value of a property ranged xsd:dateTimeStamp carries a timezone offset (FM-0014).
+
+    The range makes HermiT refuse an offset-less value, but the reasoner is optional
+    and this is not. Climatological-day boundaries are local standard time, so a
+    missing offset moves one by hours; and XSD orders an offset-less value only
+    partially against one with an offset. The properties are read off the schema, so
+    a new time property is covered by declaring its range.
+    """
+    props = sorted(set(ex.subjects(RDFS.range, XSD.dateTimeStamp)), key=str)
+    checked = 0
+    for prop in props:
+        for s, value in ex.subject_objects(prop):
+            checked += 1
+            if not isinstance(value, Literal) or not TIMEZONED.search(str(value)):
+                fail(f"{prop} on {s} has no timezone offset: {value!r}")
+    coverage("timestamp offsets", checked,
+             f"value(s) of {len(props)} xsd:dateTimeStamp propert(ies) checked for an offset",
+             "no property is ranged xsd:dateTimeStamp, or no example states a time")
+
+
 @check(takes=("schema",), population="example-files",
        reason="re-parses the example files itself, not the graph handed to it")
 def check_declared_properties(g: Graph) -> None:
@@ -1713,24 +1803,30 @@ def check_defined_terms(ex: Graph) -> None:
              "the examples reference no example individual, so nothing was resolved")
 
 
-@check(takes=("schema",), population="schema", reason="its population is the minted terms")
-def check_documentation(g: Graph) -> None:
-    """Every minted class, property and datatype carries rdfs:label and skos:definition.
-
-    A scopeNote used to count as a definition and this was advisory. Both the module
-    docstring and CLAUDE.md promise this fails, so it fails: a scope note says
-    "why here, not there", which is not a statement of what the term means.
-    """
-    terms = minted_classes(g) + sorted(
+def minted_terms(g: Graph) -> list:
+    """Minted classes, then every other declared term in our namespaces, individuals included."""
+    return minted_classes(g) + sorted(
         {
             s
             for t in (OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty,
-                      RDFS.Datatype)
+                      RDFS.Datatype, OWL.NamedIndividual)
             for s in g.subjects(RDF.type, t)
             if is_ours(s)
         },
         key=str,
     )
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted terms")
+def check_documentation(g: Graph) -> None:
+    """Every minted class, property, datatype and individual carries rdfs:label and skos:definition.
+
+    A scopeNote used to count as a definition and this was advisory. Both the module
+    docstring and CLAUDE.md promise this fails, so it fails: a scope note says
+    "why here, not there", which is not a statement of what the term means.
+    Individuals were outside it until FM-0016, and three had no definition.
+    """
+    terms = minted_terms(g)
     for term in terms:
         if not any(g.objects(term, RDFS.label)):
             fail(f"no rdfs:label: {term}")
@@ -1738,6 +1834,54 @@ def check_documentation(g: Graph) -> None:
             fail(f"no skos:definition: {term}")
     coverage("documentation", len(terms), "minted term(s) checked for label and definition",
              "no minted terms found -- the namespaces in registry.py no longer match src/",
+             always=True)
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted terms")
+def check_label_uniqueness(g: Graph) -> None:
+    """No two minted terms share a label, and no altLabel is another term's label.
+
+    ksh:SettlementSource and ksh:settlementSource were both "settlement source", which
+    the map's search and any label lookup cannot tell apart. Case-insensitive, because
+    the pair differed only in the IRI's case.
+    """
+    terms = minted_terms(g)
+    owner: dict[str, list] = {}
+    for term in terms:
+        for label in g.objects(term, RDFS.label):
+            owner.setdefault(str(label).casefold(), []).append(term)
+    for label, holders in sorted(owner.items()):
+        if len(set(holders)) > 1:
+            fail(f"label shared by {len(set(holders))} terms: {label!r} "
+                 f"({', '.join(sorted(str(h) for h in set(holders)))})")
+    alts = 0
+    for term in terms:
+        for alt in g.objects(term, SKOS.altLabel):
+            alts += 1
+            others = [h for h in owner.get(str(alt).casefold(), []) if h != term]
+            if others:
+                fail(f"altLabel {str(alt)!r} on {term} is the label of {others[0]}")
+    coverage("label uniqueness", len(terms), "minted term(s) checked for a label no other shares",
+             "no minted terms found -- the namespaces in registry.py no longer match src/",
+             always=True)
+    coverage("altLabel collisions", alts, "altLabel(s) checked against other terms' labels",
+             "no skos:altLabel on any minted term -- if that is intended, drop this half",
+             always=True)
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted classes")
+def check_subclass_cycles(g: Graph) -> None:
+    """No minted class is its own ancestor.
+
+    HermiT does not reject a cycle: it infers every class on it equivalent, and
+    reasons on without complaint.
+    """
+    our_classes = minted_classes(g)
+    for cls in our_classes:
+        if cls in ancestors(g, cls):
+            fail(f"subclass cycle: {cls} is its own ancestor")
+    coverage("subclass cycles", len(our_classes), "minted class(es) checked for a cycle",
+             "no minted classes found -- the namespaces in registry.py no longer match src/",
              always=True)
 
 

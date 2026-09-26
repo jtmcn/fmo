@@ -2,13 +2,14 @@
 """Negative tests for the axioms that only a reasoner enforces.
 
 scripts/validate.py is deliberately Java-free, so the guards whose whole job is to turn
-a mistake into a HermiT rejection have no coverage there. One case per guard, eight in
-all: the owl:AllDifferent blocks in core.ttl over the units and over the truth values,
-the irreflexivity of wx:alternativeDeterminationOf, the disjointness of the two contract
+a mistake into a HermiT rejection have no coverage there. At least one case per guard:
+the owl:AllDifferent blocks in core.ttl over the units and over the truth values, the
+irreflexivity of wx:alternativeDeterminationOf, the disjointness of the two contract
 sides, the cardinality restriction on ksh:Payout, the facet on fm:probabilityValue, the
-AllDisjointClasses block over the designation vocabularies, and the union axiom that
-makes ksh:BinaryContract a partition. Each case injects the mistake its guard exists for
-and asserts ROBOT rejects the result.
+AllDisjointClasses blocks over the designation vocabularies, the three depths and the
+Listing tiers, the disjointness of the two probability classes, and the union axiom
+that makes ksh:BinaryContract a partition. Each case injects the mistake its guard
+exists for and asserts ROBOT rejects the result.
 
 A guard can be violated in two shapes and the reasoner reports them differently. Bad data
 makes the ontology *inconsistent*; a bad class definition with no individuals leaves it
@@ -40,6 +41,7 @@ from reasoner import ReasonerBroken, robot_command  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
+EXPORT = "examples/export/thermaledge-kxhighaus-2026-08-22.ttl"
 
 # (name, path-to-mutate, find, replace), then optionally the substrings the reasoner's
 # report must contain -- defaulting to "inconsistent", the shape a data mistake takes --
@@ -182,6 +184,53 @@ ksh:TraderRole a owl:Class ;""",
     rdfs:subClassOf bfo:BFO_0000019 ;   # quality
     rdfs:subClassOf wx:SnowDepth ;""",
         "unsatisfiable",
+    ),
+    (
+        # FM-0012: README decision 1 keeps the Listing tiers apart. One case per
+        # pair, since AllDisjointClasses answering for one pair says nothing of the rest.
+        "a series also typed as an event grouping",
+        EXAMPLE,
+        "ex:KXHIGHNY a ksh:Series ;",
+        "ex:KXHIGHNY a ksh:Series , ksh:EventGrouping ;",
+    ),
+    (
+        "an event grouping also typed as a market",
+        EXAMPLE,
+        "ex:KXHIGHNY-26AUG15 a ksh:EventGrouping ;",
+        "ex:KXHIGHNY-26AUG15 a ksh:EventGrouping , ksh:Market ;",
+    ),
+    (
+        "a series also typed as a market",
+        EXAMPLE,
+        "ex:KXHIGHNY a ksh:Series ;",
+        "ex:KXHIGHNY a ksh:Series , ksh:Market ;",
+    ),
+    (
+        # CQ2 subtracts a market-implied probability from a forecast one; an
+        # assignment typed as both makes its own gap zero.
+        "a forecast probability also typed as market implied",
+        EXAMPLE,
+        "ex:ForecastProb-82-83 a fm:ForecastProbability ;",
+        "ex:ForecastProb-82-83 a fm:ForecastProbability , fm:MarketImpliedProbability ;",
+    ),
+    (
+        # FM-0013: the export fixture is reasoned on its own, so this reasons over
+        # the modules and the export alone -- the examples would answer for nothing.
+        "an exported market also typed as an event grouping",
+        EXPORT,
+        "    a ksh:WeatherMarket ;",
+        "    a ksh:WeatherMarket , ksh:EventGrouping ;",
+        "inconsistent",
+        ("src/fmo.ttl", EXPORT),
+    ),
+    (
+        # FM-0014: the time properties range over xsd:dateTimeStamp, so a value
+        # with no offset -- a climatological-day boundary that moved by hours
+        # without saying so -- is outside the range.
+        "a climatological-day boundary with no timezone offset",
+        EXAMPLE,
+        '"2026-08-15T01:00:00-04:00"^^xsd:dateTime',
+        '"2026-08-15T01:00:00"^^xsd:dateTime',
     ),
 ]
 
