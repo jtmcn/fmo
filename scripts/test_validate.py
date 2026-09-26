@@ -2293,6 +2293,12 @@ def main() -> int:
             else "scripts/validate_shapes.py --examples"))
         for case in SHAPES_CASES
     ]
+    with tempfile.TemporaryDirectory() as tmp:
+        work = copy_tree(tmp)
+        (work / "untyped.ttl").write_text("<urn:x:a> <urn:x:p> <urn:x:b> .\n", encoding="utf-8")
+        results.append(expect_failure(
+            work, "scripts/validate_shapes.py untyped.ttl",
+            "an export with nothing for the crossing guard to check", "crossing guard checked nothing"))
 
     print("\n  -- competency questions --")
     results += [

@@ -104,7 +104,11 @@ def check(shapes_path: Path, data_paths: list[Path]) -> int:
 
     # rdfs inference below adds whatever types the domains and ranges imply, so
     # refuse the ones that cross the BFO branch line before SHACL sees them.
-    _uses, crossings = domain_range_crossings(schema, data)
+    uses, crossings = domain_range_crossings(schema, data)
+    if data_paths and not uses:
+        print("domain/range typing: no data triple has a domain or range to check, "
+              "so the crossing guard checked nothing")
+        return 1
     if crossings:
         for message in crossings:
             print(f"domain/range typing: {message}")
