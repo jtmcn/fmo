@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.16.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.17.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -20,7 +20,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.16.0" ;
+    owl:versionInfo "0.17.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -587,17 +587,17 @@ ksh:payoutAmountCents a owl:DatatypeProperty ; rdfs:label "payout amount cents" 
     skos:definition "The sum in cents transferred to the holder by the payout." ;
     skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived so that scripts/validate.py has two independent statements to compare; see check_payouts." .
 
-ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant from which orders are accepted in the market." .
-ksh:closeTime a owl:DatatypeProperty ; rdfs:label "close time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+ksh:closeTime a owl:DatatypeProperty ; rdfs:label "close time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant after which no further orders are matched in the market." .
-ksh:expectedExpirationTime a owl:DatatypeProperty ; rdfs:label "expected expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+ksh:expectedExpirationTime a owl:DatatypeProperty ; rdfs:label "expected expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant by which the market's outcome is expected to become known, being the point by which its settlement source is expected to have published." ;
     skos:scopeNote """Distinct from close time: a daily temperature market closes at the end of the
 climatological day but its outcome is not known until the settlement source publishes,
 some hours later. A forecast, not a commitment — the exchange may determine
 the market later, and ksh:latestExpirationTime is the bound.""" .
-ksh:latestExpirationTime a owl:DatatypeProperty ; rdfs:label "latest expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTime ;
+ksh:latestExpirationTime a owl:DatatypeProperty ; rdfs:label "latest expiration time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant after which the market can no longer resolve." ;
     skos:scopeNote """Through 0.6.0 a single ksh:expirationTime fused these two: it was defined as the instant
 after which the market can no longer resolve, which is this property, but described as the

@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.16.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.17.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ;
     dcterms:title "FMO Core: information, propositions, and probability" ;
@@ -26,7 +26,7 @@ import it. That is a settled decision, not a deferral: IAO's value here would ha
 standard IRIs for downstream consumers, and there are none. See docs/design-notes.md for
 the comparison. BFO is the sole upstream dependency.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.16.0" .
+    owl:versionInfo "0.17.0" .
 
 ################################################################
 # Information content entities
@@ -542,17 +542,17 @@ fm:statedAs a owl:DatatypeProperty ;
 
 fm:referenceTime a owl:DatatypeProperty ;
     rdfs:label "reference time" ;
-    rdfs:range xsd:dateTime ;
+    rdfs:range xsd:dateTimeStamp ;
     skos:definition "The instant as of which an information content entity's content is asserted to hold." ;
     a owl:FunctionalProperty .
 
 fm:instantDateTime a owl:DatatypeProperty ;
     rdfs:label "instant date time" ;
     rdfs:domain bfo:BFO_0000203 ;   # temporal instant
-    rdfs:range xsd:dateTime ;
+    rdfs:range xsd:dateTimeStamp ;
     a owl:FunctionalProperty ;
     skos:definition "Locates a temporal instant on a calendar and clock." ;
-    skos:scopeNote "Always record the offset. Half of the settlement subtleties in this domain are timezone boundaries." .
+    skos:scopeNote "The range is xsd:dateTimeStamp, so a value without an offset is refused. Half of the settlement subtleties in this domain are timezone boundaries." .
 
 fm:identifier a owl:DatatypeProperty ;
     rdfs:label "identifier" ;

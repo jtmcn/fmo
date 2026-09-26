@@ -223,6 +223,15 @@ ksh:TraderRole a owl:Class ;""",
         "inconsistent",
         ("src/fmo.ttl", EXPORT),
     ),
+    (
+        # FM-0014: the time properties range over xsd:dateTimeStamp, so a value
+        # with no offset -- a climatological-day boundary that moved by hours
+        # without saying so -- is outside the range.
+        "a climatological-day boundary with no timezone offset",
+        EXAMPLE,
+        '"2026-08-15T01:00:00-04:00"^^xsd:dateTime',
+        '"2026-08-15T01:00:00"^^xsd:dateTime',
+    ),
 ]
 
 

@@ -89,7 +89,7 @@ from typing import NamedTuple
 
 from rdflib import Graph, RDF, RDFS, OWL, URIRef, Literal
 from rdflib.term import Node
-from rdflib.namespace import SKOS
+from rdflib.namespace import SKOS, XSD
 
 BFO = "http://purl.obolibrary.org/obo/"
 ENTITY = URIRef(BFO + "BFO_0000001")
@@ -1688,6 +1688,31 @@ def check_domain_range_typing(g: Graph, ex: Graph) -> None:
              "property use(s) checked for a type across the continuant/occurrent line",
              "no typed node is the subject of a domain-bearing property or the object of "
              "a range-bearing one")
+
+
+TIMEZONED = re.compile(r"(Z|[+-]\d{2}:\d{2})$")
+
+
+@check(takes=("data",))
+def check_timestamp_offsets(ex: Graph) -> None:
+    """Every value of a property ranged xsd:dateTimeStamp carries a timezone offset (FM-0014).
+
+    The range makes HermiT refuse an offset-less value, but the reasoner is optional
+    and this is not. Climatological-day boundaries are local standard time, so a
+    missing offset moves one by hours; and XSD orders an offset-less value only
+    partially against one with an offset. The properties are read off the schema, so
+    a new time property is covered by declaring its range.
+    """
+    props = sorted(set(ex.subjects(RDFS.range, XSD.dateTimeStamp)), key=str)
+    checked = 0
+    for prop in props:
+        for s, value in ex.subject_objects(prop):
+            checked += 1
+            if not isinstance(value, Literal) or not TIMEZONED.search(str(value)):
+                fail(f"{prop} on {s} has no timezone offset: {value!r}")
+    coverage("timestamp offsets", checked,
+             f"value(s) of {len(props)} xsd:dateTimeStamp propert(ies) checked for an offset",
+             "no property is ranged xsd:dateTimeStamp, or no example states a time")
 
 
 @check(takes=("schema",), population="example-files",

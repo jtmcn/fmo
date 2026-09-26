@@ -6,7 +6,7 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.16.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.17.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
 each designation carries its API code, checked against that enumeration by `make shapes`.
@@ -253,7 +253,9 @@ mistake into a HermiT inconsistency instead of a wrong answer; the guard is veri
 `rdfs:subClassOf`, that bridged external classes are grounded too, that nothing is both
 continuant and occurrent, that examples use only declared properties and reference only
 individuals that exist, that a forecast scores the same target the market settles on, unit
-coherence, and documentation coverage. Stored derived values are checked against what they are
+coherence, and documentation coverage. Every value of a time property carries a timezone offset:
+they range over `xsd:dateTimeStamp`, which HermiT enforces and `validate.py` checks without it,
+because a climatological-day boundary without an offset moves by hours. Stored derived values are checked against what they are
 derived from: `wx:leadTimeHours` against issuance and interval start, and a `fm:SkillScore`
 under `fm:BrierScore` against the probability it scores and the outcome it was scored against. A
 score resting on a superseded record fails — scoring against a retracted value is the specific
