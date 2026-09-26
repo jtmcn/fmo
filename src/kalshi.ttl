@@ -23,8 +23,9 @@ source. Weather markets are the motivating case, so this module also carries the
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     owl:versionInfo "0.19.0" ;
-    skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
-API and the published reference on 2026-08-17. That check corrected the market status
+    skos:scopeNote """Field names and enumerations mirror the Kalshi trading API. Enumerations were checked
+against the live API and the published reference on 2026-08-17, field names against Trade
+API 3.31.0 on 2026-09-25. The first check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
 contract quantities; see the scope notes on those terms.""" .
 
@@ -721,12 +722,8 @@ ksh:settlementValue a owl:DatatypeProperty ;
 ################################################################
 # API field names
 #
-# The Kalshi API field each property is read from, checked against Trade API 3.31.0 on
-# 2026-09-25 by shapes/vocabulary.ttl. Unmapped on purpose: ksh:limitPriceDollars (the
-# order's price field depends on its direction, see FM-0019), ksh:restingQuantity (order
-# book levels are unnamed arrays), ksh:payoutAmountCents (see its scope note). `side` and
-# `action` are deprecated in favour of `outcome_side`; FM-0019 decides the migration.
-# ksh:settlementValue is `expiration_value`: `settlement_value_dollars` is a payout.
+# Checked against Trade API 3.31.0 by shapes/vocabulary.ttl. FM-0015 lists what is
+# unmapped on purpose and why; FM-0019 owns the deprecated `side` and `action`.
 ################################################################
 
 ksh:marketTicker           skos:notation "ticker"^^ksh:MarketFieldName .

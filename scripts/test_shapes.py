@@ -156,15 +156,14 @@ def vocabulary_checks() -> tuple[int, list[str]]:
         else:
             failures.append(f"{label} matches no focus node in the modules, so it conforms vacuously")
 
-    # 2. The enumeration is written twice; the two copies must agree. Codes only: a
-    # documented field list is closed, but not every field is mirrored, so field
-    # names (typed *FieldName) are never required to be carried.
+    # 2. The enumeration is written twice; the two copies must agree. Field names are
+    # excluded, since not every field is mirrored; anything else counts as a code.
     listed = {
         item
         for prop in shapes.subjects(SH.path, SKOS.notation)
         for items in shapes.objects(prop, SH["in"])
         for item in shapes.items(items)
-        if isinstance(item, Literal) and str(item.datatype).endswith("Code")
+        if not (isinstance(item, Literal) and str(item.datatype).endswith("FieldName"))
     }
     carried = set(shapes.objects(VOC.DocumentedCodesCarriedShape, SH.targetNode))
     checked += 1
