@@ -12,7 +12,7 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.15.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.16.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -20,7 +20,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.15.0" ;
+    owl:versionInfo "0.16.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API, checked against the live
 API and the published reference on 2026-08-17. That check corrected the market status
 enumeration, added the scalar resolution outcome, and reopened the typing of prices and
@@ -42,7 +42,8 @@ ksh:DesignatedContractMarket a owl:Class ;
     skos:example "Kalshi, as a CFTC-designated contract market." .
 
 ksh:Kalshi a ksh:DesignatedContractMarket, owl:NamedIndividual ;
-    rdfs:label "Kalshi" .
+    rdfs:label "Kalshi" ;
+    skos:definition "The CFTC-designated contract market that lists the weather markets this ontology models." .
 
 ################################################################
 # Listings
@@ -112,7 +113,7 @@ ksh:SettlementSource a owl:Class ;
     rdfs:subClassOf fm:InformationContentEntity ;
     rdfs:label "settlement source" ;
     skos:definition "An information content entity designating the publication that an exchange consults, to the exclusion of others, to determine the truth value of a market's proposition." ;
-    skos:example "The Weather Company daily temperature record for the relevant station of record, which Kalshi adopted for its daily temperature series on 2026-08-14 in place of the NWS Climatological Report (Daily)." ;
+    skos:example "The Weather Company daily temperature report for the relevant observing site, which Kalshi adopted for its daily temperature series on 2026-08-14 in place of the NWS Climatological Report (Daily)." ;
     skos:scopeNote """Designating the source is what makes a market's proposition determinate. Two markets with
 identical wording but different settlement sources express different propositions. Not a
 hypothetical: Kalshi's daily temperature series moved from the NWS to The Weather Company on
@@ -401,7 +402,8 @@ ksh:expressesProposition a owl:ObjectProperty ;
     rdfs:label "expresses proposition" ;
     rdfs:domain ksh:Market ; rdfs:range fm:Proposition ;
     a owl:FunctionalProperty ;
-    skos:definition "Relates a market to the proposition whose truth value determines which of its contracts pay out. The join point between this module and the weather module." .
+    skos:definition "Relates a market to the proposition whose truth value determines which of its contracts pay out." ;
+    skos:scopeNote "The join point between this module and the weather module." .
 
 ksh:coversTarget a owl:ObjectProperty ;
     rdfs:label "covers target" ;
@@ -409,7 +411,7 @@ ksh:coversTarget a owl:ObjectProperty ;
     skos:definition "Relates an event grouping to the observation target whose possible values its markets range over." .
 
 ksh:settlementSource a owl:ObjectProperty ;
-    rdfs:label "settlement source" ;
+    rdfs:label "has settlement source" ;
     rdfs:range ksh:SettlementSource ;
     skos:definition "Relates a listing to the settlement source that will be consulted to determine the truth value of its proposition." .
 

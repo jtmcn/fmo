@@ -1713,24 +1713,30 @@ def check_defined_terms(ex: Graph) -> None:
              "the examples reference no example individual, so nothing was resolved")
 
 
-@check(takes=("schema",), population="schema", reason="its population is the minted terms")
-def check_documentation(g: Graph) -> None:
-    """Every minted class, property and datatype carries rdfs:label and skos:definition.
-
-    A scopeNote used to count as a definition and this was advisory. Both the module
-    docstring and CLAUDE.md promise this fails, so it fails: a scope note says
-    "why here, not there", which is not a statement of what the term means.
-    """
-    terms = minted_classes(g) + sorted(
+def minted_terms(g: Graph) -> list:
+    """Minted classes, then every other declared term in our namespaces, individuals included."""
+    return minted_classes(g) + sorted(
         {
             s
             for t in (OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty,
-                      RDFS.Datatype)
+                      RDFS.Datatype, OWL.NamedIndividual)
             for s in g.subjects(RDF.type, t)
             if is_ours(s)
         },
         key=str,
     )
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted terms")
+def check_documentation(g: Graph) -> None:
+    """Every minted class, property, datatype and individual carries rdfs:label and skos:definition.
+
+    A scopeNote used to count as a definition and this was advisory. Both the module
+    docstring and CLAUDE.md promise this fails, so it fails: a scope note says
+    "why here, not there", which is not a statement of what the term means.
+    Individuals were outside it until FM-0016, and three had no definition.
+    """
+    terms = minted_terms(g)
     for term in terms:
         if not any(g.objects(term, RDFS.label)):
             fail(f"no rdfs:label: {term}")
@@ -1738,6 +1744,54 @@ def check_documentation(g: Graph) -> None:
             fail(f"no skos:definition: {term}")
     coverage("documentation", len(terms), "minted term(s) checked for label and definition",
              "no minted terms found -- the namespaces in registry.py no longer match src/",
+             always=True)
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted terms")
+def check_label_uniqueness(g: Graph) -> None:
+    """No two minted terms share a label, and no altLabel is another term's label.
+
+    ksh:SettlementSource and ksh:settlementSource were both "settlement source", which
+    the map's search and any label lookup cannot tell apart. Case-insensitive, because
+    the pair differed only in the IRI's case.
+    """
+    terms = minted_terms(g)
+    owner: dict[str, list] = {}
+    for term in terms:
+        for label in g.objects(term, RDFS.label):
+            owner.setdefault(str(label).casefold(), []).append(term)
+    for label, holders in sorted(owner.items()):
+        if len(set(holders)) > 1:
+            fail(f"label shared by {len(set(holders))} terms: {label!r} "
+                 f"({', '.join(sorted(str(h) for h in set(holders)))})")
+    alts = 0
+    for term in terms:
+        for alt in g.objects(term, SKOS.altLabel):
+            alts += 1
+            others = [h for h in owner.get(str(alt).casefold(), []) if h != term]
+            if others:
+                fail(f"altLabel {str(alt)!r} on {term} is the label of {others[0]}")
+    coverage("label uniqueness", len(terms), "minted term(s) checked for a label no other shares",
+             "no minted terms found -- the namespaces in registry.py no longer match src/",
+             always=True)
+    coverage("altLabel collisions", alts, "altLabel(s) checked against other terms' labels",
+             "no skos:altLabel on any minted term -- if that is intended, drop this half",
+             always=True)
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted classes")
+def check_subclass_cycles(g: Graph) -> None:
+    """No minted class is its own ancestor.
+
+    HermiT does not reject a cycle: it infers every class on it equivalent, and
+    reasons on without complaint.
+    """
+    our_classes = minted_classes(g)
+    for cls in our_classes:
+        if cls in ancestors(g, cls):
+            fail(f"subclass cycle: {cls} is its own ancestor")
+    coverage("subclass cycles", len(our_classes), "minted class(es) checked for a cycle",
+             "no minted classes found -- the namespaces in registry.py no longer match src/",
              always=True)
 
 
