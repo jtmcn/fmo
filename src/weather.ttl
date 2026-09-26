@@ -13,8 +13,8 @@
 
 <https://w3id.org/forecast-market-ontology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.19.0> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/weather/0.18.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.20.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/weather/0.19.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> ;
     dcterms:title "FMO Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -22,7 +22,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.19.0" .
+    owl:versionInfo "0.20.0" .
 
 ################################################################
 # Material entities
@@ -192,7 +192,8 @@ wx:PrecipitationProcess a owl:Class ;
     rdfs:subClassOf wx:MeteorologicalProcess ;
     rdfs:label "precipitation process" ;
     skos:definition "A meteorological process in which condensed water falls from the atmosphere to a surface, having as output a portion of precipitate." ;
-    skos:scopeNote "\"Rain\" is ambiguous between this process and the portion of precipitate it produces. The ambiguity does not survive contact with a settlement rule: Kalshi lists \"will it rain\" as a threshold of strictly greater than zero inches, so both that market and an inches market are about a quality of the output, and neither is about this process. See examples/kxrainnyc-2026-07-15.ttl: the process has as output a portion of precipitate, the depth inheres in that portion, and the observation datum is fm:isAbout the depth -- the proposition still points at the target, not any of this." .
+    skos:scopeNote "\"Rain\" is ambiguous between this process and the portion of precipitate it produces. The ambiguity does not survive contact with a settlement rule: Kalshi lists \"will it rain\" as a threshold of strictly greater than zero inches, so both that market and an inches market are about a quality of the output, and neither is about this process. The process has as output a portion of precipitate, the depth inheres in that portion, and the observation datum is fm:isAbout the depth -- the proposition still points at the target, not any of this." ;
+    skos:editorialNote "Worked in examples/kxrainnyc-2026-07-15.ttl." .
 
 wx:Rainfall a owl:Class ; rdfs:subClassOf wx:PrecipitationProcess ; rdfs:label "rainfall" ;
     skos:definition "A precipitation process in which the condensed water reaching the surface is liquid." .
@@ -216,7 +217,8 @@ wx:TropicalCyclone a owl:Class ;
 does, not a thing the atmosphere contains: it has temporal parts, it has a beginning and an
 end, and no persisting portion of air composes it throughout. The named storm ('Hurricane
 Ida') is the process; its track is the spatiotemporal region it occupies. This is a
-long-standing test case for BFO and the classification is contested; see docs/design-notes.md.""" .
+long-standing test case for BFO and the classification is contested.""" ;
+    skos:editorialNote "The argument is in docs/design-notes.md." .
 
 wx:NamedStormDesignation a owl:Class ;
     rdfs:subClassOf fm:InformationContentEntity ;
@@ -522,13 +524,13 @@ wx:leadTimeHours a owl:DatatypeProperty ;
     a owl:FunctionalProperty ;
     skos:definition "Hours from the issuance of a forecast to the first instant of the temporal interval its observation target covers." ;
     skos:scopeNote """Derived, and stored anyway because grouping by it is the whole point of
-verification and recomputing it inside every query is worse. scripts/validate.py checks the
-stored value against the issuance time and the interval's first instant, so it cannot go stale
-unnoticed.
+verification and recomputing it inside every query is worse. The stored value is checked
+against the issuance time and the interval's first instant, so it cannot go stale unnoticed.
 
 MAY BE NEGATIVE. A forecast issued during the period it covers -- a same-day update to a daily
 maximum, which is routine -- has a negative lead time. That is meaningful rather than an error,
-and such forecasts must not be pooled with genuinely ahead-of-time ones.""" .
+and such forecasts must not be pooled with genuinely ahead-of-time ones.""" ;
+    skos:editorialNote "check_lead_times in scripts/validate.py does the check." .
 
 wx:issuanceTime a owl:DatatypeProperty ;
     rdfs:label "issuance time" ;

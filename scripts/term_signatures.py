@@ -168,6 +168,31 @@ def field_name_mutant(sigs: dict[str, dict]) -> str | None:
                                           for t in (OWL.ObjectProperty, OWL.DatatypeProperty)))
 
 
+def scope_note_mutant(sigs: dict[str, dict]) -> str | None:
+    """Reword one scope note; that term's semantics must move (FM-0017)."""
+    return _remap_mutant(sigs, SKOS.scopeNote, "scope note",
+                         lambda n: Literal(f"{n} Reworded."))
+
+
+def editorial_note_mutant(sigs: dict[str, dict]) -> str | None:
+    """Reword one editorial note; no digest may move. Repo pointers live there so that
+    renaming a check does not tell a consumer a term's meaning changed (FM-0017)."""
+    g = minted_graph()
+    notes = sorted((s, o) for s, o in g.subject_objects(SKOS.editorialNote)
+                   if isinstance(s, URIRef) and str(s).startswith(OUR_NS))
+    if not notes:
+        return "no term carries a skos:editorialNote, so the editorial mutant tested nothing"
+    subject, value = notes[0]
+    g.remove((subject, SKOS.editorialNote, value))
+    g.add((subject, SKOS.editorialNote, Literal(f"{value} Reworded.")))
+    mutated = signatures(g)
+    moved = sorted(k for k in sigs if sigs[k] != mutated[k])
+    if moved:
+        return (f"rewording {axioms.curie(g, subject)}'s editorial note moved the signatures "
+                f"of {moved}; editorial notes must stay outside the digest")
+    return None
+
+
 def cf_name_mutant(sigs: dict[str, dict]) -> str | None:
     """Remap one CF standard name."""
     return _remap_mutant(sigs, SKOS.closeMatch, "CF mapping",
@@ -196,7 +221,8 @@ def main() -> int:
         if not sigs:
             print("FAIL: no terms signed, so this check verified nothing", file=sys.stderr)
             return 1
-        for mutant in (notation_mutant, field_name_mutant, cf_name_mutant, cell_methods_mutant):
+        for mutant in (notation_mutant, field_name_mutant, scope_note_mutant,
+                       editorial_note_mutant, cf_name_mutant, cell_methods_mutant):
             moved = mutant(sigs)
             if moved is not None:
                 print(f"FAIL: {moved}", file=sys.stderr)

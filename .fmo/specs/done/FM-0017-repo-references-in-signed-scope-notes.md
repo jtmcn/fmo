@@ -20,16 +20,17 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       No skos:scopeNote names a file under scripts/, examples/ or queries/, a
       check_ function, a make target, or a CQ number; those references live in
       skos:editorialNote.
-    witness: a new registered check in scripts/validate.py, with a negative test in scripts/test_validate.py
+    witness: check_note_kinds in scripts/validate.py, with four negative tests in scripts/test_validate.py
   - claim: >-
       Editing a skos:editorialNote does not move semantics_sha256; editing a
       skos:scopeNote still does.
-    witness: scripts/term_signatures.py --check, with a mutant for each
+    witness: scripts/term_signatures.py --check, scope_note_mutant and editorial_note_mutant
 ---
 
 ## Context
@@ -74,3 +75,33 @@ Rewriting the domain content of those notes. Only the repo references move.
   domain, editorial notes for the repo.
 
 ## Comments
+
+**2026-09-25 — resolved in 0.20.0.** Nine terms, not the eight listed above.
+`wx:TropicalCyclone` cited `docs/design-notes.md`, which the pattern list here
+did not cover.
+
+**What moved.** Each note was split: the domain sentences stayed in
+`skos:scopeNote`, reworded where they had leaned on the reference ("the stored
+value is checked against…"), and the pointer moved to a `skos:editorialNote`
+naming the specific check, such as `check_lead_times` or `check_protocols`.
+
+**`check_note_kinds`.** It refuses a scope note that cites:
+- a path under `src/`, `scripts/`, `queries/`, `shapes/`, `docs/` or
+  `examples/`;
+- a `check_` name;
+- a CQ number;
+- a make target, counted only when the Makefile defines it, so
+  `fm:SkillScore`'s "make it" passes, as the baseline proves.
+
+It also goes one step past the spec: every path and check name an editorial
+note gives must exist. Editorial notes are outside the digest, so nothing else
+would notice one rot. There are six negative tests, one per scope-note pattern
+and one per resolution failure.
+
+**`term_signatures.py --check`** gains `scope_note_mutant` (that term's
+semantics moves, and nothing else) and `editorial_note_mutant` (no digest
+moves).
+
+**Digest churn for ThermalEdge.** `semantics_sha256` moves on the nine terms
+whose scope notes were reworded. That is the last time a repo rename can move
+one.

@@ -12,9 +12,8 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.19.0> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;
-    owl:incompatibleWith <https://w3id.org/forecast-market-ontology/kalshi/0.18.0> ;   # FM-0015 renamed five price properties
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.20.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.19.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -22,7 +21,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.19.0" ;
+    owl:versionInfo "0.20.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API. Enumerations were checked
 against the live API and the published reference on 2026-08-17, field names against Trade
 API 3.31.0 on 2026-09-25. The first check corrected the market status
@@ -147,8 +146,8 @@ ksh:YesContract a owl:Class ;
     owl:disjointWith ksh:NoContract ;
     skos:definition "A binary contract that pays its holder if the market's proposition is true." ;
     skos:scopeNote """Disjoint from ksh:NoContract because the asserted class is where a lot's side lives:
-scripts/validate.py reads the paying side off it and CQ8 binds ?side from it. A lot typed
-both would let a payout pay the losing side with every check green.""" .
+the paying side is read off it. A lot typed both would let a payout pay the losing side.""" ;
+    skos:editorialNote "scripts/validate.py reads the paying side off the asserted class and CQ8 binds ?side from it, so a lot typed both would pass every check." .
 
 ksh:NoContract a owl:Class ;
     rdfs:subClassOf ksh:BinaryContract ; rdfs:label "no contract" ;
@@ -258,10 +257,11 @@ ksh:Payout a owl:Class ;
     skos:definition "A process in which an exchange transfers funds to the holder of one lot of contracts determined to pay out by a market settlement, realizing that holder's contract holder obligation." ;
     rdfs:subClassOf [ a owl:Restriction ; owl:onProperty fm:hasInput ;
         owl:maxQualifiedCardinality "1"^^xsd:nonNegativeInteger ; owl:onClass ksh:BinaryContract ] ;
-    skos:scopeNote """One lot per payout, not one per market: scripts/validate.py checks the amount against
-that lot's quantity, which means nothing summed over several, and the obligation realized is
+    skos:scopeNote """One lot per payout, not one per market: the amount is checked against that lot's
+quantity, which means nothing summed over several, and the obligation realized is
 one holder's. With ksh:YesContract disjoint from ksh:NoContract, two lots on opposite sides
-is a HermiT inconsistency rather than an unchecked amount.""" .
+is a HermiT inconsistency rather than an unchecked amount.""" ;
+    skos:editorialNote "check_payouts in scripts/validate.py checks the amount against the lot's quantity." .
 
 ksh:Resolution a owl:Class ;
     rdfs:subClassOf fm:InformationContentEntity ;
@@ -490,8 +490,9 @@ ksh:sourceProtocol a owl:ObjectProperty ;
 one fact: which publication the exchange consults, and how the value it publishes is
 determined. Nothing stopped them disagreeing, so a market could settle on The Weather
 Company while its proposition named an NWS-determined target -- the 2026-08-14 migration
-as a modelling error rather than a data one. Asserting this is what lets scripts/validate.py
-compare the two.""" .
+as a modelling error rather than a data one. Asserting this is what makes the two
+comparable.""" ;
+    skos:editorialNote "check_protocols in scripts/validate.py compares them." .
 
 ksh:hasRules a owl:ObjectProperty ;
     rdfs:subPropertyOf fm:governedBy ;
@@ -653,7 +654,8 @@ ksh:positionQuantity a owl:DatatypeProperty ; rdfs:label "position quantity" ; r
 
 ksh:payoutAmountCents a owl:DatatypeProperty ; rdfs:label "payout amount cents" ; rdfs:domain ksh:Payout ; rdfs:range xsd:decimal ;
     skos:definition "The sum in cents transferred to the holder by the payout." ;
-    skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived so that scripts/validate.py has two independent statements to compare; see check_payouts." ;
+    skos:scopeNote "One hundred cents per contract on the side the resolution determined, and nothing on the other. Stored rather than derived, so that the amount and the lot's quantity are two independent statements that can be compared." ;
+    skos:editorialNote "check_payouts in scripts/validate.py compares them." ;
     skos:scopeNote "No API field is this. Settlement `revenue` is in cents too, but it sums every lot the holder had in the market, where a payout here pays one lot." .
 
 ksh:openTime a owl:DatatypeProperty ; rdfs:label "open time" ; rdfs:domain ksh:Market ; rdfs:range xsd:dateTimeStamp ;

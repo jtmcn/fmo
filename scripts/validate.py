@@ -1869,6 +1869,47 @@ def check_label_uniqueness(g: Graph) -> None:
              always=True)
 
 
+NOTE_PATH = re.compile(r"\b((?:src|scripts|queries|shapes|docs|examples)/[\w./-]*\w)")
+NOTE_CHECK = re.compile(r"\b(check_[a-z_]+)\b")
+NOTE_CQ = re.compile(r"\bCQ\d+\b")
+NOTE_MAKE = re.compile(r"\bmake ([a-z][a-z-]*)\b")
+
+
+@check(takes=("schema",), population="schema", reason="its population is the minted terms' notes")
+def check_note_kinds(g: Graph) -> None:
+    """Scope notes speak about the domain; references to the repo go in editorial notes (FM-0017).
+
+    semantics_sha256 digests every scope note, so a note citing scripts/validate.py
+    told a consumer the term's meaning moved whenever a check was renamed. Editorial
+    notes are outside the digest, and what they name must exist, or they rot unseen.
+    A make target counts only when the Makefile defines it: "make it" is English.
+    """
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    targets = set(re.findall(r"^([a-z][a-z-]*):", makefile, re.M))
+    scope = [(s, str(o)) for s, o in g.subject_objects(SKOS.scopeNote) if is_ours(s)]
+    for term, note in sorted(scope):
+        cited = (NOTE_PATH.findall(note) + NOTE_CHECK.findall(note) + NOTE_CQ.findall(note)
+                 + [f"make {t}" for t in NOTE_MAKE.findall(note) if t in targets])
+        if cited:
+            fail(f"scope note on {term} cites the repo ({', '.join(sorted(set(cited)))}); "
+                 f"move that to a skos:editorialNote")
+    source = "".join(f.read_text(encoding="utf-8") for f in sorted((ROOT / "scripts").glob("*.py")))
+    named = 0
+    for term, note in sorted((s, str(o)) for s, o in g.subject_objects(SKOS.editorialNote) if is_ours(s)):
+        for rel in NOTE_PATH.findall(note):
+            named += 1
+            if not (ROOT / rel).exists():
+                fail(f"editorial note on {term} names a missing path: {rel}")
+        for name in NOTE_CHECK.findall(note):
+            named += 1
+            if f"def {name}(" not in source:
+                fail(f"editorial note on {term} names a missing check: {name}")
+    coverage("scope notes", len(scope), "scope note(s) checked for repo references",
+             "no minted term carries a skos:scopeNote", always=True)
+    coverage("editorial references", named, "path(s) and check name(s) in editorial notes resolved",
+             "no editorial note names a path or a check, so none was resolved", always=True)
+
+
 @check(takes=("schema",), population="schema", reason="its population is the minted classes")
 def check_subclass_cycles(g: Graph) -> None:
     """No minted class is its own ancestor.
