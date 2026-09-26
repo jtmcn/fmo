@@ -469,6 +469,87 @@ ex:Target-LowTemp a wx:ObservationTarget ;
         "kxhighny-2026-08-15#Instant-Start has no timezone offset",
     ),
     (
+        # FM-0017: a scope note is in the semantics digest, so one citing the repo
+        # moves a consumer's pin when a file is renamed. Exercises check_note_kinds.
+        "a scope note citing a docs path",
+        "src/weather.ttl",
+        'classification is contested.""" ;',
+        'classification is contested; see docs/design-notes.md.""" ;',
+        "TropicalCyclone cites the repo (docs/design-notes.md)",
+    ),
+    (
+        "a scope note citing a check",
+        "src/kalshi.ttl",
+        "statements that can be compared.",
+        "statements that check_payouts can compare.",
+        "payoutAmountCents cites the repo (check_payouts)",
+    ),
+    (
+        "a scope note citing a competency question",
+        "src/core.ttl",
+        "what an assessment exists to record.",
+        "what an assessment exists to record, the subject of CQ7.",
+        "TruthAssessment cites the repo (CQ7)",
+    ),
+    (
+        # A real target only: fm:SkillScore's "make it" passes the baseline.
+        "a scope note citing a make target",
+        "src/weather.ttl",
+        "so it cannot go stale unnoticed.",
+        "so it cannot go stale unnoticed; see make validate.",
+        "leadTimeHours cites the repo (make validate)",
+    ),
+    (
+        # Editorial notes are outside the digest, so nothing else would see one rot.
+        "an editorial note naming a missing path",
+        "src/weather.ttl",
+        "The argument is in docs/design-notes.md.",
+        "The argument is in docs/design-note.md.",
+        "names a missing path: docs/design-note.md",
+    ),
+    (
+        "an editorial note naming a missing check",
+        "src/core.ttl",
+        "check_dimensions in scripts/validate.py",
+        "check_dimension in scripts/validate.py",
+        "names a missing check: check_dimension",
+    ),
+    (
+        "an editorial note naming a missing competency question",
+        "src/core.ttl",
+        "CQ7 asks exactly this",
+        "CQ97 asks exactly this",
+        "names a missing competency question: CQ97",
+    ),
+    (
+        "an editorial note naming a missing bare file",
+        "src/kalshi.ttl",
+        "an open question in README.md.",
+        "an open question in READ-ME.md.",
+        "names a missing file: READ-ME.md",
+    ),
+    (
+        "a scope note citing a bare file name",
+        "src/kalshi.ttl",
+        "and is not this case.",
+        "and is not this case; see README.md.",
+        "BinaryContract cites the repo (README.md)",
+    ),
+    (
+        "a scope note citing the validator",
+        "src/weather.ttl",
+        "is sayable and checkable at all.",
+        "is sayable and checkable at all, which the validator does.",
+        "alternativeDeterminationOf cites the repo (validator)",
+    ),
+    (
+        "a scope note citing a make target in backticks",
+        "src/kalshi.ttl",
+        "than to a binary one.",
+        "than to a binary one; run make `validate`.",
+        "FunctionalStrike cites the repo (make validate)",
+    ),
+    (
         # Z is an offset too, and the other spelling the pattern must accept and require.
         "an issuance time with its Z dropped",
         EXAMPLE,
