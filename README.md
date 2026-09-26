@@ -6,7 +6,7 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.17.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.18.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi field names and enumerations
 were checked against the live API on 2026-08-17, and the precipitation series on 2026-08-23;
 each designation carries its API code, checked against that enumeration by `make shapes`.
@@ -54,6 +54,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
 | `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
+| `scripts/lineage.py` | version lineage against the prior version in git history: `owl:priorVersion`, no released IRI gone dark, tombstone form |
 | `scripts/test_validate.py` | negative tests proving the validator fails when it should |
 | `shapes/thermaledge-export.ttl` | SHACL shapes: what a valid ThermalEdge export must contain |
 | `shapes/thermaledge-export.pin.json` | FMO's pin on those shapes, audited by `make shape-signatures` (generated) |
@@ -73,8 +74,9 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
 Namespaces are `https://w3id.org/forecast-market-ontology/{core,weather,kalshi}#`. These are deliberately
-non-resolving: the ontology has no external consumers, so `src/catalog-v001.xml` handles
-resolution locally and registering w3id redirects would buy nothing. Tools that want to
+non-resolving: the ontology's one consumer, ThermalEdge, pins terms by digest and never
+dereferences an IRI, so `src/catalog-v001.xml` handles resolution locally and registering w3id
+redirects would buy nothing. Tools that want to
 dereference the IRIs need the catalog, which Protégé and ROBOT both pick up automatically.
 
 ## Usage
@@ -93,6 +95,7 @@ make export-check                    # production CQ mode: export passes, mismat
 make reason                          # HermiT consistency (needs robot.jar)
 make axioms                          # every axiom pinned by a case, or exempt with a reason
 make signatures                      # per-term semantic digests, for downstream pinning
+make lineage                         # priorVersion, IRI continuity and tombstones vs the prior version
 make shape-signatures                # per-shape signatures, audited against FMO's pin
 make diagram                         # build/ontology.html, the interactive map
 make test                            # all of the above, plus the competency check

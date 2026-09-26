@@ -3,7 +3,8 @@ id: FM-0015
 title: properties do not record the Kalshi API field they mirror, and comparators have no strike_type code
 type: feature
 priority: 2
-depends_on: []
+depends_on:
+  - FM-0011
 touches:
   - src/core.ttl
   - src/kalshi.ttl
@@ -82,3 +83,44 @@ dated human re-read with nothing checked in to compare against.
 - New vocabulary: **field notation**. Add a `CONTEXT.md` entry.
 
 ## Comments
+
+**2026-09-25 — scoped against the live API before starting; decisions made.**
+Checked against Kalshi Trade API 3.31.0 (`https://docs.kalshi.com/openapi.yaml`).
+Four findings change the spec:
+
+- **No price field is in cents any more.** `Market` has no `yes_bid`,
+  `yes_ask`, `last_price`, `volume` or `open_interest`. Prices are
+  `*_dollars` fixed-point strings (`yes_bid_dollars`, `yes_price_dollars`),
+  and counts are `*_fp` fixed-point strings (`volume_fp`, `count_fp`).
+  - Five FMO properties have no cents field to mirror: `ksh:yesBidCents`,
+    `ksh:yesAskCents`, `ksh:lastPriceCents`, `ksh:limitPriceCents`,
+    `ksh:executionPriceCents`.
+  - `ksh:payoutAmountCents` does have one: `Settlement.revenue` is still
+    an integer in cents.
+- **Two name traps.** `ksh:settlementValue`, the observed value applied to
+  the condition, is `Market.expiration_value`. It is not
+  `settlement_value_dollars` or `Settlement.value`: both are payouts.
+- **`strike_type` has eight codes:** `greater`, `greater_or_equal`,
+  `less`, `less_or_equal`, `between`, `functional`, `custom`,
+  `structured`.
+  - `fm:EqualTo` has no code.
+  - `functional` and `structured` have no FMO comparator.
+  - Neither is defined beyond the schema:
+    - `functional_strike` is a "mapping from expiration values to
+      settlement values".
+    - `structured` ties to the `/structured_targets` catalogue of named
+      entities.
+  - The prose docs add nothing.
+- **The README's "field names checked against the live API on
+  2026-08-17" is stale** for every price and count field.
+
+Decisions (maintainer):
+- **Rename the five dollar-priced properties to `*Dollars`,** retiring the
+  `*Cents` ones to tombstones under ADR 0003. This is a breaking change, so
+  it bumps the version and sets `owl:incompatibleWith` on the prior version,
+  and hence the new dependency on FM-0011. `ksh:payoutAmountCents` stays.
+- **Mint comparators for `functional` and `structured`** so every
+  documented code is carried. Their definitions rest on the schema lines
+  quoted above, and each should cite that source and say how thin it is.
+  `fm:EqualTo` carries no code; its scope note says so, as `ksh:Voided`'s
+  does.

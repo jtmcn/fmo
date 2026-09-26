@@ -9,9 +9,10 @@ touches:
   - src/weather.ttl
   - src/kalshi.ttl
   - src/fmo.ttl
-  - scripts/validate.py
-  - scripts/test_validate.py
-  - scripts/test_meta.py
+  - scripts/lineage.py
+  - scripts/test_lineage.py
+  - Makefile
+  - .github/workflows/test.yml
   - docs/adr/0003-retiring-and-redefining-terms.md
   - CLAUDE.md
   - CONTEXT.md
@@ -22,18 +23,20 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: elevated
+claimed_by: claude
 acceptance:
   - claim: >-
-      Every released version has a git tag, and each module's owl:Ontology
-      header names the previous release in owl:priorVersion.
-    witness: a new check in scripts/validate.py, failing when priorVersion is absent or names no existing tag
+      Each module's owl:Ontology header names the version before this one in
+      owl:priorVersion, read from git history. Every released version on main
+      has a vX.Y.Z tag.
+    witness: make lineage, with negative tests in scripts/test_lineage.py; git tag -l 'v*'
   - claim: >-
       A minted IRI present at the previous release tag is either still declared
       at HEAD or carries owl:deprecated true and dcterms:isReplacedBy.
-    witness: a new registered check in scripts/validate.py, with a negative test in scripts/test_validate.py that deletes a term
+    witness: make lineage, with a negative test in scripts/test_lineage.py that deletes a term
   - claim: >-
       No example, shape or query uses a deprecated term.
-    witness: the same check, with a negative test that asserts a deprecated term in a throwaway example
+    witness: make lineage, with negative tests in scripts/test_lineage.py for a CURIE and a full IRI
   - claim: >-
       ksh:expirationTime exists as a tombstone pointing at
       ksh:expectedExpirationTime and ksh:latestExpirationTime.
@@ -116,3 +119,39 @@ Around this:
   `CONTEXT.md` §4 entries in the same change.
 
 ## Comments
+
+**2026-09-25 — resolved in 0.18.0.** Decisions, made by the maintainer:
+- Versions stay 0.x, with stated rules.
+- Tags are back-filled from history.
+- Tombstones stay forever.
+
+All three are written up in `docs/adr/0003-retiring-and-redefining-terms.md`.
+
+The checks live in a new `scripts/lineage.py` (`make lineage`), not in
+`validate.py`, which moves three witnesses. Continuity and `priorVersion` need
+git history, and `validate.py`'s negative-test harness copies the tree without
+`.git`. `lineage.audit()` is a pure function over two graphs and the scanned
+file texts, so `scripts/test_lineage.py` feeds it mutations directly: 11
+defects, a prefix that must not match, and two empty-population guards.
+
+The prior version comes from history, not from a tag. This stack's own
+versions (0.15–0.17) have no tags until they merge, and a check that needed
+one would fail on every stacked branch. So tags are for consumers, and CI
+checks out with `fetch-depth: 0`.
+
+- **Tags:** `v0.1.0` to `v0.14.0` are pushed. Each sits on the last `main`
+  commit at that version, found by reading `owl:versionInfo` at every
+  first-parent commit; no commit ever showed two versions across modules.
+- **`ksh:expirationTime`:** now a tombstone, retired in 0.7.0 (the first
+  release after the split), replaced by both successors.
+  `dcterms:isReplacedBy` is declared an annotation property, as
+  `skos:closeMatch` is, because its object is an IRI.
+- **Change notes:** `wx:SnowDepth` and `wx:TotalSnowfall` carry
+  `skos:changeNote`s for 0.14.0.
+- **The consumer premise:** restated in `README.md`, `docs/design-notes.md`
+  and the `core.ttl` header as "one consumer, which pins and never
+  dereferences".
+
+Follow-up, not done: `term_signatures.py` still omits a tombstone rather than
+emitting a retired entry with its replacements. That changes the output format
+ThermalEdge parses, so it should be agreed with ThermalEdge first.

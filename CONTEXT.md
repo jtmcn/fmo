@@ -196,6 +196,14 @@ check function fails when handed a graph that empties its traversal, so a check 
 nothing to check cannot pass.
 _Avoid_: "test" bare — it reads as any of the three, and they fail for different reasons.
 
+**Retire** / **tombstone**: a term is *retired* by reducing it to a *tombstone* — its IRI and
+label, `owl:deprecated true`, a `skos:historyNote`, and `dcterms:isReplacedBy` when something
+replaces it — and never by deleting it. A tombstone is not declared and keeps no axiom.
+_Avoid_: "deleted", "removed" for a term; "deprecated" alone, which reads as still usable.
+
+**Redefine in place**: change what a term means while keeping its IRI, recorded in a
+`skos:changeNote`. The alternative to a retirement, not a synonym for one.
+
 **Exercised** / **unexercised**: a minted class is *exercised* when example data
 instantiates it, directly or through a subclass. A schema individual does not exercise
 its class — that is the ontology asserting its own enumerations, not data reaching the

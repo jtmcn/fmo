@@ -20,7 +20,9 @@ Not used in 0.1.0:
 Term IRIs use readable local names (`wx:AirTemperature`), not opaque numeric IDs. OBO convention
 prefers opaque IDs so that labels can change without breaking references. That tradeoff is worth
 it for ontologies with many downstream consumers and a curation team; here it costs legibility
-for a benefit nobody is collecting. Revisit if the ontology is ever published for reuse.
+for a benefit nobody is collecting. A term whose name has to change is retired to a tombstone
+rather than deleted (ADR 0003), so a readable IRI does not go dark when its label moves. Revisit
+if the ontology is ever published for reuse.
 
 ## The naming collision that matters most
 
@@ -620,8 +622,8 @@ terms have IAO counterparts:
 | `fm:isAbout` | `IAO_0000136` is about |
 | `fm:hasUnit` | `IAO_0000039` + `IAO_0000003` measurement unit label |
 
-Rejected, because the benefit of IAO is standard IRIs for downstream consumers and this
-ontology has none. Without that, importing 210 classes to replace eight is a net loss in
+Rejected, because the benefit of IAO is standard IRIs for downstream consumers, and this
+ontology's one consumer, ThermalEdge, reads FMO's own IRIs rather than IAO's. Without that, importing 210 classes to replace eight is a net loss in
 legibility.
 
 The compatibility picture, checked against IAO release 2026-03-30 rather than assumed, since
@@ -651,7 +653,8 @@ one genuine soundness gap in 0.1.0.
 
 **Register the w3id namespace IRIs.** Rejected for the same reason. The IRIs are stable
 identifiers, not addresses; `src/catalog-v001.xml` resolves them offline, and Protégé and ROBOT
-both honour it. Registering redirects would serve consumers who do not exist.
+both honour it. Registering redirects would serve consumers who do not exist: ThermalEdge, the
+one there is, reaches terms through its pins and never over HTTP.
 
 **One namespace instead of three.** Simpler prefixes, but the weather module is reusable
 independently of prediction markets and the market module is reusable for non-weather markets.

@@ -13,7 +13,8 @@
 
 <https://w3id.org/forecast-market-ontology/weather>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.17.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/weather/0.18.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/weather/0.17.0> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> ;
     dcterms:title "FMO Weather: atmospheric entities, observation, and forecasting" ;
     dcterms:description """The meteorological half of the ontology. Distinguishes three things that
@@ -21,7 +22,7 @@ ordinary weather talk runs together: the atmosphere and its qualities (continuan
 their dependents), weather as something that happens (occurrents), and the observational
 and forecast record (information content entities).""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.17.0" .
+    owl:versionInfo "0.18.0" .
 
 ################################################################
 # Material entities
@@ -153,6 +154,7 @@ wx:SnowDepth a owl:Class ;
         owl:someValuesFrom wx:SnowCover ] ;
     skos:definition "The quality of a snow cover in virtue of its settled depth above the ground." ;
     skos:scopeNote "Not a wx:PrecipitationDepth, which is the liquid-water equivalent of what fell. A settled depth and a water equivalent differ by the snow's density." ;
+    skos:changeNote "Changed in 0.14.0 (FM-0010): was a subclass of wx:PrecipitationDepth, the depth of a portion of precipitate consisting of accumulated snow; now a quality of a wx:SnowCover, disjoint from wx:PrecipitationDepth. Data typed under the old reading is inconsistent." ;
     skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/surface_snow_thickness/> .
 
 wx:NewSnowDepth a owl:Class ;
@@ -279,6 +281,7 @@ wx:TotalSnowfall a wx:WeatherVariable, owl:NamedIndividual ;
     skos:definition "The sum of the new snow depths measured at an observing site over a temporal interval." ;
     skos:scopeNote "Settled depth, not liquid-water equivalent. Same dimension as total precipitation but not the same quantity, so dimensional compatibility alone will not catch a confusion between them." ;
     skos:scopeNote "New snow, not snow on the ground: the NWS daily snowfall, summed from snowboard readings. The depth of the snow cover at the end of the interval is a different quantity, wx:SnowDepth." ;
+    skos:changeNote "Changed in 0.14.0 (FM-0010): was the accumulated settled depth of snow over an interval, which could be read as snow on the ground; now the sum of new snow depths, mapped to CF thickness_of_snowfall_amount." ;
     skos:closeMatch <http://vocab.nerc.ac.uk/standard_name/thickness_of_snowfall_amount/> ;
     wx:cfCellMethods "time: sum" ;
     fm:hasQuantityKind quantitykind:Length ;
