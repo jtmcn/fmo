@@ -22,6 +22,8 @@ env:
   ROBOT_VERSION: v1.9.10
   # The tag is mutable; the digest is what the pin actually claims.
   ROBOT_SHA256: 16a73c074f3df359a7338a84b4e0788785fe06117f931bb9796e9619ea776105
+  # A Poetry older than the one that wrote poetry.lock misreads it and skips the dev group.
+  POETRY_VERSION: 2.5.1
 
 jobs:
   # This job owns both caches. no-reasoner only restores them, so the two cannot
@@ -48,7 +50,7 @@ jobs:
           java-version: "21"
 
       - name: Install poetry
-        run: pipx install poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
 
       - name: Cache the virtualenv
         uses: actions/cache@v6
@@ -111,7 +113,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install poetry
-        run: pipx install poetry
+        run: pipx install "poetry==${POETRY_VERSION}"
 
       # Restore-only, here and below: full saves. The key must match full's exactly
       # or this job never hits.
