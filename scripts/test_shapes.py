@@ -59,9 +59,10 @@ EXPECTED_ASSERTIONS = 14
 # The vocabulary shapes' matrix, counted separately because it runs over the
 # modules rather than per export fixture: one vacuity check per shape, the
 # enumeration-agreement and exception checks, and one mutant per constraint.
-EXPECTED_VOCABULARY_ASSERTIONS = 15
+EXPECTED_VOCABULARY_ASSERTIONS = 28
 
 KSH = Namespace(ONTOLOGY_PREFIXES["ksh"])
+FM = Namespace(ONTOLOGY_PREFIXES["fm"])
 VOC = Namespace("https://w3id.org/forecast-market-ontology/shapes/vocabulary#")
 
 
@@ -155,12 +156,14 @@ def vocabulary_checks() -> tuple[int, list[str]]:
         else:
             failures.append(f"{label} matches no focus node in the modules, so it conforms vacuously")
 
-    # 2. The enumeration is written twice; the two copies must agree.
+    # 2. The enumeration is written twice; the two copies must agree. Field names are
+    # excluded, since not every field is mirrored; anything else counts as a code.
     listed = {
         item
         for prop in shapes.subjects(SH.path, SKOS.notation)
         for items in shapes.objects(prop, SH["in"])
         for item in shapes.items(items)
+        if not (isinstance(item, Literal) and str(item.datatype).endswith("FieldName"))
     }
     carried = set(shapes.objects(VOC.DocumentedCodesCarriedShape, SH.targetNode))
     checked += 1
@@ -197,6 +200,9 @@ def vocabulary_checks() -> tuple[int, list[str]]:
     action = property_shape(shapes, VOC.OrderActionShape, SKOS.notation)
     unique = inverse_notation_shape(shapes, VOC.NotationUniqueShape)
     documented = inverse_notation_shape(shapes, VOC.DocumentedCodesCarriedShape)
+    strike = property_shape(shapes, VOC.StrikeTypeShape, SKOS.notation)
+    market_field = property_shape(shapes, VOC.MarketFieldShape, SKOS.notation)
+    order_field = property_shape(shapes, VOC.OrderFieldShape, SKOS.notation)
     notation = SKOS.notation
     probe = URIRef("https://w3id.org/forecast-market-ontology/examples/probe#Unexplained")
 
@@ -221,6 +227,24 @@ def vocabulary_checks() -> tuple[int, list[str]]:
          [], list(modules.triples((KSH.ResolvedScalar, None, None)))),
         ("a new outcome with neither a code nor an exception", VOC.ResolutionOutcomeShape,
          SH.OrConstraintComponent, [(probe, RDF.type, KSH.ResolutionOutcome)], []),
+        # FM-0015: strike types, the comparators' codes.
+        ("a comparator with its strike code removed and no exception", VOC.StrikeTypeShape,
+         SH.OrConstraintComponent, [], [(FM.Custom, notation, code("custom", "StrikeTypeCode"))]),
+        ("a strike code outside the enumeration", strike, SH.InConstraintComponent,
+         [(FM.Between, notation, code("betwen", "StrikeTypeCode"))],
+         [(FM.Between, notation, code("between", "StrikeTypeCode"))]),
+        ("a documented strike type nobody carries", documented, SH.MinCountConstraintComponent,
+         [], list(modules.triples((KSH.FunctionalStrike, None, None)))),
+        # FM-0015: field names on the properties that mirror them.
+        ("a mirrored property with its field name removed", market_field,
+         SH.MinCountConstraintComponent, [],
+         [(KSH.closeTime, notation, code("close_time", "MarketFieldName"))]),
+        ("a field name outside the schema's field list", market_field, SH.InConstraintComponent,
+         [(KSH.closeTime, notation, code("close_tme", "MarketFieldName"))],
+         [(KSH.closeTime, notation, code("close_time", "MarketFieldName"))]),
+        ("a field name typed as another schema's", order_field, SH.DatatypeConstraintComponent,
+         [(KSH.orderQuantity, notation, code("initial_count_fp", "TradeFieldName"))],
+         [(KSH.orderQuantity, notation, code("initial_count_fp", "OrderFieldName"))]),
     ]
     for name, source, component, add, remove in mutants:
         checked += 1

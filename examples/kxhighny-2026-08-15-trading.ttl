@@ -56,8 +56,8 @@ tex:TraderRole-B a ksh:TraderRole ;
 # sides of a match are both purchases, and their prices sum to the payout, which
 # is what collateralises the contract. Sixty and forty here.
 #
-# Both are limit orders that would tolerate a worse fill than they got -- 61 and
-# 41 against a match at 60 and 40. ksh:limitPriceCents records that tolerance; no
+# Both are limit orders that would tolerate a worse fill than they got -- $0.61 and
+# $0.41 against a match at $0.60 and $0.40. ksh:limitPriceDollars records that tolerance; no
 # check compares it to the fill, for the reason its scope note gives.
 #
 # They arrive a fraction of a second apart and cross the moment the second lands,
@@ -65,22 +65,22 @@ tex:TraderRole-B a ksh:TraderRole ;
 ################################################################
 
 tex:Order-A a ksh:Order ;
-    rdfs:label "A: buy 100 yes at 61" ;
+    rdfs:label "A: buy 100 yes at $0.61" ;
     ksh:orderInMarket ex:Market-B82 ;
     ksh:hasSide ksh:YesSide ;
     ksh:hasAction ksh:Buy ;
     ksh:orderQuantity 100 ;
-    ksh:limitPriceCents 61 ;
+    ksh:limitPriceDollars 0.61 ;
     fm:issuedBy tex:TraderA ;
     fm:referenceTime "2026-08-15T11:59:59.4Z"^^xsd:dateTime .
 
 tex:Order-B a ksh:Order ;
-    rdfs:label "B: buy 100 no at 41" ;
+    rdfs:label "B: buy 100 no at $0.41" ;
     ksh:orderInMarket ex:Market-B82 ;
     ksh:hasSide ksh:NoSide ;
     ksh:hasAction ksh:Buy ;
     ksh:orderQuantity 100 ;
-    ksh:limitPriceCents 41 ;
+    ksh:limitPriceDollars 0.41 ;
     fm:issuedBy tex:TraderB ;
     fm:referenceTime "2026-08-15T11:59:59.8Z"^^xsd:dateTime .
 
@@ -120,13 +120,13 @@ tex:Book-1200Z a ksh:OrderBookSnapshot ;
 tex:Level-Yes-58 a ksh:PriceLevel ;
     rdfs:label "400 yes resting at 58" ;
     ksh:hasSide ksh:YesSide ;
-    ksh:limitPriceCents 58 ;
+    ksh:limitPriceDollars 0.58 ;
     ksh:restingQuantity 400 .
 
 tex:Level-No-38 a ksh:PriceLevel ;
     rdfs:label "250 no resting at 38" ;
     ksh:hasSide ksh:NoSide ;
-    ksh:limitPriceCents 38 ;
+    ksh:limitPriceDollars 0.38 ;
     ksh:restingQuantity 250 .
 
 ################################################################
@@ -141,11 +141,11 @@ tex:Instant-Trade a bfo:BFO_0000203 ;        # temporal instant
     fm:instantDateTime "2026-08-15T12:00:00Z"^^xsd:dateTime .
 
 tex:Trade-1200Z a ksh:Trade ;
-    rdfs:label "100 contracts matched at 60" ;
+    rdfs:label "100 contracts matched at $0.60" ;
     fm:hasAgent ksh:Kalshi ;
     fm:hasInput tex:Order-A , tex:Order-B ;
     fm:hasOutput tex:Lot-Yes-A , tex:Lot-No-B ;
-    ksh:executionPriceCents 60 ;
+    ksh:executionPriceDollars 0.60 ;
     bfo:BFO_0000199 tex:Instant-Trade .      # occupies temporal region
 
 tex:Lot-Yes-A a ksh:YesContract ;

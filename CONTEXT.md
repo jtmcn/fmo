@@ -174,6 +174,13 @@ by the field it appears in — `ksh:StatusCode`, `ksh:ResultCode`, `ksh:SideCode
 `ksh:ResolvedYes` in a different field. `ksh:Voided` has no code.
 _Avoid_: "the label" for the code, "the enum value", "the status string".
 
+**Field name** (`skos:notation` on a property): the Kalshi API field a property is read
+from, typed by the API schema it belongs to — `ksh:MarketFieldName`, `ksh:OrderFieldName`
+and so on — because `ticker` names a different thing in each. `ksh:settlementValue` is
+`expiration_value`; `settlement_value_dollars` is a payout.
+_Avoid_: "API code" for a field name. A code is a value the API sends; a field name is where
+a value is read from.
+
 ---
 
 ## 4. Repo mechanics

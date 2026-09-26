@@ -13,6 +13,14 @@ touches:
   - shapes/vocabulary.ttl
   - scripts/term_signatures.py
   - scripts/test_shapes.py
+  - examples/**
+  - queries/cq05-bracket-coherence.rq
+  - queries/cq05-bracket-coherence.expected
+  - queries/cq08-order-flow-payout.rq
+  - queries/cq08-order-flow-payout.expected
+  - queries/axiom-expectations.json
+  - scripts/validate.py
+  - scripts/test_validate.py
   - CONTEXT.md
   - README.md
 forbidden:
@@ -20,6 +28,7 @@ forbidden:
   - shapes/thermaledge-export.ttl
   - shapes/thermaledge-export.pin.json
 risk: low
+claimed_by: claude
 acceptance:
   - claim: >-
       Each datatype property that mirrors a Kalshi API field carries that field
@@ -35,7 +44,7 @@ acceptance:
     witness: a mutant in scripts/test_shapes.py
   - claim: >-
       Remapping a field notation moves the property's semantics signature.
-    witness: scripts/term_signatures.py --check
+    witness: scripts/term_signatures.py --check, field_name_mutant
 ---
 
 ## Context
@@ -124,3 +133,52 @@ Decisions (maintainer):
   quoted above, and each should cite that source and say how thin it is.
   `fm:EqualTo` carries no code; its scope note says so, as `ksh:Voided`'s
   does.
+
+**2026-09-25 — resolved in 0.19.0**, which is `owl:incompatibleWith` 0.18.0
+on `kalshi` and the top module.
+
+**Renames and tombstones.** `ksh:yesBidDollars`, `ksh:yesAskDollars`,
+`ksh:lastPriceDollars`, `ksh:limitPriceDollars` and
+`ksh:executionPriceDollars` replace the `*Cents` five, which are now
+tombstones whose history notes say to divide by one hundred.
+- Every example value was converted ÷100, along with the prose that stated
+  prices in cents.
+- cq05 and cq08 report dollars, and their `.expected` diffs are exactly
+  ÷100 in the renamed columns.
+- `ksh:payoutAmountCents` stays, and its new scope note says why no field
+  is it.
+
+**Field names.** Six `*FieldName` datatypes, one per API schema, because
+`ticker` and `yes_price_dollars` each recur across schemas. 29 properties
+carry their field name, including `fm:floorValue`, `fm:capValue` and
+`fm:hasComparator`, whose notations live in `kalshi.ttl` so the core stays
+venue-neutral.
+- `shapes/vocabulary.ttl` gives each family a shape whose `sh:in` is that
+  schema's full 3.31.0 field list, generated from the OpenAPI file rather
+  than retyped.
+- The enumeration-agreement check in `test_shapes.py` now covers codes
+  only, because a field list is closed but need not be carried.
+- Three field-name mutants.
+- `term_signatures.py --check` gains `field_name_mutant`. The generic
+  notation mutant remaps the first notation in IRI order, which is now a
+  comparator's code, so it no longer exercised a property.
+
+**Strike types.** The six matching comparators carry their codes, and the
+new `ksh:FunctionalStrike` and `ksh:StructuredStrike` are minted.
+- Both definitions rest on the schema's one-line descriptions, and their
+  scope notes say so. `functional` strains `fm:Comparator`'s definition,
+  which is about truth, not a settlement mapping.
+- `fm:EqualTo` is excepted, with a scope note.
+- An `owl:AllDifferent` over all nine comparators is exempt in the axiom
+  ledger for the same reason as the core's.
+- Three mutants.
+
+**Left unmapped on purpose:**
+- `ksh:limitPriceDollars`: which price field holds it depends on
+  direction.
+- `ksh:restingQuantity`: order book levels are unnamed arrays.
+- `ksh:payoutAmountCents`: `revenue` sums every lot in the market.
+
+**Filed.** FM-0019: the API has moved order direction to one
+`outcome_side` bit, and `side`/`action`, which `ksh:hasSide` and
+`ksh:hasAction` map to for now, are deprecated past their promised date.

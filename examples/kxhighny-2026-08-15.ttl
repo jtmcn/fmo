@@ -133,9 +133,9 @@ ex:Quote-1200Z a ksh:Quote ;
     rdfs:label "quote for KXHIGHNY-26AUG15-B82.5 at 12:00Z" ;
     ksh:quoteForMarket ex:Market-B82 ;
     fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
-    ksh:yesBidCents 58 ;
-    ksh:yesAskCents 62 ;
-    ksh:lastPriceCents 60 ;
+    ksh:yesBidDollars 0.58 ;
+    ksh:yesAskDollars 0.62 ;
+    ksh:lastPriceDollars 0.60 ;
     ksh:volume 14350 ;
     ksh:openInterest 8210 .
 
@@ -145,7 +145,7 @@ ex:MarketProb-1200Z a fm:MarketImpliedProbability ;
     fm:probabilityValue "0.60"^^xsd:decimal ;
     fm:referenceTime "2026-08-15T12:00:00Z"^^xsd:dateTime ;
     ksh:derivedFromQuote ex:Quote-1200Z ;
-    fm:statedAs "Last traded price of 60 cents divided by 100. Ignores spread, fees, and carry." .
+    fm:statedAs "Last traded price of $0.60 taken as the probability. Ignores spread, fees, and carry." .
 
 ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
     fm:hasInput ex:Quote-1200Z ;

@@ -1,5 +1,6 @@
 @prefix sh:   <http://www.w3.org/ns/shacl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
 @prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
 @prefix voc:  <https://w3id.org/forecast-market-ontology/shapes/vocabulary#> .
 
@@ -8,7 +9,8 @@
 #
 # Each field's documented enumeration appears twice -- in sh:in (no code outside it)
 # and as sh:targetNode (no code nobody carries). test_shapes.py asserts the two agree.
-# Documented codes as checked against the Kalshi API on 2026-08-17.
+# Documented codes as checked against the Kalshi API on 2026-08-17; strike types and field
+# names against Trade API 3.31.0 on 2026-09-25.
 
 voc:MarketStatusShape a sh:NodeShape ;
     sh:targetClass ksh:MarketStatus ;
@@ -54,6 +56,22 @@ voc:OrderActionShape a sh:NodeShape ;
         sh:in ( "buy"^^ksh:ActionCode "sell"^^ksh:ActionCode ) ;
     ] .
 
+# fm:EqualTo is the one comparator with no code; its scope note says why.
+voc:StrikeTypeShape a sh:NodeShape ;
+    sh:targetClass fm:Comparator ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:maxCount 1 ;
+        sh:datatype ksh:StrikeTypeCode ;
+        sh:in ( "greater"^^ksh:StrikeTypeCode "greater_or_equal"^^ksh:StrikeTypeCode "less"^^ksh:StrikeTypeCode
+                "less_or_equal"^^ksh:StrikeTypeCode "between"^^ksh:StrikeTypeCode "functional"^^ksh:StrikeTypeCode
+                "custom"^^ksh:StrikeTypeCode "structured"^^ksh:StrikeTypeCode ) ;
+    ] ;
+    sh:or (
+        [ sh:path skos:notation ; sh:minCount 1 ]
+        [ sh:in ( fm:EqualTo ) ]
+    ) .
+
 # A code is a lookup key, so no two individuals share one. Typed literals keep the
 # result "yes" and the side "yes" distinct.
 voc:NotationUniqueShape a sh:NodeShape ;
@@ -73,8 +91,113 @@ voc:DocumentedCodesCarriedShape a sh:NodeShape ;
         "amended"^^ksh:StatusCode , "finalized"^^ksh:StatusCode ,
         "yes"^^ksh:ResultCode , "no"^^ksh:ResultCode , "scalar"^^ksh:ResultCode ,
         "yes"^^ksh:SideCode , "no"^^ksh:SideCode ,
-        "buy"^^ksh:ActionCode , "sell"^^ksh:ActionCode ;
+        "buy"^^ksh:ActionCode , "sell"^^ksh:ActionCode ,
+        "greater"^^ksh:StrikeTypeCode , "greater_or_equal"^^ksh:StrikeTypeCode , "less"^^ksh:StrikeTypeCode,
+        "less_or_equal"^^ksh:StrikeTypeCode , "between"^^ksh:StrikeTypeCode , "functional"^^ksh:StrikeTypeCode,
+        "custom"^^ksh:StrikeTypeCode , "structured"^^ksh:StrikeTypeCode ;
     sh:property [
         sh:path [ sh:inversePath skos:notation ] ;
         sh:minCount 1 ;
+    ] .
+
+# Field names. Each property that mirrors a Kalshi API field carries exactly one name, of
+# the right schema's datatype, from that schema's documented field list: Trade API 3.31.0,
+# checked 2026-09-25. Not every documented field is mirrored, so unlike the codes above
+# these lists are closed but need not be carried. The targets are the declaration of
+# which properties mirror a field; ksh:limitPriceDollars, ksh:restingQuantity and
+# ksh:payoutAmountCents are left out on purpose (see the API field names block in
+# src/kalshi.ttl).
+
+voc:MarketFieldShape a sh:NodeShape ;
+    sh:targetNode fm:capValue , fm:floorValue , fm:hasComparator , ksh:closeTime , ksh:expectedExpirationTime , ksh:hasStatus , ksh:inEventGrouping , ksh:lastPriceDollars , ksh:latestExpirationTime , ksh:marketTicker , ksh:openInterest , ksh:openTime , ksh:resolvesTo , ksh:settlementValue , ksh:volume , ksh:yesAskDollars , ksh:yesBidDollars ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:MarketFieldName ;
+        sh:in ( "can_close_early"^^ksh:MarketFieldName "cap_strike"^^ksh:MarketFieldName "close_time"^^ksh:MarketFieldName
+                "created_time"^^ksh:MarketFieldName "custom_strike"^^ksh:MarketFieldName "early_close_condition"^^ksh:MarketFieldName
+                "event_ticker"^^ksh:MarketFieldName "exchange_index"^^ksh:MarketFieldName "expected_expiration_time"^^ksh:MarketFieldName
+                "expiration_time"^^ksh:MarketFieldName "expiration_value"^^ksh:MarketFieldName "fee_waiver_expiration_time"^^ksh:MarketFieldName
+                "floor_strike"^^ksh:MarketFieldName "functional_strike"^^ksh:MarketFieldName "is_provisional"^^ksh:MarketFieldName
+                "last_price_dollars"^^ksh:MarketFieldName "latest_expiration_time"^^ksh:MarketFieldName "market_type"^^ksh:MarketFieldName
+                "mve_collection_ticker"^^ksh:MarketFieldName "mve_selected_legs"^^ksh:MarketFieldName "no_ask_dollars"^^ksh:MarketFieldName
+                "no_bid_dollars"^^ksh:MarketFieldName "no_sub_title"^^ksh:MarketFieldName "notional_value_dollars"^^ksh:MarketFieldName
+                "occurrence_datetime"^^ksh:MarketFieldName "open_interest_fp"^^ksh:MarketFieldName "open_time"^^ksh:MarketFieldName
+                "previous_price_dollars"^^ksh:MarketFieldName "previous_yes_ask_dollars"^^ksh:MarketFieldName "previous_yes_bid_dollars"^^ksh:MarketFieldName
+                "price_level_structure"^^ksh:MarketFieldName "price_ranges"^^ksh:MarketFieldName "primary_participant_key"^^ksh:MarketFieldName
+                "result"^^ksh:MarketFieldName "rules_primary"^^ksh:MarketFieldName "rules_secondary"^^ksh:MarketFieldName
+                "settlement_timer_seconds"^^ksh:MarketFieldName "settlement_ts"^^ksh:MarketFieldName "settlement_value_dollars"^^ksh:MarketFieldName
+                "status"^^ksh:MarketFieldName "strike_type"^^ksh:MarketFieldName "subtitle"^^ksh:MarketFieldName
+                "ticker"^^ksh:MarketFieldName "title"^^ksh:MarketFieldName "updated_time"^^ksh:MarketFieldName
+                "volume_24h_fp"^^ksh:MarketFieldName "volume_fp"^^ksh:MarketFieldName "yes_ask_dollars"^^ksh:MarketFieldName
+                "yes_ask_size_fp"^^ksh:MarketFieldName "yes_bid_dollars"^^ksh:MarketFieldName "yes_bid_size_fp"^^ksh:MarketFieldName
+                "yes_sub_title"^^ksh:MarketFieldName ) ;
+    ] .
+
+voc:EventFieldShape a sh:NodeShape ;
+    sh:targetNode ksh:eventTicker , ksh:inSeries , ksh:mutuallyExclusive ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:EventFieldName ;
+        sh:in ( "category"^^ksh:EventFieldName "collateral_return_type"^^ksh:EventFieldName "event_ticker"^^ksh:EventFieldName
+                "exchange_index"^^ksh:EventFieldName "fee_multiplier_override"^^ksh:EventFieldName "fee_type_override"^^ksh:EventFieldName
+                "last_updated_ts"^^ksh:EventFieldName "markets"^^ksh:EventFieldName "mutually_exclusive"^^ksh:EventFieldName
+                "product_metadata"^^ksh:EventFieldName "series_ticker"^^ksh:EventFieldName "settlement_sources"^^ksh:EventFieldName
+                "strike_date"^^ksh:EventFieldName "strike_period"^^ksh:EventFieldName "sub_title"^^ksh:EventFieldName
+                "title"^^ksh:EventFieldName ) ;
+    ] .
+
+voc:SeriesFieldShape a sh:NodeShape ;
+    sh:targetNode ksh:seriesTicker ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:SeriesFieldName ;
+        sh:in ( "additional_prohibitions"^^ksh:SeriesFieldName "categories"^^ksh:SeriesFieldName "category"^^ksh:SeriesFieldName
+                "contract_terms_url"^^ksh:SeriesFieldName "contract_url"^^ksh:SeriesFieldName "exchange_index"^^ksh:SeriesFieldName
+                "fee_multiplier"^^ksh:SeriesFieldName "fee_type"^^ksh:SeriesFieldName "frequency"^^ksh:SeriesFieldName
+                "last_updated_ts"^^ksh:SeriesFieldName "product_metadata"^^ksh:SeriesFieldName "settlement_sources"^^ksh:SeriesFieldName
+                "tags"^^ksh:SeriesFieldName "ticker"^^ksh:SeriesFieldName "title"^^ksh:SeriesFieldName
+                "volume_fp"^^ksh:SeriesFieldName ) ;
+    ] .
+
+voc:OrderFieldShape a sh:NodeShape ;
+    sh:targetNode ksh:hasAction , ksh:hasSide , ksh:orderInMarket , ksh:orderQuantity ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:OrderFieldName ;
+        sh:in ( "action"^^ksh:OrderFieldName "book_side"^^ksh:OrderFieldName "cancel_order_on_pause"^^ksh:OrderFieldName
+                "client_order_id"^^ksh:OrderFieldName "created_time"^^ksh:OrderFieldName "exchange_index"^^ksh:OrderFieldName
+                "expiration_time"^^ksh:OrderFieldName "fill_count_fp"^^ksh:OrderFieldName "initial_count_fp"^^ksh:OrderFieldName
+                "last_update_time"^^ksh:OrderFieldName "maker_fees_dollars"^^ksh:OrderFieldName "maker_fill_cost_dollars"^^ksh:OrderFieldName
+                "no_price_dollars"^^ksh:OrderFieldName "order_group_id"^^ksh:OrderFieldName "order_id"^^ksh:OrderFieldName
+                "outcome_side"^^ksh:OrderFieldName "remaining_count_fp"^^ksh:OrderFieldName "self_trade_prevention_type"^^ksh:OrderFieldName
+                "side"^^ksh:OrderFieldName "status"^^ksh:OrderFieldName "subaccount_number"^^ksh:OrderFieldName
+                "taker_fees_dollars"^^ksh:OrderFieldName "taker_fill_cost_dollars"^^ksh:OrderFieldName "ticker"^^ksh:OrderFieldName
+                "type"^^ksh:OrderFieldName "user_id"^^ksh:OrderFieldName "yes_price_dollars"^^ksh:OrderFieldName ) ;
+    ] .
+
+voc:TradeFieldShape a sh:NodeShape ;
+    sh:targetNode ksh:contractQuantity , ksh:executionPriceDollars ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:TradeFieldName ;
+        sh:in ( "count_fp"^^ksh:TradeFieldName "created_time"^^ksh:TradeFieldName "is_block_trade"^^ksh:TradeFieldName
+                "no_price_dollars"^^ksh:TradeFieldName "taker_book_side"^^ksh:TradeFieldName "taker_outcome_side"^^ksh:TradeFieldName
+                "taker_side"^^ksh:TradeFieldName "ticker"^^ksh:TradeFieldName "trade_id"^^ksh:TradeFieldName
+                "yes_price_dollars"^^ksh:TradeFieldName ) ;
+    ] .
+
+voc:PositionFieldShape a sh:NodeShape ;
+    sh:targetNode ksh:positionInMarket , ksh:positionQuantity ;
+    sh:property [
+        sh:path skos:notation ;
+        sh:minCount 1 ; sh:maxCount 1 ;
+        sh:datatype ksh:PositionFieldName ;
+        sh:in ( "exchange_index"^^ksh:PositionFieldName "fees_paid_dollars"^^ksh:PositionFieldName "last_updated_ts"^^ksh:PositionFieldName
+                "market_exposure_dollars"^^ksh:PositionFieldName "position_fp"^^ksh:PositionFieldName "realized_pnl_dollars"^^ksh:PositionFieldName
+                "ticker"^^ksh:PositionFieldName "total_traded_dollars"^^ksh:PositionFieldName ) ;
     ] .
