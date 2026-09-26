@@ -33,10 +33,10 @@ from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import DCTERMS, OWL, RDF, RDFS, SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from registry import ONTOLOGY_PREFIXES, OUR_NS, ROOT  # noqa: E402
+from registry import MODULES, ONTOLOGY_BASE, ONTOLOGY_PREFIXES, OUR_NS, ROOT  # noqa: E402
 
-OURS = ("core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl")
-BASE = "https://w3id.org/forecast-market-ontology/"
+OURS = [m for m in MODULES if not m.startswith("imports/")]
+BASE = ONTOLOGY_BASE
 DECLARED_AS = (OWL.Class, OWL.ObjectProperty, OWL.DatatypeProperty, OWL.AnnotationProperty,
                OWL.NamedIndividual, RDFS.Datatype)
 # What a tombstone must not keep: each would still type or constrain data.
@@ -129,9 +129,7 @@ def prior_release(current: str) -> tuple[str, str]:
         raise LineageError("shallow clone: the prior version is in history this checkout lacks "
                            "(CI needs fetch-depth: 0)")
     for sha in git("log", "--format=%H", "--", "src/fmo.ttl").split():
-        text = subprocess.run(["git", "show", f"{sha}:src/fmo.ttl"], cwd=ROOT,
-                              capture_output=True, text=True, encoding="utf-8").stdout
-        version = version_of(text)
+        version = version_of(git("show", f"{sha}:src/fmo.ttl"))
         if version and version != current:
             return version, sha
     raise LineageError(f"no commit states a version before {current}")

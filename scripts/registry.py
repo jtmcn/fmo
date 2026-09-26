@@ -24,10 +24,12 @@ MODULES = [
     "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl",
 ]
 
+ONTOLOGY_BASE = "https://w3id.org/forecast-market-ontology/"
+
 ONTOLOGY_PREFIXES = {
-    "fm": "https://w3id.org/forecast-market-ontology/core#",
-    "wx": "https://w3id.org/forecast-market-ontology/weather#",
-    "ksh": "https://w3id.org/forecast-market-ontology/kalshi#",
+    "fm": f"{ONTOLOGY_BASE}core#",
+    "wx": f"{ONTOLOGY_BASE}weather#",
+    "ksh": f"{ONTOLOGY_BASE}kalshi#",
 }
 
 EXAMPLE_PREFIXES = {
