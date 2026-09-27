@@ -388,6 +388,18 @@ body {
   font: 400 10.5px/1.4 var(--f-mono);
   color: var(--ink-mute);
 }
+.lits button.lk-to {
+  padding: 0; background: none; border: 0; cursor: pointer; text-align: left;
+}
+.lits button.lk-to:hover { text-decoration: underline; }
+.lits button.lk-to:focus-visible { outline: 2px solid var(--cold); outline-offset: 1px; }
+
+.hist { margin: 0; padding: 0; list-style: none; }
+.hist li { padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.hist .field p, .hist p { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; }
+.field .api code { font: 400 12px/1.6 var(--f-mono); color: var(--ink); }
+.results li.is-retired b { text-decoration: line-through; text-decoration-color: var(--ink-mute); }
+
 /* Scoped past `.field p`, which is more specific than a bare class and wins. */
 .lits .lit-def { margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; }
 
