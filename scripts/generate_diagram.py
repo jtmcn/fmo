@@ -296,6 +296,7 @@ def build() -> dict:
         n["deg"] = sum(1 for e in edges if n["id"] in (e["s"], e["t"]))
 
     return {
+        "tree": outline(g, nodes, lambda u: text(u, RDFS.label)),
         "version": text(URIRef("https://w3id.org/forecast-market-ontology/core"),
                         OWL.versionInfo) or "",
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
@@ -317,6 +318,65 @@ def build() -> dict:
             "unread": unread,
         },
     }
+
+
+ROOT_CLASS = "bfo:BFO_0000001"   # entity
+
+
+def outline(g: Graph, nodes: dict[str, dict], label) -> list[dict]:
+    """The outline's rows, in reading order: the subsumption tree from bfo:entity
+    down to every class on the map, depth-first, children by label.
+
+    The map draws only edges that start at a minted class, so BFO's own skeleton
+    (process under occurrent under entity) is missing there. The outline walks it
+    anyway -- depth means distance from entity or nothing -- and marks those rows
+    as not on the map. A class with two parents is listed under each; the second
+    listing is a `dup` and is not expanded again.
+    """
+    up: dict[str, set[str]] = {}
+    for s, o in g.subject_objects(RDFS.subClassOf):
+        a, b = curie(s), curie(o)
+        if a and b and a != b:
+            up.setdefault(a, set()).add(b)
+
+    keep: set[str] = set()
+    stack = list(nodes)
+    while stack:
+        c = stack.pop()
+        if c not in keep:
+            keep.add(c)
+            stack += up.get(c, ())
+
+    down: dict[str, list[str]] = {}
+    for c in keep:
+        for parent in up.get(c, set()) & keep:
+            down.setdefault(parent, []).append(c)
+
+    inverse = {pre: full for full, pre in NS.items()}
+
+    def name(c: str) -> str:
+        if c in nodes:
+            return nodes[c]["label"]
+        pre, local = c.split(":", 1)
+        return str(label(URIRef(inverse[pre] + local)) or local)
+
+    rows: list[dict] = []
+    seen: set[str] = set()
+
+    def walk(c: str, depth: int, via: str | None) -> None:
+        row = {"id": c, "d": depth, "via": via, "dup": c in seen, "on": c in nodes}
+        if not row["on"]:
+            row["label"] = name(c)
+        rows.append(row)
+        if row["dup"]:
+            return
+        seen.add(c)
+        for child in sorted(down.get(c, []), key=lambda x: (name(x).lower(), x)):
+            walk(child, depth + 1, c)
+
+    for root in sorted(c for c in keep if not up.get(c, set()) & keep):
+        walk(root, 0, None)
+    return rows
 
 
 def inline(html: str) -> str:
@@ -350,6 +410,12 @@ def hit_px(graph_js: str) -> int | None:
 
 def check(data: dict, html: str) -> int:
     """The smallest thing that fails if extraction silently breaks."""
+    # data.js and the modules share window.FMO; a data key named like a module is
+    # overwritten by it before anything reads the data.
+    modules = {p.stem for p in (VIZ / "src").glob("*.js") if p.stem != "data"}
+    clash = sorted(set(data) & modules)
+    assert not clash, f"data key shares a name with a viz module: {clash}"
+
     minted = [n for n in data["nodes"] if n["minted"]]
     assert len(minted) > 90, f"expected ~102 minted classes, got {len(minted)}"
     assert len(data["properties"]) > 40, f"only {len(data['properties'])} properties"
@@ -438,6 +504,27 @@ def check(data: dict, html: str) -> int:
                 if not v["to"] or any(x not in terms for x in v["to"])]
     assert not stranded, f"retired term resolves to nothing on the map: {stranded}"
 
+    # The outline is the keyboard path to every class, so every class must be in it
+    # once in full, under every parent it has, at a depth its parent's row explains.
+    rows = data["tree"]
+    roots = [r["id"] for r in rows if r["via"] is None]
+    assert roots == [ROOT_CLASS], f"outline roots are {roots}, not {ROOT_CLASS} alone"
+    full = [r["id"] for r in rows if not r["dup"]]
+    missing = sorted({n["id"] for n in data["nodes"]} - set(full))
+    assert not missing, f"not in the outline: {missing[:5]}"
+    twice = sorted({c for c in full if full.count(c) > 1})
+    assert not twice, f"expanded more than once in the outline: {twice}"
+    listed = {(r["id"], r["via"]) for r in rows}
+    unlisted = sorted((e["s"], e["t"]) for e in data["edges"]
+                      if e["k"] == "sub" and (e["s"], e["t"]) not in listed)
+    assert not unlisted, f"subClassOf with no outline row: {unlisted[:5]}"
+    depth: dict[str, int] = {}
+    for r in rows:
+        want = 0 if r["via"] is None else depth.get(r["via"], -2) + 1
+        assert r["d"] == want, f"{r['id']} under {r['via']} at depth {r['d']}, expected {want}"
+        if not r["dup"]:
+            depth[r["id"]] = r["d"]
+
     # A pointer target of at least 24px across, whatever the dot's size.
     reach = hit_px((VIZ / "src" / "graph.js").read_text(encoding="utf-8"))
     assert reach is not None and reach >= MIN_HIT_PX, \
@@ -477,6 +564,9 @@ def check(data: dict, html: str) -> int:
     print(f"OK: {len(shown)} terms show change/history notes, {carried} API field names, "
           f"{len(tombs)} tombstones resolve to a replacement")
     print(f"OK: palette, {palette_summary}")
+    print(f"OK: outline, {len(rows)} rows under {ROOT_CLASS}, "
+          f"{sum(r['dup'] for r in rows)} second listings, "
+          f"{sum(not r['on'] for r in rows)} BFO classes shown only for their place")
     return 0
 
 

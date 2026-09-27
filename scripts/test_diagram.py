@@ -44,6 +44,26 @@ def lose_declaration(d: dict) -> None:
     d["datatypes"]["ksh:yesBidDollars"]["ttl"] = ttl.split("\n\n")[-1]
 
 
+def drop_row(d: dict) -> None:
+    d["tree"] = [r for r in d["tree"] if r["id"] != "wx:SnowDepth"]
+
+
+def drop_second_listing(d: dict) -> None:
+    d["tree"] = [r for r in d["tree"] if not r["dup"]]
+
+
+def misdepth(d: dict) -> None:
+    next(r for r in d["tree"] if r["id"] == "wx:SnowDepth")["d"] += 1
+
+
+def second_root(d: dict) -> None:
+    next(r for r in d["tree"] if r["id"] == "wx:SnowDepth")["via"] = None
+
+
+def name_like_a_module(d: dict) -> None:
+    d["outline"] = d.pop("tree")
+
+
 CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("a change note dropped on the way to the panel", drop_history,
      "change/history notes not carried to the panel"),
@@ -54,6 +74,12 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "retired term resolves to nothing on the map"),
     ("a stanza holding only its field-name block", lose_declaration,
      "stanza lost its declaration"),
+    ("a class missing from the outline", drop_row, "not in the outline: ['wx:SnowDepth']"),
+    ("a second parent's listing dropped", drop_second_listing, "subClassOf with no outline row"),
+    ("an outline row at the wrong depth", misdepth, "wx:SnowDepth under"),
+    ("an outline with a second root", second_root, "outline roots are"),
+    ("a data key named like a viz module", name_like_a_module,
+     "data key shares a name with a viz module: ['outline']"),
 ]
 
 

@@ -1,7 +1,7 @@
 /* main.js -- wiring only.
  *
- * data.js -> layout -> graph -> ui. Nothing else reaches across those seams, so a
- * new feature usually lands in exactly one of them.
+ * data.js -> layout -> graph and outline -> ui. Nothing else reaches across those
+ * seams, so a new feature usually lands in exactly one of them.
  */
 (function (FMO) {
   'use strict';
@@ -11,6 +11,7 @@
 
   function select(node) {
     FMO.graph.setFocus(node);
+    FMO.outline.setFocus(node);
     FMO.ui.show(node);
     document.getElementById('reset').hidden = !node;
   }
@@ -28,6 +29,8 @@
         if (!running) { running = true; requestAnimationFrame(loop); }
       }
     });
+
+    FMO.outline.build(document.getElementById('outline'), FMO, { select: select });
 
     FMO.ui.init(FMO, { select: select });
 
