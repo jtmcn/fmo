@@ -20,7 +20,7 @@ import re
 import sys
 from pathlib import Path
 
-from rdflib import Graph, Literal, OWL, RDF, RDFS, URIRef
+from rdflib import BNode, Graph, Literal, OWL, RDF, RDFS, URIRef
 from rdflib.namespace import DCTERMS, SH, SKOS
 from rdflib.paths import Path as PropertyPath
 from rdflib.plugins.sparql import prepareQuery
@@ -277,6 +277,73 @@ def build() -> dict:
     lenses += question_lenses(g, set(nodes), set(properties) | set(datatypes), edges)
     lenses.append(coverage_lens(g, nodes, edges))
 
+    # Disjointness never reaches the canvas -- it relates classes that share nothing
+    # to draw -- so it lives on the panel. Stated three ways in OWL; all three read.
+    disjoint: dict[str, set[str]] = {}
+
+    def apart(members: list) -> None:
+        names = [c for c in map(curie, members) if c]
+        for a_ in names:
+            disjoint.setdefault(a_, set()).update(b_ for b_ in names if b_ != a_)
+
+    for s_, o in g.subject_objects(OWL.disjointWith):
+        apart([s_, o])
+    for ax in g.subjects(RDF.type, OWL.AllDisjointClasses):
+        members = g.value(ax, OWL.members)
+        if members is not None:
+            apart(list(g.items(members)))
+    for _, u in g.subject_objects(OWL.disjointUnionOf):
+        apart(list(g.items(u)))
+    for cid, n in nodes.items():
+        n["disjoint"] = sorted(disjoint.get(cid, ()))
+
+    # Orphans, in the book's sense: classes nothing relates to. A relation counts if
+    # it is drawn, carried as a literal, or stated as an OWL restriction on one of
+    # ours -- the map draws no restrictions, and every quality is related to its
+    # bearer through one -- on the class or any ancestor, since a subclass inherits
+    # all three. BFO's own restrictions do not count: every class inherits those.
+    related = {c for e in edges if e["k"] == "rel" for c in (e["s"], e["t"])}
+    related |= {c for v in datatypes.values() for c in v["on"]}
+    related |= {c for s_, o in g.subject_objects(RDFS.subClassOf)
+                if isinstance(o, BNode) and g.value(o, OWL.onProperty) is not None
+                for c in [curie(s_)] if c and c.split(":")[0] in MINTED}
+    # ...and both ends of one: wx:SnowDepth's restriction relates wx:SnowCover too.
+    for s_, o in g.subject_objects(RDFS.subClassOf):
+        if isinstance(o, BNode) and curie(s_) and str(curie(s_)).split(":")[0] in MINTED:
+            for pred in (OWL.someValuesFrom, OWL.allValuesFrom, OWL.onClass, OWL.hasValue):
+                c = curie(g.value(o, pred))
+                if c:
+                    related.add(c)
+    supers: dict[str, set[str]] = {}
+    for s_, o in g.subject_objects(RDFS.subClassOf):
+        a_, b_ = curie(s_), curie(o)
+        if a_ and b_:
+            supers.setdefault(a_, set()).add(b_)
+
+    def lineage(c: str) -> set[str]:
+        seen, stack = {c}, [c]
+        while stack:
+            for b_ in supers.get(stack.pop(), ()):
+                if b_ not in seen:
+                    seen.add(b_)
+                    stack.append(b_)
+        return seen
+
+    lenses.append(lens(
+        "unrelated", "Unrelated classes", "", {"named": "unrelated", "reached": "reached",
+                                              "path": "walked"},
+        # entity itself is left out: fm:isAbout ranges over it, and a relation any
+        # class at all can stand in says nothing about this one.
+        named={c for c, n in nodes.items()
+               if n["minted"] and not (lineage(c) - {ROOT_CLASS}) & related},
+        paths=set(), edges=edges, group="Structure",
+        line="related to nothing: joined to the map only by rdfs:subClassOf",
+        # No orphans is the goal, so this lens lighting nothing is a pass.
+        goal_empty=True,
+        about="Minted classes nothing relates to: no relation, literal property or OWL "
+              "restriction, on the class or any ancestor. Joined to the rest only by "
+              "rdfs:subClassOf: orphan terms."))
+
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
     for n in nodes.values():
@@ -356,6 +423,7 @@ def question_lenses(g: Graph, classes: set[str], props: set[str], edges: list[di
                     {"named": "untouched", "reached": "reached", "path": "walked"},
                     named=minted - touched, paths=set(), edges=edges,
                     about="Minted classes that no competency question uses or reaches.",
+                    goal_empty=True,
                     group="Competency questions"))
     return out
 
@@ -566,7 +634,10 @@ def check(data: dict, html: str) -> int:
     assert data["lenses"], "no lenses built"
     for ln in data["lenses"]:
         name = ln["label"]
-        assert ln["named"] or ln["paths"], f"the {name} lens lights nothing"
+        # A lens listing what is wrong is empty when nothing is; every other lens
+        # lighting nothing means its reader found nothing to read.
+        assert ln["named"] or ln["paths"] or ln.get("goal_empty"), \
+            f"the {name} lens lights nothing"
         assert not ln.get("unmapped"), \
             f"{ln['unmapped']} {name} term(s) outside the namespaces the map draws"
         assert not ln.get("unread"), f"the {name} reader does not understand: {ln['unread']}"
@@ -646,6 +717,25 @@ def check(data: dict, html: str) -> int:
         if not r["dup"]:
             depth[r["id"]] = r["d"]
 
+    # Disjointness read a second way, by SPARQL, and compared pair for pair.
+    pairs = {tuple(sorted((a_, b_))) for n in data["nodes"] for a_, b_ in
+             ((n["id"], o) for o in n.get("disjoint", []))}
+    stated: set[tuple[str, str]] = set()
+    for row in g.query("""
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?a ?b WHERE {
+          { ?a owl:disjointWith ?b } UNION
+          { ?ax a owl:AllDisjointClasses ; owl:members ?l .
+            ?l rdf:rest*/rdf:first ?a . ?l rdf:rest*/rdf:first ?b } UNION
+          { ?c owl:disjointUnionOf ?l .
+            ?l rdf:rest*/rdf:first ?a . ?l rdf:rest*/rdf:first ?b }
+          FILTER (?a != ?b) }"""):
+        a_, b_ = curie(row[0]), curie(row[1])  # type: ignore[index]
+        if a_ and b_ and (a_ in drawn_ids or b_ in drawn_ids):
+            stated.add((min(a_, b_), max(a_, b_)))
+    assert pairs == stated, f"disjoint pairs not carried to the panel: {sorted(pairs ^ stated)[:5]}"
+
     # A pointer target of at least 24px across, whatever the dot's size.
     reach = hit_px((VIZ / "src" / "graph.js").read_text(encoding="utf-8"))
     assert reach is not None and reach >= MIN_HIT_PX, \
@@ -691,6 +781,9 @@ def check(data: dict, html: str) -> int:
           f"{len(untouched['named'])} minted classes no question touches; coverage "
           + ", ".join(f"{k} {states.count(k)}" for k in
                       ("direct", "subclass", "schema", *V.COVERAGE_CATEGORIES)))
+    lonely = next(ln for ln in data["lenses"] if ln["id"] == "unrelated")
+    print(f"OK: structure, {len(pairs)} disjoint pairs on the panel, "
+          f"{len(lonely['named'])} minted classes nothing relates to: {', '.join(lonely['named'])}")
     print(f"OK: outline, {len(rows)} rows under {ROOT_CLASS}, "
           f"{sum(r['dup'] for r in rows)} second listings, "
           f"{sum(not r['on'] for r in rows)} BFO classes shown only for their place")

@@ -160,7 +160,17 @@ through a subclass. Every class panel has an *Example data* field. It says wheth
 class is exercised; for an unexercised class it gives the category and reason from
 `queries/class-coverage-expectations.json`, with the check date for an unlisted one.
 Which classes count as exercised is decided by `validate.exercise()`, the same function
-`check_class_coverage` uses, so the map and the check can't disagree. Classes an edge merely lands on
+`check_class_coverage` uses, so the map and the check can't disagree.
+
+A class's panel also gives its depth from BFO's entity, and the classes it is disjoint
+with, collected from `owl:disjointWith`, `owl:AllDisjointClasses` and
+`owl:disjointUnionOf`. Disjointness draws nothing on the canvas, so the panel is the
+only place it appears, and `diagram-check` reads the pairs a second time by SPARQL to
+make sure none are lost. The **Unrelated classes** lens lights the orphan terms. These
+are minted classes that no relation, literal property or OWL restriction touches, on
+the class itself or on any ancestor other than entity itself. Five are unrelated today.
+This lens and **No question** list what is wrong, so either one lighting nothing is a
+pass. Classes an edge merely lands on
 light too, or a relation would draw at full strength into a dimmed dot — but the
 panel calls those *reached*, not constrained, because `fm:hasSubject` ranges over
 `fm:ObservationTarget` while the shape narrows it to `wx:WeatherObservationTarget`,
