@@ -27,7 +27,8 @@ from rdflib.plugins.sparql import prepareQuery
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palette  # noqa: E402
-from registry import MODULES, QUERIES, ROOT, SHAPES, SRC  # noqa: E402
+import validate as V  # noqa: E402
+from registry import MODULES, QUERIES, ROOT, SHAPES, SRC, examples  # noqa: E402
 
 VIZ = ROOT / "viz"
 BUILD = ROOT / "build"
@@ -274,6 +275,7 @@ def build() -> dict:
         unmapped=sum(1 for t in named | walked if curie(t) is None), unread=unread,
         group="Export profile")]
     lenses += question_lenses(g, set(nodes), set(properties) | set(datatypes), edges)
+    lenses.append(coverage_lens(g, nodes, edges))
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
@@ -347,15 +349,59 @@ def question_lenses(g: Graph, classes: set[str], props: set[str], edges: list[di
         out.append(lens(f.stem, f"{cq} · {slug}", cq,
                         {"named": "used", "reached": "reached", "path": "walked"},
                         named=used & classes, paths=used & props, edges=edges,
-                        question=question, stale=stale, group="Competency questions"))
+                        about=question, stale=stale, group="Competency questions"))
     touched = {c for ln in out for c in ln["named"] + ln["reached"]}
     minted = {c for c in classes if c.split(":")[0] in MINTED}
     out.append(lens("no-question", "No question", "any competency question",
                     {"named": "untouched", "reached": "reached", "path": "walked"},
                     named=minted - touched, paths=set(), edges=edges,
-                    question="Minted classes that no competency question uses or reaches.",
+                    about="Minted classes that no competency question uses or reaches.",
                     group="Competency questions"))
     return out
+
+
+COVERAGE_SAYS = {
+    "direct": "An example instantiates it directly.",
+    "subclass": "No example instantiates it directly, but one instantiates a subclass.",
+    "schema": "Its individuals are declared in src/, so no example could add one.",
+}
+
+
+def coverage_lens(g: Graph, nodes: dict[str, dict], edges: list[dict]) -> dict:
+    """The classes the examples exercise, and for every other minted class, the
+    reason its class-coverage-expectations.json entry gives.
+
+    Which classes count as exercised is validate.exercise(), the function
+    check_class_coverage itself uses, so the map and the check cannot disagree.
+    Each minted node gets a `coverage` record for its panel.
+    """
+    ex = Graph()
+    ex += g
+    for path in examples():
+        ex.parse(path, format="turtle")
+    direct, reached, schema = ({c for c in map(curie, xs) if c} for xs in V.exercise(g, ex))
+    ledger = json.loads(V.COVERAGE_LEDGER.read_text(encoding="utf-8"))
+    for n in nodes.values():
+        if not n["minted"]:
+            continue
+        cid = n["id"]
+        state = ("schema" if cid in schema else "direct" if cid in direct
+                 else "subclass" if cid in reached else None)
+        cov: dict = {"state": state, "says": COVERAGE_SAYS.get(state or "")}
+        if state is None:
+            for cat in V.COVERAGE_CATEGORIES:
+                entry = ledger.get(cat, {}).get(cid)
+                if isinstance(entry, dict):
+                    cov = {"state": cat, "says": entry.get("reason", ""),
+                           "checked": entry.get("checked")}
+                    break
+        n["coverage"] = cov
+    return lens("coverage", "Example coverage", "the example data",
+                {"named": "exercised", "reached": "reached", "path": "walked"},
+                named=(direct | reached) & set(nodes), paths=set(), edges=edges,
+                about="Classes an example instantiates, directly or through a subclass. "
+                      "Select a dimmed class to read why no example does.",
+                group="Example data")
 
 
 def lens(key: str, label: str, source: str, words: dict[str, str], *, named: set[str],
@@ -536,6 +582,15 @@ def check(data: dict, html: str) -> int:
         ends = {c for e in data["edges"] if e.get("p") in ln["paths"] for c in (e["s"], e["t"])}
         assert set(ln["reached"]) == ends - set(ln["named"]), \
             f"{name}: reached classes are not the ends of the paths it walks"
+    # Every minted class says where it stands with the examples; an unexercised one
+    # with no ledger entry would show an empty field, which validate also refuses.
+    unplaced = sorted(n["id"] for n in minted if not (n.get("coverage") or {}).get("state"))
+    assert not unplaced, f"minted class with no example-coverage state: {unplaced[:5]}"
+    cov = next(ln for ln in data["lenses"] if ln["id"] == "coverage")
+    exercised = sorted(n["id"] for n in minted if n["coverage"]["state"] in ("direct", "subclass"))
+    assert sorted(set(cov["named"]) & {n["id"] for n in minted}) == exercised, \
+        "the coverage lens and the panel's coverage states disagree"
+
     asked = sorted(f.stem for f in QUERIES.glob("cq*.rq"))
     have = sorted(ln["id"] for ln in data["lenses"] if ln["id"].startswith("cq"))
     assert asked == have, f"competency questions without a lens: {sorted(set(asked) - set(have))}"
@@ -631,8 +686,11 @@ def check(data: dict, html: str) -> int:
           f"{len(tombs)} tombstones resolve to a replacement")
     print(f"OK: palette, {palette_summary}")
     untouched = next(ln for ln in data["lenses"] if ln["id"] == "no-question")
+    states = [n["coverage"]["state"] for n in minted]
     print(f"OK: lenses, {len(have)} competency questions, "
-          f"{len(untouched['named'])} minted classes no question touches")
+          f"{len(untouched['named'])} minted classes no question touches; coverage "
+          + ", ".join(f"{k} {states.count(k)}" for k in
+                      ("direct", "subclass", "schema", *V.COVERAGE_CATEGORIES)))
     print(f"OK: outline, {len(rows)} rows under {ROOT_CLASS}, "
           f"{sum(r['dup'] for r in rows)} second listings, "
           f"{sum(not r['on'] for r in rows)} BFO classes shown only for their place")

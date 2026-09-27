@@ -68,6 +68,14 @@ def stale_question(d: dict) -> None:
     next(ln for ln in d["lenses"] if ln["id"].startswith("cq"))["stale"] = ["ksh:yesBidCents"]
 
 
+def unplaced_class(d: dict) -> None:
+    node(d, "wx:AirMotion")["coverage"] = {"state": None}
+
+
+def coverage_disagrees(d: dict) -> None:
+    next(ln for ln in d["lenses"] if ln["id"] == "coverage")["named"].append("wx:AirMotion")
+
+
 def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
@@ -124,6 +132,10 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "competency questions without a lens: ['cq02-probability-gap']"),
     ("a question lens flagged stale", stale_question,
      "matches on a retired or undeclared term"),
+    ("a minted class with no coverage state", unplaced_class,
+     "minted class with no example-coverage state: ['wx:AirMotion']"),
+    ("the coverage lens lighting an unexercised class", coverage_disagrees,
+     "the coverage lens and the panel's coverage states disagree"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]
