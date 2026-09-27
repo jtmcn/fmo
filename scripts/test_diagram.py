@@ -91,13 +91,33 @@ def off_its_row(d: dict) -> None:
     node(d, "ksh:Market")["py"] += 40
 
 
-def tangled(d: dict) -> None:
-    # Swap the ends of the tree: every edge into either half now crosses the middle.
-    row = sorted((n for n in d["nodes"] if n["py"] == 5 * gd.ROW), key=lambda n: n["px"])
-    for a, b in zip(row, reversed(row)):
-        if a["px"] >= b["px"]:
-            break
-        a["px"], b["px"] = b["px"], a["px"]
+def reverse_family(d: dict) -> None:
+    # fm:Agent's two children in the other order: the smallest reordering that
+    # breaches the ceiling, through place() rather than by moving dots by hand.
+    rows = d["tree"]
+    i = next(k for k, r in enumerate(rows) if r["id"] == "fm:Agent" and not r["dup"])
+
+    def end(k: int) -> int:
+        j = k + 1
+        while j < len(rows) and rows[j]["d"] > rows[k]["d"]:
+            j += 1
+        return j
+
+    stop, blocks, k = end(i), [], i + 1
+    while k < stop:
+        blocks.append(rows[k:end(k)])
+        k = end(k)
+    d["tree"] = rows[:i + 1] + [r for b in reversed(blocks) for r in b] + rows[stop:]
+    gd.place(d["tree"], {n["id"]: n for n in d["nodes"]})
+
+
+def drift(d: dict) -> None:
+    # Along its row and past no edge: only a comparison with a fresh build sees it.
+    node(d, "ksh:Market")["px"] += 0.5
+
+
+def drop_unwalked(d: dict) -> None:
+    next(ln for ln in d["lenses"] if ln["id"] == "no-question")["unwalked"].pop()
 
 
 def name_like_a_module(d: dict) -> None:
@@ -108,9 +128,11 @@ def export(d: dict) -> dict:
     return next(ln for ln in d["lenses"] if ln["id"] == "export")
 
 
-def empty_lens(d: dict) -> None:
-    d["lenses"].append({**export(d), "id": "empty", "label": "Empty", "named": [],
-                        "reached": [], "paths": []})
+def emptied(key: str) -> Callable[[dict], None]:
+    def damage(d: dict) -> None:
+        ln = next(x for x in d["lenses"] if x["id"] == key)
+        ln.update(named=[], reached=[], paths=[])
+    return damage
 
 
 def lens_off_the_map(d: dict) -> None:
@@ -143,7 +165,6 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("a second parent's listing dropped", drop_second_listing, "subClassOf with no outline row"),
     ("an outline row at the wrong depth", misdepth, "wx:SnowDepth under"),
     ("an outline with a second root", second_root, "outline roots are"),
-    ("a lens that lights nothing", empty_lens, "the Empty lens lights nothing"),
     ("a lens naming a class the map lacks", lens_off_the_map,
      "ThermalEdge export term absent from the map: ['fm:NoSuchClass']"),
     ("a lens whose reached classes drift from its paths", lens_reach_drift,
@@ -164,7 +185,11 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "disjoint pairs not carried to the panel"),
     ("an ontology with no unrelated classes", no_orphans, ""),
     ("a class drawn off its depth's row", off_its_row, "not on its depth's row: ['ksh:Market']"),
-    ("a tree row drawn in reverse", tangled, "subClassOf crossings, over the pinned"),
+    ("one family's children in reverse order", reverse_family,
+     "subClassOf crossings, over the pinned"),
+    ("a layout that differs from a fresh build", drift, "layout differs from a build"),
+    ("a property no question walks left unlisted", drop_unwalked,
+     "properties no question walks not listed"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]
@@ -225,6 +250,13 @@ def question_cases() -> int:
     return failed
 
 
+def lens_cases(base: dict) -> list[tuple[str, Callable[[dict], None], str]]:
+    """Every lens that is not goal-empty, emptied: each must fail on its own."""
+    return [(f"the {ln['label']} lens emptied", emptied(ln["id"]),
+             f"the {ln['label']} lens lights nothing")
+            for ln in base["lenses"] if not ln.get("goal_empty")]
+
+
 def main() -> int:
     base = gd.build()
     html = gd.inline((gd.VIZ / "index.html").read_text(encoding="utf-8"))
@@ -235,7 +267,8 @@ def main() -> int:
     except AssertionError as e:
         print(f"FAIL  the unmodified data does not pass: {e}")
         failed += 1
-    for name, damage, expect in CASES:
+    cases = CASES + lens_cases(base)
+    for name, damage, expect in cases:
         data = copy.deepcopy(base)
         damage(data)
         # An empty expectation is a case that must pass: a goal state, not a defect.
@@ -247,7 +280,7 @@ def main() -> int:
         print(("FAIL  " if why else "ok    ") + name + (f": {why}" if why else ""))
         failed += bool(why)
     hit_failed = hit_cases() + question_cases()
-    total = len(CASES) + 1 + 3 + 2
+    total = len(cases) + 1 + 3 + 2
     failed += hit_failed
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0

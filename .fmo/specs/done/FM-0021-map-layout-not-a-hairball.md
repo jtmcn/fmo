@@ -123,3 +123,10 @@ Open for the verdict:
   so they read at 11px at any zoom, which is why the fitted tree is labelled at all.
 
   All three acceptance witnesses pass under `make test`. Resolved.
+
+- 2026-09-27: Review of the stack, fixed on `joel/map-review-fixes`. The determinism
+  witness re-placed the same rows, so it could not fail. It now compares against two
+  fresh builds under different `PYTHONHASHSEED`s. The crossings negative test reverses
+  `fm:Agent`'s children through `place()`, the witness this spec named (4 crossings);
+  mirroring a whole row was coarser. Beyond the claim: hovering a class draws its
+  relations as selecting does, and **all relations** draws every one at once.

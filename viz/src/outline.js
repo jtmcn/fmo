@@ -43,7 +43,7 @@
 
     root.innerHTML = '<p class="ol-sum">' + summary() + '</p>' +
       '<table class="ol"><thead><tr><th scope="col">Class</th>' +
-      '<th scope="col" class="n">Depth</th><th scope="col" class="n opt">Relations</th>' +
+      '<th scope="col" class="ol-mod">Module</th><th scope="col" class="n">Depth</th><th scope="col" class="n opt">Relations</th>' +
       '<th scope="col" class="n opt">Literals</th></tr></thead><tbody></tbody></table>';
     body = root.querySelector('tbody');
     rows.forEach(function (r) { labels[r.id] = r.node ? r.node.label : r.label; });
@@ -82,6 +82,7 @@
     return '<tr class="' + (r.dup ? 'is-dup' : '') + (n ? '' : ' is-off') + '">' +
       '<td class="ol-term" style="--d:' + r.d + '">' + term +
       (note ? '<span class="ol-note">' + esc(note) + '</span>' : '') + '</td>' +
+      '<td class="ol-mod">' + esc(r.id.split(':')[0]) + '</td>' +
       '<td class="n">' + r.d + '</td>' +
       '<td class="n opt">' + (n ? r.rel : '') + '</td>' +
       '<td class="n opt">' + (n ? r.lit : '') + '</td></tr>';
