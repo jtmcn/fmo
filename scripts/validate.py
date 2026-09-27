@@ -1310,6 +1310,31 @@ def prefixed(term: URIRef) -> str:
     return text
 
 
+def exercise(g: Graph, ex: Graph) -> tuple[set, set, set]:
+    """(instantiated, reached, schema_instantiated) over our terms.
+
+    instantiated: what an example types directly. reached: that plus every
+    ancestor, so a class counts when a subclass of it is exercised.
+    schema_instantiated: classes whose individuals src/ declares itself. One
+    computation shared by check_class_coverage and the map's coverage lens, so
+    the two cannot disagree about which class an example exercises.
+    """
+    # A class the modules enumerate themselves. Derived rather than declared, and
+    # deliberately narrow: a class whose *children* carry the schema individuals is
+    # not one of these, it just has enumerated children.
+    schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
+    # Subtracted by class, not by instance, because ex carries the schema too. The
+    # assumption: no example types an individual to one of these nine. If one ever
+    # does, that class stays schema-only and its parents miss out on reached.
+    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
+
+    # Exercised directly or through a subclass, via ancestors of what examples type.
+    reached = set(instantiated)
+    for term in instantiated:
+        reached |= ancestors(g, term)
+    return instantiated, reached, schema_instantiated
+
+
 @check(takes=("schema", "data"), population="schema",
        reason="its population is the minted classes; example data changes which are "
               "exercised, never how many are traversed")
@@ -1325,19 +1350,7 @@ def check_class_coverage(g: Graph, ex: Graph) -> None:
     lot could not move for reasons that have nothing to do with the model improving.
     """
     our_classes = minted_classes(g)
-    # A class the modules enumerate themselves. Derived rather than declared, and
-    # deliberately narrow: a class whose *children* carry the schema individuals is
-    # not one of these, it just has enumerated children.
-    schema_instantiated = {t for t in g.objects(None, RDF.type) if is_ours(t)}
-    # Subtracted by class, not by instance, because ex carries the schema too. The
-    # assumption: no example types an individual to one of these nine. If one ever
-    # does, that class stays schema-only and its parents miss out on reached.
-    instantiated = {t for t in ex.objects(None, RDF.type) if is_ours(t)} - schema_instantiated
-
-    # Exercised directly or through a subclass, via ancestors of what examples type.
-    reached = set(instantiated)
-    for term in instantiated:
-        reached |= ancestors(g, term)
+    instantiated, reached, schema_instantiated = exercise(g, ex)
 
     # The categories guard is load()'s now, so a fourth ledger inherits it rather
     # than needing someone to remember it -- which is how check_axioms came to be

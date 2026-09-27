@@ -153,7 +153,14 @@ question**, lights the minted classes no question uses or reaches. Today that is
 100. This doesn't count as a failure: `class-coverage-expectations.json` is where
 classes are classified. The terms come from each query's parsed algebra, not its text,
 so a term that appears only in a comment doesn't count. A query that matches on a
-retired or undeclared term fails `diagram-check`. Classes an edge merely lands on
+retired or undeclared term fails `diagram-check`.
+
+The **Example coverage** lens lights the classes an example instantiates, directly or
+through a subclass. Every class panel has an *Example data* field. It says whether the
+class is exercised; for an unexercised class it gives the category and reason from
+`queries/class-coverage-expectations.json`, with the check date for an unlisted one.
+Which classes count as exercised is decided by `validate.exercise()`, the same function
+`check_class_coverage` uses, so the map and the check can't disagree. Classes an edge merely lands on
 light too, or a relation would draw at full strength into a dimmed dot — but the
 panel calls those *reached*, not constrained, because `fm:hasSubject` ranges over
 `fm:ObservationTarget` while the shape narrows it to `wx:WeatherObservationTarget`,

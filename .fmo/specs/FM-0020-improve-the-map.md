@@ -246,3 +246,10 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   `diagram-check` refuses a query matching on a retired or undeclared term. The lens
   picker and the view toggle made the bar overflow below 1336px, so the bar now sheds
   its subtitle, then search width and the "Lens" label. It fits from 1440 down to 901.
+
+- 2026-09-26: Step 7 (coverage lens) on `joel/map-coverage-lens`, stacked on step 6.
+  `check_class_coverage`'s exercised/reached computation moved into
+  `validate.exercise()`, which the map now shares. Today: 43 classes direct, 19 via a
+  subclass, 9 enumerated in src/, and 29 in the ledger (2 unassertable, 6 unlisted,
+  21 unwritten). A lens's prose field is now `about` rather than `question`, since
+  not every lens asks one.

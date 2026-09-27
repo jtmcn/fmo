@@ -231,13 +231,16 @@
         relCount++;
       });
     }
-    // A question lens says what it asks; the counts alone would not.
-    $('legend-q').hidden = !(lens && lens.question);
-    $('legend-q').textContent = lens && lens.question || '';
+    // A lens says what it shows -- for a question lens, the question; the counts
+    // alone would not.
+    $('legend-q').hidden = !(lens && lens.about);
+    $('legend-q').textContent = lens && lens.about || '';
+    // A lens that walks no paths reaches nothing; four zeros would only be noise.
     $('legend-note').textContent = lens
-      ? lens.label + ' · ' + named + ' ' + lens.words.named + ' · ' + reached + ' ' +
-        lens.words.reached + ' · ' + plural(relCount, 'relation') + ' · ' +
-        plural(litCount, 'literal')
+      ? lens.label + ' · ' + named + ' ' + lens.words.named + (lens.paths.length
+        ? ' · ' + reached + ' ' + lens.words.reached + ' · ' + plural(relCount, 'relation') +
+          ' · ' + plural(litCount, 'literal')
+        : '')
       : shown + ' classes · ' + drawn + ' of ' + Object.keys(props).length +
         ' object properties drawn · ' + carriers + ' carry literal values';
   }
@@ -437,6 +440,7 @@
     if (field('f-note', n.note)) $('panel-note').textContent = n.note;
     if (field('f-example', n.example)) $('panel-example').textContent = n.example;
     history(n.history, replaces[n.id]);
+    coverage(n.coverage);
     field('f-api', false);
 
     literals(n);
@@ -476,6 +480,7 @@
     if (field('f-note', t.note)) $('panel-note').textContent = t.note;
     field('f-example', false);
     history(t.history, replaces[e.id]);
+    coverage(null);
     if (field('f-api', (t.fields || []).length)) {
       $('panel-api').innerHTML = t.fields.map(function (f) {
         return '<code>' + esc(f) + '</code>';
@@ -504,6 +509,20 @@
     $('panel-links').innerHTML = out.join('');
 
     if (field('f-ttl', t.ttl)) $('panel-ttl').innerHTML = turtle(t.ttl);
+  }
+
+  /* Where a class stands with the example data: exercised, or the reason its
+     class-coverage-expectations.json entry gives for why no example reaches it. */
+  var COVERAGE = {
+    direct: 'exercised', subclass: 'exercised through a subclass',
+    schema: 'enumerated in src/', unassertable: 'unassertable',
+    unlisted: 'unlisted', unwritten: 'not yet written'
+  };
+
+  function coverage(c) {
+    if (!field('f-cov', c && c.state)) return;
+    $('panel-cov').innerHTML = '<span class="lk-via">' + esc(COVERAGE[c.state] || c.state) +
+      (c.checked ? ' · checked ' + esc(c.checked) : '') + '</span> ' + esc(c.says || '');
   }
 
   /* Change and history notes, then any retired names this term replaced -- which
