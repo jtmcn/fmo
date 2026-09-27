@@ -236,6 +236,21 @@ def build() -> dict:
             "on": carriers,
         }
 
+    # The map is laid out as the outline's tree, so BFO's skeleton has to be on it:
+    # without process under occurrent under entity the tree is a forest of twelve
+    # roots and the top rows stand empty. Its rows also give every subClassOf a
+    # class has, second parents included, so the edges come from there.
+    tree = outline(g, nodes, lambda u: text(u, RDFS.label))
+    have = {(e["s"], e["t"]) for e in edges if e["k"] == "sub"}
+    for r in tree:
+        touch(r["id"])
+        r["on"] = True
+        r.pop("label", None)
+        if r["via"] and (r["id"], r["via"]) not in have:
+            have.add((r["id"], r["via"]))
+            edges.append({"s": r["id"], "t": touch(r["via"]), "k": "sub"})
+    place(tree, nodes)
+
     # Tombstones (ADR 0003). Search resolves a retired name to what replaced it,
     # so an old IRI in someone's data still lands somewhere on the map.
     retired: dict[str, dict] = {}
@@ -355,7 +370,8 @@ def build() -> dict:
         n["deg"] = sum(1 for e in edges if n["id"] in (e["s"], e["t"]))
 
     return {
-        "tree": outline(g, nodes, lambda u: text(u, RDFS.label)),
+        "tree": tree,
+        "grid": {"row": ROW, "col": COL, "depth": max(r["d"] for r in tree)},
         "version": text(URIRef("https://w3id.org/forecast-market-ontology/core"),
                         OWL.versionInfo) or "",
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
@@ -491,11 +507,61 @@ def lens(key: str, label: str, source: str, words: dict[str, str], *, named: set
 
 
 ROOT_CLASS = "bfo:BFO_0000001"   # entity
+ROW, COL = 120, 34                # layout grid: one row per depth, one column per leaf
+# Families read forecast, pivot, market, left to right; borrowed ground last.
+SIDE_ORDER = {"wx": 0, "fm": 1, "ksh": 2}
+# Edge crossings among the subClassOf drawn at rest. Pinned, not minimised: a
+# change that tangles the tree fails here instead of looking fine in review.
+MAX_CROSSINGS = 3
+
+
+def place(rows: list[dict], nodes: dict[str, dict]) -> None:
+    """Tree positions from the outline's rows: y is depth, leaves take columns in
+    reading order, and a parent sits over the middle of its children. Computed here
+    rather than simulated in the page, so diagram-check can count what it draws."""
+    full = [r for r in rows if not r["dup"]]
+    kids: dict[str, list[str]] = {}
+    for r in full:
+        if r["via"]:
+            kids.setdefault(r["via"], []).append(r["id"])
+    x: dict[str, float] = {}
+    leaves = 0
+    for r in full:                       # depth-first, so leaves arrive in order
+        if not kids.get(r["id"]):
+            x[r["id"]] = leaves * COL
+            leaves += 1
+    for r in reversed(full):             # children always before their parent
+        if kids.get(r["id"]):
+            x[r["id"]] = sum(x[c] for c in kids[r["id"]]) / len(kids[r["id"]])
+    mid = (leaves - 1) * COL / 2
+    for r in full:
+        if r["id"] in nodes:
+            nodes[r["id"]]["px"] = round(x[r["id"]] - mid, 1)
+            nodes[r["id"]]["py"] = r["d"] * ROW
+
+
+def crossings(nodes: list[dict], edges: list[dict]) -> int:
+    """Pairs of subClassOf segments that cross; edges sharing an end never count."""
+    at = {n["id"]: (n["px"], n["py"]) for n in nodes}
+    segs = [(e["s"], e["t"]) for e in edges if e["k"] == "sub" and e["s"] != e["t"]]
+
+    def ccw(p, q, r) -> bool:
+        return (r[1] - p[1]) * (q[0] - p[0]) > (q[1] - p[1]) * (r[0] - p[0])
+
+    n = 0
+    for i, (a, b) in enumerate(segs):
+        for c, d in segs[i + 1:]:
+            if {a, b} & {c, d}:
+                continue
+            A, B, C, D = at[a], at[b], at[c], at[d]
+            if ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D):
+                n += 1
+    return n
 
 
 def outline(g: Graph, nodes: dict[str, dict], label) -> list[dict]:
     """The outline's rows, in reading order: the subsumption tree from bfo:entity
-    down to every class on the map, depth-first, children by label.
+    down to every class on the map, depth-first, children by side then label.
 
     The map draws only edges that start at a minted class, so BFO's own skeleton
     (process under occurrent under entity) is missing there. The outline walks it
@@ -541,7 +607,8 @@ def outline(g: Graph, nodes: dict[str, dict], label) -> list[dict]:
         if row["dup"]:
             return
         seen.add(c)
-        for child in sorted(down.get(c, []), key=lambda x: (name(x).lower(), x)):
+        for child in sorted(down.get(c, []), key=lambda x: (
+                SIDE_ORDER.get(x.split(":")[0], 3), name(x).lower(), x)):
             walk(child, depth + 1, c)
 
     for root in sorted(c for c in keep if not up.get(c, set()) & keep):
@@ -736,6 +803,21 @@ def check(data: dict, html: str) -> int:
             stated.add((min(a_, b_), max(a_, b_)))
     assert pairs == stated, f"disjoint pairs not carried to the panel: {sorted(pairs ^ stated)[:5]}"
 
+    # The drawn tree: every class on its depth's row, few enough crossings, and the
+    # same picture every build.
+    unplaced_ = sorted(n["id"] for n in data["nodes"] if "px" not in n)
+    assert not unplaced_, f"no position for: {unplaced_[:5]}"
+    off_row = sorted(n["id"] for n in data["nodes"] if n["py"] != depth[n["id"]] * ROW)
+    assert not off_row, f"not on its depth's row: {off_row[:5]}"
+    crossed = crossings(data["nodes"], data["edges"])
+    assert crossed <= MAX_CROSSINGS, \
+        f"{crossed} subClassOf crossings, over the pinned {MAX_CROSSINGS}"
+    again = {n["id"]: dict(n) for n in data["nodes"]}
+    place(rows, again)
+    moved = sorted(n["id"] for n in data["nodes"]
+                   if (again[n["id"]]["px"], again[n["id"]]["py"]) != (n["px"], n["py"]))
+    assert not moved, f"layout differs between two runs: {moved[:5]}"
+
     # A pointer target of at least 24px across, whatever the dot's size.
     reach = hit_px((VIZ / "src" / "graph.js").read_text(encoding="utf-8"))
     assert reach is not None and reach >= MIN_HIT_PX, \
@@ -784,9 +866,11 @@ def check(data: dict, html: str) -> int:
     lonely = next(ln for ln in data["lenses"] if ln["id"] == "unrelated")
     print(f"OK: structure, {len(pairs)} disjoint pairs on the panel, "
           f"{len(lonely['named'])} minted classes nothing relates to: {', '.join(lonely['named'])}")
+    print(f"OK: layout, {len(data['nodes'])} classes on {data['grid']['depth'] + 1} rows, "
+          f"{crossed} subClassOf crossings (ceiling {MAX_CROSSINGS})")
     print(f"OK: outline, {len(rows)} rows under {ROOT_CLASS}, "
           f"{sum(r['dup'] for r in rows)} second listings, "
-          f"{sum(not r['on'] for r in rows)} BFO classes shown only for their place")
+          f"{sum(not r['on'] for r in rows)} rows off the map")
     return 0
 
 

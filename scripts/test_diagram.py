@@ -87,6 +87,19 @@ def no_orphans(d: dict) -> None:
     next(ln for ln in d["lenses"] if ln["id"] == "unrelated")["named"] = []
 
 
+def off_its_row(d: dict) -> None:
+    node(d, "ksh:Market")["py"] += 40
+
+
+def tangled(d: dict) -> None:
+    # Swap the ends of the tree: every edge into either half now crosses the middle.
+    row = sorted((n for n in d["nodes"] if n["py"] == 5 * gd.ROW), key=lambda n: n["px"])
+    for a, b in zip(row, reversed(row)):
+        if a["px"] >= b["px"]:
+            break
+        a["px"], b["px"] = b["px"], a["px"]
+
+
 def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
@@ -150,6 +163,8 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("a disjointness pair dropped from the panel", drop_disjoint,
      "disjoint pairs not carried to the panel"),
     ("an ontology with no unrelated classes", no_orphans, ""),
+    ("a class drawn off its depth's row", off_its_row, "not on its depth's row: ['ksh:Market']"),
+    ("a tree row drawn in reverse", tangled, "subClassOf crossings, over the pinned"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]

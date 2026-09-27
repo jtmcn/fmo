@@ -21,7 +21,8 @@
   var depth = {};
   var onSelect = function () {};
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
-  var showRel = true;
+  // Off by default: relations draw for the focused class and the active lens.
+  var showRel = false;
   var matches = [], cursor = -1;
   // The search index: one entry per class, property and retired name.
   var entries = [], entryOf = {}, replaces = {};
@@ -206,10 +207,8 @@
     // The two edge kinds and what their colour means; the counts are in the note.
     rows += '<dt><span class="sw-line"></span></dt><dd>is a<span class="lg-name">' +
             ' · rdfs:subClassOf</span></dd><dd class="ct"></dd>';
-    if (showRel) {
-      rows += '<dt><span class="sw-line rel"></span></dt><dd>relation<span class="lg-name">' +
-              ' · in its domain\'s colour</span></dd><dd class="ct"></dd>';
-    }
+    rows += '<dt><span class="sw-line rel"></span></dt><dd>relation<span class="lg-name">' +
+            ' · on selection, in its domain\'s colour</span></dd><dd class="ct"></dd>';
     $('legend-rows').innerHTML = rows;
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
     // Drawn, not declared: the properties left open-domain on purpose have no
@@ -228,7 +227,7 @@
       });
     });
     var seenRel = {}, relCount = 0;
-    if (showRel && lens) {
+    if (lens) {
       edges.forEach(function (e) {
         if (e.k !== 'rel' || !lens.has.paths[e.p] || seenRel[e.p]) return;
         if (byId[e.s].hidden || byId[e.t].hidden) return;
