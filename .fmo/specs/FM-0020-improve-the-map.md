@@ -41,10 +41,10 @@ acceptance:
   - claim: >-
       Search finds object and datatype properties, and a retired term resolves
       to the term that replaced it.
-    witness: make diagram-check (every owl:deprecated term has a search target)
+    witness: make diagram-negative (a tombstone whose replacement is not on the map)
   - claim: >-
       The panel shows skos:changeNote and skos:historyNote where a term has one.
-    witness: make diagram-check (count of terms with a note equals count shown)
+    witness: make diagram-negative (a change note dropped on the way to the panel)
   - claim: >-
       Every lens (the export profile, competency questions, class coverage) is
       one mechanism, and each fails diagram-check when it lights nothing.
@@ -205,3 +205,11 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   audits the tokens inside `diagram-check`, and `make diagram-negative` has 12 cases.
   The audit also found the two dark blocks already disagreeing on `--shadow`
   (whitespace only). Steps 2–8 are still open.
+
+- 2026-09-26: Step 2 (panel and search) on `joel/map-panel-search`, stacked on step 1.
+  Properties get their own panel. The notes claim covers the terms the map shows,
+  meaning classes and properties: `wx:TotalSnowfall`'s change note is on an
+  individual, and individuals are not drawn. Found while doing it: `stanzas()` kept only
+  a term's last Turtle block, so every property FM-0015 gave a field name showed just
+  its `skos:notation` line. Blocks are joined now, and `diagram-check` requires every
+  stanza to contain its declaration.

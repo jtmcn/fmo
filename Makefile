@@ -225,9 +225,11 @@ diagram:
 diagram-check:
 	$(PY) scripts/generate_diagram.py --check
 
-## Negative tests for the palette audit diagram-check runs: reintroduce the colours
-## it replaced, and prove it refuses to pass having read no tokens.
+## Negative tests for diagram-check: damage what the panel and search read (notes,
+## field names, tombstones, stanzas), reintroduce the colours the palette audit
+## replaced, and prove the audit refuses to pass having read no tokens.
 diagram-negative:
+	$(PY) scripts/test_diagram.py
 	$(PY) scripts/test_palette.py
 
 merge: $(BUILD)/merged.owl $(BUILD)/full.owl

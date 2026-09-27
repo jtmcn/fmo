@@ -25,7 +25,7 @@ make export-check       # production CQ mode: exports pass, the mismatch fixture
 make shape-signatures   # sign the export shapes, audit them against FMO's pin
 make shape-signatures-update  # re-pin after an intended shapes change; review the diff
 make diagram-check      # the map: extraction sane, palette passes contrast and CVD
-make diagram-negative   # negative tests: prove the palette audit fails when it should
+make diagram-negative   # negative tests for diagram-check: extraction and palette
 make cq                 # SPARQL competency questions vs checked-in .expected
 make cq-update          # regenerate .expected — review the diff before committing
 make reason             # HermiT consistency (skips with a notice without a ROBOT that runs)

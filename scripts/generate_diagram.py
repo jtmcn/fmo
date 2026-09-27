@@ -20,8 +20,8 @@ import re
 import sys
 from pathlib import Path
 
-from rdflib import Graph, OWL, RDF, RDFS, URIRef
-from rdflib.namespace import SH, SKOS
+from rdflib import Graph, Literal, OWL, RDF, RDFS, URIRef
+from rdflib.namespace import DCTERMS, SH, SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palette  # noqa: E402
@@ -66,7 +66,10 @@ def curie(term) -> str | None:
 
 
 def stanzas(path: Path) -> dict[str, str]:
-    """Map prefixed name -> its verbatim Turtle block.
+    """Map prefixed name -> its verbatim Turtle blocks, joined in file order.
+
+    A term can be stated in more than one block -- FM-0015 lists the API field
+    names in their own table further down -- and the panel shows all of them.
 
     A stanza starts at column 0 and runs to the next column-0 line, except that
     triple-quoted strings in this repo wrap to column 0, so track them. A column-0
@@ -77,12 +80,16 @@ def stanzas(path: Path) -> dict[str, str]:
     key: str | None = None
     in_quote = False
 
+    def close(k: str, lines: list[str]) -> None:
+        block = "\n".join(lines).rstrip()
+        out[k] = out[k] + "\n\n" + block if k in out else block
+
     for line in path.read_text(encoding="utf-8").splitlines():
         head = line.split()[0] if line[:1].strip() else ""
         opens = head and not head.startswith(("@", "<"))
         if opens and not in_quote:
             if key:
-                out[key] = "\n".join(current).rstrip()
+                close(key, current)
             key = None if head.startswith("#") else (head if ":" in head else None)
             current = []
         if key is not None:
@@ -91,7 +98,7 @@ def stanzas(path: Path) -> dict[str, str]:
             in_quote = not in_quote
 
     if key:
-        out[key] = "\n".join(current).rstrip()
+        close(key, current)
     return out
 
 
@@ -111,6 +118,18 @@ def build() -> dict:
             return None
         paras = re.split(r"\n\s*\n", str(v).strip())
         return "\n\n".join(" ".join(p.split()) for p in paras)
+
+    def history(s) -> list[dict]:
+        """Change and history notes, oldest wording first. ADR 0003 requires the
+        change note on a term redefined in place; it is the only field saying why."""
+        out = [{"kind": kind, "text": " ".join(str(v).split())}
+               for kind, pred in (("changed", SKOS.changeNote), ("history", SKOS.historyNote))
+               for v in g.objects(s, pred)]
+        return sorted(out, key=lambda h: (h["kind"], h["text"]))
+
+    def fields(s) -> list[str]:
+        """The API field names a property is read from (FM-0015), as skos:notation."""
+        return sorted(str(v) for v in g.objects(s, SKOS.notation))
 
     nodes: dict[str, dict] = {}
     edges: list[dict] = []
@@ -139,6 +158,7 @@ def build() -> dict:
             "def": text(s, SKOS.definition),
             "note": text(s, SKOS.scopeNote),
             "example": text(s, SKOS.example),
+            "history": history(s),
             "ttl": src_text[cid.split(":")[0]].get(cid),
         })
 
@@ -168,7 +188,10 @@ def build() -> dict:
             "label": text(p, RDFS.label) or pid.split(":")[1],
             "def": text(p, SKOS.definition),
             "note": text(p, SKOS.scopeNote),
+            "history": history(p),
+            "fields": fields(p),
             "ttl": src_text[pid.split(":")[0]].get(pid),
+            "dom": d, "rng": r,
             # Left open on purpose in the ontology, so there is no edge to draw;
             # check() uses this to tell that apart from an extraction failure.
             "open": not (d and r),
@@ -195,7 +218,11 @@ def build() -> dict:
             continue
         carriers = ends(g.value(p, RDFS.domain))
         datatypes[pid] = {
+            "label": text(p, RDFS.label) or pid.split(":")[1],
             "def": text(p, SKOS.definition),
+            "note": text(p, SKOS.scopeNote),
+            "history": history(p),
+            "fields": fields(p),
             "ttl": src_text[pid.split(":")[0]].get(pid),
             "range": datatype(g.value(p, RDFS.range)),
             # Same distinction the object properties draw: a domain left open on
@@ -205,6 +232,19 @@ def build() -> dict:
             # a BFO instant nothing else in the ontology touches, so no node exists
             # for it. The panel skips a carrier it cannot find; check() does not.
             "on": carriers,
+        }
+
+    # Tombstones (ADR 0003). Search resolves a retired name to what replaced it,
+    # so an old IRI in someone's data still lands somewhere on the map.
+    retired: dict[str, dict] = {}
+    for t in g.subjects(OWL.deprecated, Literal(True)):
+        tid = curie(t)
+        if not tid or tid.split(":")[0] not in MINTED:
+            continue
+        retired[tid] = {
+            "label": text(t, RDFS.label) or tid.split(":")[1],
+            "to": sorted(c for c in map(curie, g.objects(t, DCTERMS.isReplacedBy)) if c),
+            "note": text(t, SKOS.historyNote),
         }
 
     # The export profile, read off the shapes rather than restated here: whatever
@@ -262,6 +302,7 @@ def build() -> dict:
         "edges": edges,
         "properties": properties,
         "datatypes": dict(sorted(datatypes.items())),
+        "retired": dict(sorted(retired.items())),
         "profile": {
             "label": PROFILE_LABEL,
             "classes": sorted(prof_classes),
@@ -310,6 +351,14 @@ def check(data: dict, html: str) -> int:
     # that runs on past its own is how the swallowed section banners looked.
     ragged = [n["id"] for n in minted if not n["ttl"].rstrip().endswith(".")]
     assert not ragged, f"stanza does not end at its full stop: {ragged[:5]}"
+    # A later block for the same term (an API field table) once replaced the
+    # declaration instead of joining it; the stanza must still say what the term is.
+    stanzas_ = {**{n["id"]: n["ttl"] for n in minted},
+                **{k: v["ttl"] for k, v in data["properties"].items()},
+                **{k: v.get("ttl") for k, v in data["datatypes"].items()}}
+    undeclared = [t for t, ttl in stanzas_.items()
+                  if not re.search(rf"^{re.escape(t)}\s+a\s", ttl or "", re.M)]
+    assert not undeclared, f"stanza lost its declaration: {undeclared[:5]}"
     undocumented = [n["id"] for n in minted if not n["def"]]
     assert not undocumented, f"no definition for: {undocumented[:5]}"
 
@@ -359,6 +408,27 @@ def check(data: dict, html: str) -> int:
     assert not remote, f"built file still fetches: {remote[:3]}"
     assert "<script src" not in html and "</script>" in html, "inlining did not run"
 
+    # Notes, field names and tombstones are counted again straight off the graph:
+    # a panel that silently stops showing them looks exactly like a term without any.
+    g = Graph()
+    for m in MODULES:
+        g.parse(SRC / m, format="turtle")
+    terms = {**{n["id"]: n for n in minted}, **data["properties"], **dts}
+    noted = {c for p in (SKOS.changeNote, SKOS.historyNote) for c in map(curie, g.subjects(p, None))
+             if c is not None and c in terms}
+    shown = {tid for tid, t in terms.items() if t.get("history")}
+    assert noted == shown, f"change/history notes not carried to the panel: {sorted(noted ^ shown)}"
+    notations = sum(1 for s_, _ in g.subject_objects(SKOS.notation) if curie(s_) in terms)
+    carried = sum(len(t.get("fields", [])) for t in terms.values())
+    assert notations == carried, f"{notations} API field names on the map's terms, {carried} carried"
+    tombs = {c for c in map(curie, g.subjects(OWL.deprecated, Literal(True)))
+             if c and c.split(":")[0] in MINTED}
+    assert tombs == set(data["retired"]), \
+        f"tombstones not indexed for search: {sorted(tombs ^ set(data['retired']))}"
+    stranded = [t for t, v in data["retired"].items()
+                if not v["to"] or any(x not in terms for x in v["to"])]
+    assert not stranded, f"retired term resolves to nothing on the map: {stranded}"
+
     # Contrast and colour-blind separation, read off the stylesheet the page ships.
     bad, palette_summary = palette.audit_viz(VIZ)
     assert not bad, "palette audit failed:\n  " + "\n  ".join(bad)
@@ -390,17 +460,14 @@ def check(data: dict, html: str) -> int:
           f"{len(prof['relations'])} relations, "
           f"{len(prof['literals'])} literal properties), "
           f"pivot intact, all stanzas found, nothing remote")
+    print(f"OK: {len(shown)} terms show change/history notes, {carried} API field names, "
+          f"{len(tombs)} tombstones resolve to a replacement")
     print(f"OK: palette, {palette_summary}")
     return 0
 
 
 def main() -> int:
     data = build()
-    if "--check" not in sys.argv:
-        # Checked above, rendered by no panel: 13 KB of a file whose whole point is
-        # being one self-contained attachment.
-        for v in data["datatypes"].values():
-            v.pop("ttl", None)
     (VIZ / "src" / "data.js").write_text(
         # </script> inside a definition would close the inlined block early.
         "window.FMO = " + json.dumps(data, indent=1).replace("</", "<\\/") + ";\n", encoding="utf-8")

@@ -119,6 +119,14 @@ axioms, not a summary of them. Datatype properties end at a literal, so there is
 far class to draw an edge to; they are listed on the class that carries them, with
 the type they land in, rather than left off the map entirely.
 
+Search covers classes, both kinds of property, and the Kalshi API field names a
+property is read from, so `yes_bid_dollars` finds `ksh:yesBidDollars`. A property
+opens its own panel, showing its ends, its field name and its stanza, with the map
+focused on the class it hangs from. A retired name still resolves: searching
+one of the old `*Cents` price names opens the `*Dollars` property that replaced it, and
+that panel's History shows the tombstone's note. Change notes appear there too, since they are the only record
+of why a term was redefined in place (ADR 0003).
+
 The `ThermalEdge export` chip cuts the map down to the export profile: the classes
 `shapes/thermaledge-export.ttl` names and the properties it walks stay lit, and
 everything else dims to the ground it was cut from. Classes an edge merely lands on
@@ -151,7 +159,9 @@ range still draws an edge, that every class carrying a datatype property is on t
 map, that the set of deliberately domain-less ones has not grown, that every term the
 export shapes name or walk reaches the map, that the pivot edges above survive, and
 that the built file fetches nothing — because a viewer that silently drops half the
-graph still renders a convincing picture.
+graph still renders a convincing picture. The notes, field names and tombstones the
+panel shows are counted a second time, straight off the ontology, and the two counts
+must agree. Every stanza must still contain its term's declaration.
 
 It also audits the palette off `viz/style.css` itself (`scripts/palette.py`). Text is
 checked at 4.5:1 and marks at 3:1, in both themes. Any two module colours must stay

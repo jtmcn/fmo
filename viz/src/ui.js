@@ -19,6 +19,8 @@
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
   var showRel = true;
   var matches = [], cursor = -1;
+  // The search index: one entry per class, property and retired name.
+  var entries = [], entryOf = {}, replaces = {};
 
   var MODULE_NAME = {
     fm: 'core · the pivot',
@@ -65,6 +67,7 @@
     $('chip-profile').textContent = profile.label;
 
     $('version').textContent = 'v' + data.version;
+    buildIndex(data);
     initSearch();
     initChips();
     initPanel();
@@ -167,13 +170,59 @@
 
   /* ---- search ---- */
 
-  function score(n, q) {
-    var id = n.id.toLowerCase(), lab = n.label.toLowerCase();
-    if (id.split(':')[1] === q || lab === q) return 0;
-    if (lab.indexOf(q) === 0 || id.indexOf(q) === 0) return 1;
+  /* Everything a reader might type: classes, both kinds of property, the API
+     field names a property is read from, and retired names. A hit that is not a
+     class opens its own panel, with the map focused on the class it hangs from. */
+  function buildIndex(data) {
+    function add(e) { entries.push(e); entryOf[e.id] = e; }
+    nodes.forEach(function (n) {
+      add({ id: n.id, label: n.label, def: n.def, kind: 'class', node: n });
+    });
+    // data.js is gitignored and can predate this branch; tolerate the missing keys.
+    Object.keys(props).forEach(function (pid) {
+      var p = props[pid];
+      add({ id: pid, label: p.label, def: p.def, kind: 'relation', term: p,
+            alias: p.fields || [], node: byId[(p.dom || [])[0]] || null });
+    });
+    var dts = data.datatypes || {};
+    Object.keys(dts).forEach(function (pid) {
+      var d = dts[pid];
+      add({ id: pid, label: d.label || pid.split(':')[1], def: d.def, kind: 'literal', term: d,
+            alias: d.fields || [], node: byId[d.on[0]] || null });
+    });
+    var retired = data.retired || {};
+    Object.keys(retired).forEach(function (tid) {
+      var r = retired[tid];
+      add({ id: tid, label: r.label, def: r.note, kind: 'retired', to: r.to[0] });
+      r.to.forEach(function (to) {
+        (replaces[to] || (replaces[to] = [])).push({ id: tid, note: r.note });
+      });
+    });
+  }
+
+  /* A retired name stands in for its replacement everywhere but the result row. */
+  function target(e) { return e.kind === 'retired' ? entryOf[e.to] || e : e; }
+
+  function score(e, q) {
+    var id = e.id.toLowerCase(), lab = e.label.toLowerCase();
+    var alias = (e.alias || []).map(function (a) { return a.toLowerCase(); });
+    if (id.split(':')[1] === q || lab === q || alias.indexOf(q) > -1) return 0;
+    if (lab.indexOf(q) === 0 || id.indexOf(q) === 0 ||
+        alias.some(function (a) { return a.indexOf(q) === 0; })) return 1;
     if (lab.indexOf(q) > -1 || id.indexOf(q) > -1) return 2;
-    if ((n.def || '').toLowerCase().indexOf(q) > -1) return 3;
+    if ((e.def || '').toLowerCase().indexOf(q) > -1) return 3;
     return -1;
+  }
+
+  function open(e) {
+    e = target(e);
+    if (e.node) {
+      onSelect(e.node);
+      FMO.graph.centre(e.node, Math.max(FMO.graph.camera.k, 1.4));
+    } else {
+      onSelect(null);
+    }
+    if (e.kind !== 'class') showTerm(e);
   }
 
   function search(q) {
@@ -189,14 +238,17 @@
       return;
     }
 
-    matches = nodes
-      .map(function (n) { return { n: n, s: score(n, q) }; })
-      .filter(function (m) { return m.s >= 0 && !m.n.hidden; })
-      .sort(function (a, b) { return a.s - b.s || a.n.id.localeCompare(b.n.id); })
+    matches = entries
+      .map(function (e) { return { e: e, s: score(e, q) }; })
+      .filter(function (m) {
+        var n = target(m.e).node;
+        return m.s >= 0 && !(n && n.hidden);
+      })
+      .sort(function (a, b) { return a.s - b.s || a.e.id.localeCompare(b.e.id); })
       .slice(0, 40)
-      .map(function (m) { return m.n; });
+      .map(function (m) { return m.e; });
 
-    matches.forEach(function (n) { n.flagged = true; });
+    matches.forEach(function (e) { if (target(e).node) target(e).node.flagged = true; });
     cursor = matches.length ? 0 : -1;
     renderResults();
     FMO.graph.paint();
@@ -209,10 +261,14 @@
       list.innerHTML = '<li class="none">No term matches. Try a word from a definition.</li>';
       return;
     }
-    list.innerHTML = matches.map(function (n, i) {
+    var KIND = { relation: ' · relation', literal: ' · literal' };
+    list.innerHTML = matches.map(function (e, i) {
+      var desc = e.kind === 'retired' ? 'retired → ' + e.to : e.label + (KIND[e.kind] || '');
       return '<li role="option" data-i="' + i + '"' +
         (i === cursor ? ' aria-selected="true"' : '') +
-        '><b>' + key(chipOf(n)) + esc(n.id) + '</b><span>' + esc(n.label) + '</span></li>';
+        (e.kind === 'retired' ? ' class="is-retired"' : '') +
+        '><b>' + key(e.node ? chipOf(e.node) : e.id.split(':')[0]) + esc(e.id) +
+        '</b><span>' + esc(desc) + '</span></li>';
     }).join('');
   }
 
@@ -227,11 +283,11 @@
         ev.preventDefault();
         cursor = (cursor + (ev.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length;
         renderResults();
-        FMO.graph.centre(matches[cursor]);
+        var n = target(matches[cursor]).node;
+        if (n) FMO.graph.centre(n);
       } else if (ev.key === 'Enter' && cursor > -1) {
         ev.preventDefault();
-        onSelect(matches[cursor]);
-        FMO.graph.centre(matches[cursor], Math.max(FMO.graph.camera.k, 1.4));
+        open(matches[cursor]);
       } else if (ev.key === 'Escape') {
         input.value = '';
         search('');
@@ -247,8 +303,7 @@
       if (!li) return;
       ev.preventDefault();
       cursor = +li.dataset.i;
-      onSelect(matches[cursor]);
-      FMO.graph.centre(matches[cursor], Math.max(FMO.graph.camera.k, 1.4));
+      open(matches[cursor]);
       renderResults();
     });
 
@@ -273,6 +328,10 @@
       if (!btn) return;
       var n = byId[btn.dataset.to];
       if (n) { onSelect(n); FMO.graph.centre(n, Math.max(FMO.graph.camera.k, 1.3)); }
+    });
+    $('panel-lits').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('button[data-term]');
+      if (btn && entryOf[btn.dataset.term]) open(entryOf[btn.dataset.term]);
     });
   }
 
@@ -304,6 +363,8 @@
     if (field('f-def', n.def)) $('panel-def').textContent = n.def;
     if (field('f-note', n.note)) $('panel-note').textContent = n.note;
     if (field('f-example', n.example)) $('panel-example').textContent = n.example;
+    history(n.history, replaces[n.id]);
+    field('f-api', false);
 
     literals(n);
     links(n);
@@ -317,12 +378,72 @@
   function literals(n) {
     var out = (lits[n.id] || []).map(function (d) {
       return '<li' + (d.meta.profile ? ' class="in-prof"' : '') + '>' +
-        '<p class="lit-head"><span class="lk-to">' + key(d.id.split(':')[0]) +
-        esc(d.id) + '</span><span class="lit-range">' + esc(d.meta.range) + '</span></p>' +
+        '<p class="lit-head"><button type="button" class="lk-to" data-term="' + esc(d.id) +
+        '">' + key(d.id.split(':')[0]) + esc(d.id) + '</button><span class="lit-range">' + esc(d.meta.range) + '</span></p>' +
         (d.meta.def ? '<p class="lit-def">' + esc(d.meta.def) + '</p>' : '') + '</li>';
     });
     field('f-lit', out.length);
     $('panel-lits').innerHTML = out.join('');
+  }
+
+  /* The panel for a property: what a class panel shows, plus the API fields it is
+     read from, with its two ends (or its carriers) as the links. */
+  function showTerm(e) {
+    var t = e.term, mod = e.id.split(':')[0];
+    $('panel-empty').hidden = true;
+    $('panel-body').hidden = false;
+    $('panel-kicker').innerHTML = key(mod) + esc(MODULE_NAME[mod].replace(' · the pivot', '') +
+      (e.kind === 'relation' ? ' · object property' : ' · datatype property'));
+    $('panel-title').textContent = t.label || e.label;
+    $('panel-curie').textContent = e.id;
+    $('panel-prof').hidden = !t.profile;
+    $('panel-prof').textContent = 'walked by the ' + profile.label + ' shapes';
+
+    if (field('f-def', t.def)) $('panel-def').textContent = t.def;
+    if (field('f-note', t.note)) $('panel-note').textContent = t.note;
+    field('f-example', false);
+    history(t.history, replaces[e.id]);
+    if (field('f-api', (t.fields || []).length)) {
+      $('panel-api').innerHTML = t.fields.map(function (f) {
+        return '<code>' + esc(f) + '</code>';
+      }).join(' ');
+    }
+    field('f-lit', false);
+
+    var out = [];
+    function end(via, cid) {
+      var n = byId[cid];
+      out.push(n
+        ? '<li><button type="button" data-to="' + esc(cid) + '"><span class="lk-via">' + via +
+          '</span><span class="lk-to">' + key(chipOf(n)) + esc(cid) + '</span></button></li>'
+        : '<li><span class="lk-via">' + via + '</span> <span class="lk-to">' + esc(cid) + '</span></li>');
+    }
+    if (e.kind === 'relation') {
+      (t.dom || []).forEach(function (c) { end('domain', c); });
+      (t.rng || []).forEach(function (c) { end('range', c); });
+    } else {
+      t.on.forEach(function (c) { end('carried by', c); });
+      out.push('<li><span class="lk-via">value</span> <span class="lk-to">' + esc(t.range) + '</span></li>');
+    }
+    // An open domain is a decision, not a gap; say so rather than show nothing.
+    if (t.open) out.push('<li><span class="lk-via">domain left open on purpose</span></li>');
+    field('f-links', out.length);
+    $('panel-links').innerHTML = out.join('');
+
+    if (field('f-ttl', t.ttl)) $('panel-ttl').innerHTML = turtle(t.ttl);
+  }
+
+  /* Change and history notes, then any retired names this term replaced -- which
+     is where a reader who searched for the old name wants the explanation. */
+  function history(notes, replaced) {
+    var out = (notes || []).map(function (h) {
+      return '<li><span class="lk-via">' + esc(h.kind) + '</span><p>' + esc(h.text) + '</p></li>';
+    }).concat((replaced || []).map(function (r) {
+      return '<li><span class="lk-via">replaces</span> <span class="lk-to">' + key(r.id.split(':')[0]) +
+        esc(r.id) + '</span>' + (r.note ? '<p>' + esc(r.note) + '</p>' : '') + '</li>';
+    }));
+    field('f-hist', out.length);
+    $('panel-hist').innerHTML = out.join('');
   }
 
   function links(n) {
