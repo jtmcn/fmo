@@ -339,6 +339,15 @@ def inline(html: str) -> str:
     return re.sub(r'<script\b[^>]*\bsrc="([^"]+)"[^>]*></script>', script, html)
 
 
+MIN_HIT_PX = 12   # radius: a 24px target, the dataviz minimum
+
+
+def hit_px(graph_js: str) -> int | None:
+    """The screen-pixel reach graph.js's hit test gives every node, or None."""
+    m = re.search(r"var HIT_PX = (\d+);", graph_js)
+    return int(m.group(1)) if m else None
+
+
 def check(data: dict, html: str) -> int:
     """The smallest thing that fails if extraction silently breaks."""
     minted = [n for n in data["nodes"] if n["minted"]]
@@ -428,6 +437,11 @@ def check(data: dict, html: str) -> int:
     stranded = [t for t, v in data["retired"].items()
                 if not v["to"] or any(x not in terms for x in v["to"])]
     assert not stranded, f"retired term resolves to nothing on the map: {stranded}"
+
+    # A pointer target of at least 24px across, whatever the dot's size.
+    reach = hit_px((VIZ / "src" / "graph.js").read_text(encoding="utf-8"))
+    assert reach is not None and reach >= MIN_HIT_PX, \
+        f"graph.js HIT_PX is {reach}; a node's target must reach {MIN_HIT_PX}px from its centre"
 
     # Contrast and colour-blind separation, read off the stylesheet the page ships.
     bad, palette_summary = palette.audit_viz(VIZ)

@@ -113,6 +113,9 @@ double-clicking and survives being emailed to someone. The build drops the webfo
 links `viz/index.html` uses in development; the built file renders on the system
 stack `style.css` falls back to rather than blocking on a font server.
 
+A node takes the pointer anywhere within 12 screen pixels of its centre at any zoom,
+and where targets overlap the nearest node wins.
+
 Selecting a term shows its definition, its scope note, what it connects to, the
 literal values it carries, and the Turtle stanza it is actually declared in — the
 axioms, not a summary of them. Datatype properties end at a literal, so there is no

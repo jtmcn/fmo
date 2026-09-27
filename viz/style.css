@@ -183,6 +183,7 @@ body {
 
 #svg { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
 #svg.is-panning { cursor: grabbing; }
+#svg.is-over { cursor: pointer; }
 
 .grat line { stroke: var(--grat); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
@@ -197,7 +198,7 @@ body {
 .e-rel.is-lit { opacity: 1; stroke-width: 2.2; }
 .e-sub.is-lit { stroke: var(--ink-soft); stroke-width: 2; }
 
-.n-dot { cursor: pointer; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.n-dot { stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .n-dot.is-ext { fill: var(--paper); stroke-dasharray: 2.5 2; }
 .n-lab {
   font: 450 11px/1 var(--f-body);
