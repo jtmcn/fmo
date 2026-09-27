@@ -60,7 +60,8 @@
       layers[e.k].appendChild(e.el);
 
       if (e.k === 'rel') {
-        e.lab = el('text', { class: 'e-lab', fill: color(e.a || { module: 'fm' }) });
+        // The curve carries the domain's colour; its name is text, and wears ink.
+        e.lab = el('text', { class: 'e-lab' });
         e.lab.textContent = (e.p || '').split(':')[1] || '';
         layers.elab.appendChild(e.lab);
       }

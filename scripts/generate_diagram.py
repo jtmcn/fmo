@@ -24,6 +24,7 @@ from rdflib import Graph, OWL, RDF, RDFS, URIRef
 from rdflib.namespace import SH, SKOS
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import palette  # noqa: E402
 from registry import MODULES, ROOT, SHAPES, SRC  # noqa: E402
 
 VIZ = ROOT / "viz"
@@ -358,6 +359,10 @@ def check(data: dict, html: str) -> int:
     assert not remote, f"built file still fetches: {remote[:3]}"
     assert "<script src" not in html and "</script>" in html, "inlining did not run"
 
+    # Contrast and colour-blind separation, read off the stylesheet the page ships.
+    bad, palette_summary = palette.audit_viz(VIZ)
+    assert not bad, "palette audit failed:\n  " + "\n  ".join(bad)
+
     # The README's pivot: both sides must still reach the same proposition.
     rel = {(e["s"], e.get("p"), e["t"]) for e in data["edges"] if e["k"] == "rel"}
     for want in [("ksh:Market", "ksh:expressesProposition", "fm:Proposition"),
@@ -385,6 +390,7 @@ def check(data: dict, html: str) -> int:
           f"{len(prof['relations'])} relations, "
           f"{len(prof['literals'])} literal properties), "
           f"pivot intact, all stanzas found, nothing remote")
+    print(f"OK: palette, {palette_summary}")
     return 0
 
 

@@ -41,11 +41,11 @@
   <svg id="svg" aria-label="Ontology class map. Use the find field to reach terms by keyboard." role="img"></svg>
 
   <!-- Chart marginalia: the legend is a title block, as on a surface analysis. -->
-  <figure class="block" id="legend">
-    <figcaption>Legend</figcaption>
+  <details class="block" id="legend" open>
+    <summary>Legend</summary>
     <dl id="legend-rows"></dl>
     <p class="block-note" id="legend-note"></p>
-  </figure>
+  </details>
 
   <button class="reset" id="reset" type="button" hidden>Reset view</button>
 </main>
@@ -53,7 +53,7 @@
 <aside class="panel" id="panel" aria-live="polite">
   <div class="panel-empty" id="panel-empty">
     <p class="panel-lede">A forecast and a market are two beliefs about one future fact.</p>
-    <p>Everything here hangs off that. <b class="t-cold">wx</b> is what the atmosphere does and how it gets measured, <b class="t-warm">ksh</b> is what the exchange lists against it, and <b class="t-ink">fm</b> is the pivot in the middle that lets the two be subtracted.</p>
+    <p>Everything here hangs off that. <b><i class="key key-wx"></i>wx</b> is what the atmosphere does and how it gets measured, <b><i class="key key-ksh"></i>ksh</b> is what the exchange lists against it, and <b><i class="key key-fm"></i>fm</b> is the pivot in the middle that lets the two be subtracted.</p>
     <p>Pick any term to read its definition and the Turtle it is actually declared in.</p>
     <button class="jump" id="jump" type="button">Go to the pivot</button>
   </div>

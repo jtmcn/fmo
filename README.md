@@ -135,7 +135,9 @@ quietly shrinking the profile.
 
 Colour follows the ontology's central claim rather than the namespace list: `wx`
 is the forecast side, `ksh` is the market side, `fm` is the pivot both point at,
-and borrowed BFO ground is held back in grey.
+and borrowed BFO ground is held back in grey. Colour marks identity and never sets
+the text's colour: labels are in ink, and a module is keyed by a swatch beside them.
+The one exception is the Turtle stanza, where prefixes are syntax-highlighted.
 
 The frontend is `viz/` — `index.html`, `style.css`, and four JS modules that split
 by job (`layout` places nodes, `graph` draws, `ui` is the chrome, `main` wires
@@ -150,6 +152,13 @@ map, that the set of deliberately domain-less ones has not grown, that every ter
 export shapes name or walk reaches the map, that the pivot edges above survive, and
 that the built file fetches nothing — because a viewer that silently drops half the
 graph still renders a convincing picture.
+
+It also audits the palette off `viz/style.css` itself (`scripts/palette.py`). Text is
+checked at 4.5:1 and marks at 3:1, in both themes. Any two module colours must stay
+distinguishable under simulated red–green colour blindness. A token counts as text
+because the stylesheet sets text in it, not because a list says so, so moving a mark
+colour into a `color:` rule fails the audit. `make diagram-negative` puts back the
+colours this audit replaced and checks that each one fails it.
 
 Python deps are managed by poetry (`pyproject.toml`); every target runs through
 `poetry run`. `make typecheck` runs [ty](https://github.com/astral-sh/ty) over

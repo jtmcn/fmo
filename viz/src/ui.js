@@ -27,6 +27,13 @@
     bfo: 'BFO (borrowed)'
   };
 
+  /* A module swatch to set beside text. Anything not minted here is borrowed
+     ground and keys as bfo, whatever namespace it came from. */
+  function key(module) {
+    var k = { fm: 1, wx: 1, ksh: 1 }[module] ? module : 'bfo';
+    return '<i class="key key-' + k + '" aria-hidden="true"></i>';
+  }
+
   // Borrowed terms name their own source; not all of them are BFO.
   var EXTERNAL_NAME = { bfo: 'Basic Formal Ontology', qudt: 'QUDT', owl: 'OWL' };
 
@@ -62,6 +69,9 @@
     initChips();
     initPanel();
     legend();
+    // On a phone the legend would cover the map; fold it rather than drop it,
+    // or colour becomes the only thing saying which module a dot belongs to.
+    if (window.matchMedia('(max-width: 900px)').matches) $('legend').open = false;
   }
 
   /* ---- filters ---- */
@@ -112,9 +122,16 @@
       rows += '<dt><span class="sw' + (m === 'bfo' ? ' ext' : '') +
               '" style="background:' + (m === 'bfo' ? 'none' : c) +
               ';border-color:' + c + '"></span></dt>' +
-              '<dd>' + m + ':<span style="color:var(--graphite)"> ' + MODULE_NAME[m] + '</span></dd>' +
+              '<dd>' + m + ':<span class="lg-name"> ' + MODULE_NAME[m] + '</span></dd>' +
               '<dd class="ct">' + (counts[m] || 0) + '</dd>';
     });
+    // The two edge kinds and what their colour means; the counts are in the note.
+    rows += '<dt><span class="sw-line"></span></dt><dd>is a<span class="lg-name">' +
+            ' · rdfs:subClassOf</span></dd><dd class="ct"></dd>';
+    if (showRel) {
+      rows += '<dt><span class="sw-line rel"></span></dt><dd>relation<span class="lg-name">' +
+              ' · in its domain\'s colour</span></dd><dd class="ct"></dd>';
+    }
     $('legend-rows').innerHTML = rows;
     var shown = nodes.filter(function (n) { return !n.hidden; }).length;
     // Drawn, not declared: the properties left open-domain on purpose have no
@@ -195,9 +212,7 @@
     list.innerHTML = matches.map(function (n, i) {
       return '<li role="option" data-i="' + i + '"' +
         (i === cursor ? ' aria-selected="true"' : '') +
-        '><b style="color:var(--' +
-        ({ fm: 'ink', wx: 'cold', ksh: 'warm', bfo: 'graphite' }[n.module]) + ')">' +
-        esc(n.id) + '</b><span>' + esc(n.label) + '</span></li>';
+        '><b>' + key(chipOf(n)) + esc(n.id) + '</b><span>' + esc(n.label) + '</span></li>';
     }).join('');
   }
 
@@ -272,14 +287,9 @@
     $('panel-body').hidden = !n;
     if (!n) return;
 
-    var tone = { fm: 'var(--ink)', wx: 'var(--cold)', ksh: 'var(--warm)' }[n.module]
-             || 'var(--graphite)';
-
-    var kicker = $('panel-kicker');
-    kicker.textContent = n.minted
+    $('panel-kicker').innerHTML = key(chipOf(n)) + esc(n.minted
       ? MODULE_NAME[n.module].replace(' · the pivot', ' module')
-      : (EXTERNAL_NAME[n.module] || n.module);
-    kicker.style.color = tone;
+      : (EXTERNAL_NAME[n.module] || n.module));
 
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id;
@@ -306,9 +316,8 @@
      that type is the whole of what it says beyond its definition. */
   function literals(n) {
     var out = (lits[n.id] || []).map(function (d) {
-      var tone = { fm: 'ink', wx: 'cold', ksh: 'warm' }[d.id.split(':')[0]] || 'graphite';
       return '<li' + (d.meta.profile ? ' class="in-prof"' : '') + '>' +
-        '<p class="lit-head"><span class="lk-to" style="color:var(--' + tone + ')">' +
+        '<p class="lit-head"><span class="lk-to">' + key(d.id.split(':')[0]) +
         esc(d.id) + '</span><span class="lit-range">' + esc(d.meta.range) + '</span></p>' +
         (d.meta.def ? '<p class="lit-def">' + esc(d.meta.def) + '</p>' : '') + '</li>';
     });
@@ -327,9 +336,8 @@
         : (out_ ? (e.p || '').split(':')[1] : '← ' + (e.p || '').split(':')[1]);
       out.push('<li><button type="button" data-to="' + esc(other.id) + '">' +
                '<span class="lk-via">' + esc(via) + '</span>' +
-               '<span class="lk-to" style="color:var(--' +
-               ({ fm: 'ink', wx: 'cold', ksh: 'warm', bfo: 'graphite' }[other.module]) +
-               ')">' + esc(other.id) + '</span></button></li>');
+               '<span class="lk-to">' + key(chipOf(other)) + esc(other.id) +
+               '</span></button></li>');
     });
     field('f-links', out.length);
     $('panel-links').innerHTML = out.join('');
