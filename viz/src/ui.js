@@ -239,6 +239,12 @@
     // alone would not.
     $('legend-q').hidden = !(lens && lens.about);
     $('legend-q').textContent = lens && lens.about || '';
+    // Listed, not lit, and folded: 45 names would bury the map under the legend.
+    var unwalked = lens && lens.unwalked || [];
+    $('legend-more').hidden = !unwalked.length;
+    $('legend-more').querySelector('summary').textContent =
+      unwalked.length + (unwalked.length === 1 ? ' property' : ' properties') + ' no question walks';
+    $('legend-more').querySelector('p').textContent = unwalked.join(', ');
     // A lens that walks no paths reaches nothing; four zeros would only be noise.
     $('legend-note').textContent = lens
       ? lens.label + ' · ' + named + ' ' + lens.words.named + (lens.paths.length

@@ -293,6 +293,7 @@ body {
   color: var(--ink-soft);
 }
 .ol th.n { font: 600 10px/1 var(--f-disp); color: var(--ink-mute); }
+.ol td.ol-mod { width: 5em; font: 400 12px/1.4 var(--f-mono); color: var(--ink-soft); }
 .ol td.ol-term { padding-left: calc(var(--d) * 16px + 8px); }
 .ol-term button, .ol-plain {
   display: inline-flex; align-items: baseline;
@@ -320,7 +321,7 @@ body {
   border: 1px solid var(--rule);
   backdrop-filter: blur(3px);
 }
-.block summary {
+.block > summary {
   font: 600 10px/1 var(--f-disp);
   letter-spacing: .19em; text-transform: uppercase;
   color: var(--ink-soft);
@@ -329,11 +330,11 @@ body {
   list-style: none; cursor: pointer;
   display: flex; justify-content: space-between;
 }
-.block summary::-webkit-details-marker { display: none; }
-.block summary::after { content: "\2013"; }
-.block:not([open]) summary { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
-.block:not([open]) summary::after { content: "+"; }
-.block summary:focus-visible { outline: 2px solid var(--cold); outline-offset: 3px; }
+.block > summary::-webkit-details-marker { display: none; }
+.block > summary::after { content: "\2013"; }
+.block:not([open]) > summary { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
+.block:not([open]) > summary::after { content: "+"; }
+.block > summary:focus-visible { outline: 2px solid var(--cold); outline-offset: 3px; }
 .block dl { margin: 0; display: grid; grid-template-columns: auto 1fr auto; gap: 5px 9px; }
 .block dt { display: contents; }
 .block .sw { width: 10px; height: 10px; border-radius: 50%; align-self: center; }
@@ -351,6 +352,10 @@ body {
   font: 400 12.5px/1.45 var(--f-body);
   color: var(--ink-soft);
 }
+.block-more { margin: 6px 0 0; max-width: 30em; font: 400 12px/1.45 var(--f-body); color: var(--ink-soft); }
+.block-more summary { cursor: pointer; }
+.block-more summary:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
+.block-more p { margin: 4px 0 0; font: 400 11px/1.5 var(--f-mono); }
 .block-note {
   margin: 9px 0 0; padding-top: 8px;
   border-top: 1px solid var(--rule);

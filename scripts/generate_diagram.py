@@ -16,8 +16,11 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
 import sys
+from functools import cache
 from pathlib import Path
 
 from rdflib import BNode, Graph, Literal, OWL, RDF, RDFS, URIRef
@@ -26,6 +29,7 @@ from rdflib.paths import Path as PropertyPath
 from rdflib.plugins.sparql import prepareQuery
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ledger as L  # noqa: E402
 import palette  # noqa: E402
 import validate as V  # noqa: E402
 from registry import MODULES, QUERIES, ROOT, SHAPES, SRC, examples  # noqa: E402
@@ -41,6 +45,7 @@ NS = {
     "http://qudt.org/schema/qudt/": "qudt",
     "http://www.w3.org/2002/07/owl#": "owl",
 }
+PREFIX = {pre: full for full, pre in NS.items()}
 # These three are minted here; anything else is borrowed ground.
 MINTED = ("fm", "wx", "ksh")
 FILE_OF = {"fm": "core.ttl", "wx": "weather.ttl", "ksh": "kalshi.ttl"}
@@ -66,6 +71,26 @@ def curie(term) -> str | None:
         if s.startswith(full):
             return f"{pre}:{s[len(full):]}"
     return None
+
+
+def iri(c: str) -> URIRef:
+    """The IRI behind a prefixed name curie() made."""
+    pre, local = c.split(":", 1)
+    return URIRef(PREFIX[pre] + local)
+
+
+def is_minted(c: str) -> bool:
+    return c.split(":")[0] in MINTED
+
+
+def parents(g: Graph) -> dict[str, set[str]]:
+    """Named superclasses by prefixed name, self-loops dropped."""
+    up: dict[str, set[str]] = {}
+    for s, o in g.subject_objects(RDFS.subClassOf):
+        a, b = curie(s), curie(o)
+        if a and b and a != b:
+            up.setdefault(a, set()).add(b)
+    return up
 
 
 def stanzas(path: Path) -> dict[str, str]:
@@ -151,7 +176,7 @@ def build() -> dict:
 
     for s in g.subjects(RDF.type, OWL.Class):
         cid = curie(s)
-        if not cid or cid.split(":")[0] not in MINTED:
+        if not cid or not is_minted(cid):
             continue
         touch(cid)
         nodes[cid].update({
@@ -183,7 +208,7 @@ def build() -> dict:
     properties: dict[str, dict] = {}
     for p in g.subjects(RDF.type, OWL.ObjectProperty):
         pid = curie(p)
-        if not pid or pid.split(":")[0] not in MINTED:
+        if not pid or not is_minted(pid):
             continue
         d, r = ends(g.value(p, RDFS.domain)), ends(g.value(p, RDFS.range))
         properties[pid] = {
@@ -216,7 +241,7 @@ def build() -> dict:
     datatypes: dict[str, dict] = {}
     for p in g.subjects(RDF.type, OWL.DatatypeProperty):
         pid = curie(p)
-        if not pid or pid.split(":")[0] not in MINTED:
+        if not pid or not is_minted(pid):
             continue
         carriers = ends(g.value(p, RDFS.domain))
         datatypes[pid] = {
@@ -236,10 +261,8 @@ def build() -> dict:
             "on": carriers,
         }
 
-    # The map is laid out as the outline's tree, so BFO's skeleton has to be on it:
-    # without process under occurrent under entity the tree is a forest of twelve
-    # roots and the top rows stand empty. Its rows also give every subClassOf a
-    # class has, second parents included, so the edges come from there.
+    # The map is laid out from the outline's rows, which also give every subClassOf,
+    # second parents included, so the missing edges come from there.
     tree = outline(g, nodes, lambda u: text(u, RDFS.label))
     have = {(e["s"], e["t"]) for e in edges if e["k"] == "sub"}
     for r in tree:
@@ -256,7 +279,7 @@ def build() -> dict:
     retired: dict[str, dict] = {}
     for t in g.subjects(OWL.deprecated, Literal(True)):
         tid = curie(t)
-        if not tid or tid.split(":")[0] not in MINTED:
+        if not tid or not is_minted(tid):
             continue
         retired[tid] = {
             "label": text(t, RDFS.label) or tid.split(":")[1],
@@ -281,8 +304,7 @@ def build() -> dict:
     unread += ["implicit class target" for s_ in sh.subjects(RDF.type, SH.NodeShape)
                if (s_, RDF.type, RDFS.Class) in sh]
     lenses = [lens(
-        "export", PROFILE_LABEL, f"the {PROFILE_LABEL} shapes",
-        {"named": "constrained", "reached": "reached", "path": "walked"},
+        "export", PROFILE_LABEL, f"the {PROFILE_LABEL} shapes", "constrained",
         named={c for c in map(curie, named) if c},
         paths={c for c in map(curie, walked) if c}, edges=edges,
         # curie() returns None for a blank-node path or a namespace the map does
@@ -312,28 +334,21 @@ def build() -> dict:
     for cid, n in nodes.items():
         n["disjoint"] = sorted(disjoint.get(cid, ()))
 
-    # Orphans, in the book's sense: classes nothing relates to. A relation counts if
-    # it is drawn, carried as a literal, or stated as an OWL restriction on one of
-    # ours -- the map draws no restrictions, and every quality is related to its
-    # bearer through one -- on the class or any ancestor, since a subclass inherits
-    # all three. BFO's own restrictions do not count: every class inherits those.
+    # Orphans: classes nothing relates to, by a drawn relation, a literal or one of
+    # our OWL restrictions, on the class or any ancestor (BFO's own don't count).
     related = {c for e in edges if e["k"] == "rel" for c in (e["s"], e["t"])}
     related |= {c for v in datatypes.values() for c in v["on"]}
     related |= {c for s_, o in g.subject_objects(RDFS.subClassOf)
                 if isinstance(o, BNode) and g.value(o, OWL.onProperty) is not None
-                for c in [curie(s_)] if c and c.split(":")[0] in MINTED}
+                for c in [curie(s_)] if c and is_minted(c)}
     # ...and both ends of one: wx:SnowDepth's restriction relates wx:SnowCover too.
     for s_, o in g.subject_objects(RDFS.subClassOf):
-        if isinstance(o, BNode) and curie(s_) and str(curie(s_)).split(":")[0] in MINTED:
+        if isinstance(o, BNode) and (sid := curie(s_)) and is_minted(sid):
             for pred in (OWL.someValuesFrom, OWL.allValuesFrom, OWL.onClass, OWL.hasValue):
                 c = curie(g.value(o, pred))
                 if c:
                     related.add(c)
-    supers: dict[str, set[str]] = {}
-    for s_, o in g.subject_objects(RDFS.subClassOf):
-        a_, b_ = curie(s_), curie(o)
-        if a_ and b_:
-            supers.setdefault(a_, set()).add(b_)
+    supers = parents(g)
 
     def lineage(c: str) -> set[str]:
         seen, stack = {c}, [c]
@@ -345,8 +360,7 @@ def build() -> dict:
         return seen
 
     lenses.append(lens(
-        "unrelated", "Unrelated classes", "", {"named": "unrelated", "reached": "reached",
-                                              "path": "walked"},
+        "unrelated", "Unrelated classes", "", "unrelated",
         # entity itself is left out: fm:isAbout ranges over it, and a relation any
         # class at all can stand in says nothing about this one.
         named={c for c, n in nodes.items()
@@ -360,12 +374,10 @@ def build() -> dict:
               "rdfs:subClassOf: orphan terms."))
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
-    inverse = {pre: full for full, pre in NS.items()}
     for n in nodes.values():
         if not n["minted"]:
-            pre, local = n["id"].split(":", 1)
-            uri = URIRef(inverse[pre] + local)
-            n["label"] = text(uri, RDFS.label) or local
+            uri = iri(n["id"])
+            n["label"] = text(uri, RDFS.label) or n["id"].split(":", 1)[1]
             n["def"] = text(uri, SKOS.definition) or text(uri, RDFS.comment)
         n["deg"] = sum(1 for e in edges if n["id"] in (e["s"], e["t"]))
 
@@ -405,7 +417,7 @@ def query_terms(o, seen: set[int] | None = None) -> set[URIRef]:
 
 def question_lenses(g: Graph, classes: set[str], props: set[str], edges: list[dict]) -> list[dict]:
     """One lens per competency question: the classes its query matches on and the
-    properties it walks. Plus one for the classes no question touches -- the book's
+    properties it walks. Plus one for the terms no question touches -- the book's
     "every term traces back to a competency question", made visible rather than
     enforced, since class-coverage-expectations.json is where classes are classified.
     """
@@ -417,30 +429,25 @@ def question_lenses(g: Graph, classes: set[str], props: set[str], edges: list[di
         cq = head.group(1) if head else f.stem
         question = " ".join(l.lstrip("# ") for l in head.group(2).splitlines()) if head else ""
         used = {c for c in map(curie, query_terms(prepareQuery(prefixes + text_).algebra))
-                if c and c.split(":")[0] in MINTED}
-        inverse = {pre: full for full, pre in NS.items()}
-
-        def iri(c: str) -> URIRef:
-            pre, local = c.split(":", 1)
-            return URIRef(inverse[pre] + local)
+                if c and is_minted(c)}
         # Anything the map cannot draw must at least be a live individual: a query
         # matching on a retired or undeclared term answers a question about nothing.
         stale = sorted(c for c in used if (iri(c), OWL.deprecated, Literal(True)) in g
                        or (c not in classes and c not in props
                            and (iri(c), RDF.type, OWL.NamedIndividual) not in g))
         slug = f.stem.split("-", 1)[1].replace("-", " ") if "-" in f.stem else ""
-        out.append(lens(f.stem, f"{cq} · {slug}", cq,
-                        {"named": "used", "reached": "reached", "path": "walked"},
+        out.append(lens(f.stem, f"{cq} · {slug}", cq, "used",
                         named=used & classes, paths=used & props, edges=edges,
                         about=question, stale=stale, group="Competency questions"))
     touched = {c for ln in out for c in ln["named"] + ln["reached"]}
-    minted = {c for c in classes if c.split(":")[0] in MINTED}
-    out.append(lens("no-question", "No question", "any competency question",
-                    {"named": "untouched", "reached": "reached", "path": "walked"},
+    walked = {p for ln in out for p in ln["paths"]}
+    minted = {c for c in classes if is_minted(c)}
+    # Untouched properties are listed, not lit: as paths they would light their ends.
+    out.append(lens("no-question", "No question", "any competency question", "untouched",
                     named=minted - touched, paths=set(), edges=edges,
                     about="Minted classes that no competency question uses or reaches.",
-                    goal_empty=True,
-                    group="Competency questions"))
+                    unwalked=sorted(p for p in props if is_minted(p) and p not in walked),
+                    goal_empty=True, group="Competency questions"))
     return out
 
 
@@ -464,7 +471,7 @@ def coverage_lens(g: Graph, nodes: dict[str, dict], edges: list[dict]) -> dict:
     for path in examples():
         ex.parse(path, format="turtle")
     direct, reached, schema = ({c for c in map(curie, xs) if c} for xs in V.exercise(g, ex))
-    ledger = json.loads(V.COVERAGE_LEDGER.read_text(encoding="utf-8"))
+    ledger = L.load(V.COVERAGE_LEDGER, V.COVERAGE_CATEGORIES)
     for n in nodes.values():
         if not n["minted"]:
             continue
@@ -480,27 +487,23 @@ def coverage_lens(g: Graph, nodes: dict[str, dict], edges: list[dict]) -> dict:
                            "checked": entry.get("checked")}
                     break
         n["coverage"] = cov
-    return lens("coverage", "Example coverage", "the example data",
-                {"named": "exercised", "reached": "reached", "path": "walked"},
+    return lens("coverage", "Example coverage", "the example data", "exercised",
                 named=(direct | reached) & set(nodes), paths=set(), edges=edges,
                 about="Classes an example instantiates, directly or through a subclass. "
                       "Select a dimmed class to read why no example does.",
                 group="Example data")
 
 
-def lens(key: str, label: str, source: str, words: dict[str, str], *, named: set[str],
+def lens(key: str, label: str, source: str, named_as: str, *, named: set[str],
          paths: set[str], edges: list[dict], **extra) -> dict:
     """A lens: a named subset of the map that lights while the rest dims.
 
-    It names classes and walks paths. A relation it walks lands somewhere, and a
-    relation drawn at full strength into a dimmed dot reads as a fault in the map,
-    so the ends light too -- which is also what puts both ends of a subClassOf in
-    view, so the hierarchy draws instead of leaving named classes as islands. They
-    are only *reached*, not named: fm:hasSubject ranges over fm:ObservationTarget
-    while the export shape requires the subclass, so calling the range constrained
-    would name the wrong class. `words` says what each of the three is called.
+    The ends of a path it walks light too, as *reached* rather than named: a range
+    can be wider than the class a shape actually requires. `named_as` is the word
+    for what it names.
     """
     reached = {c for e in edges if e.get("p") in paths for c in (e["s"], e["t"])} - named
+    words = {"named": named_as, "reached": "reached", "path": "walked"}
     return {"id": key, "label": label, "source": source, "words": words,
             "named": sorted(named), "reached": sorted(reached), "paths": sorted(paths),
             **extra}
@@ -569,12 +572,7 @@ def outline(g: Graph, nodes: dict[str, dict], label) -> list[dict]:
     as not on the map. A class with two parents is listed under each; the second
     listing is a `dup` and is not expanded again.
     """
-    up: dict[str, set[str]] = {}
-    for s, o in g.subject_objects(RDFS.subClassOf):
-        a, b = curie(s), curie(o)
-        if a and b and a != b:
-            up.setdefault(a, set()).add(b)
-
+    up = parents(g)
     keep: set[str] = set()
     stack = list(nodes)
     while stack:
@@ -588,13 +586,10 @@ def outline(g: Graph, nodes: dict[str, dict], label) -> list[dict]:
         for parent in up.get(c, set()) & keep:
             down.setdefault(parent, []).append(c)
 
-    inverse = {pre: full for full, pre in NS.items()}
-
     def name(c: str) -> str:
         if c in nodes:
             return nodes[c]["label"]
-        pre, local = c.split(":", 1)
-        return str(label(URIRef(inverse[pre] + local)) or local)
+        return str(label(iri(c)) or c.split(":", 1)[1])
 
     rows: list[dict] = []
     seen: set[str] = set()
@@ -637,6 +632,19 @@ def inline(html: str) -> str:
 
 
 MIN_HIT_PX = 12   # radius: a 24px target, the dataviz minimum
+
+
+@cache
+def fresh_positions() -> dict[str, dict[str, list]]:
+    """Every class's position from two separate builds, under different hash seeds:
+    set iteration order is where a layout would drift between runs."""
+    out = {}
+    for seed in ("1", "2"):
+        run = subprocess.run([sys.executable, __file__, "--positions"], check=True,
+                             capture_output=True, text=True,
+                             env={**os.environ, "PYTHONHASHSEED": seed})
+        out[seed] = json.loads(run.stdout)
+    return out
 
 
 def hit_px(graph_js: str) -> int | None:
@@ -689,7 +697,7 @@ def check(data: dict, html: str) -> int:
         assert not blank, f"datatype property with no {field}: {blank[:5]}"
     drawn_ids = {n["id"] for n in data["nodes"]}
     orphan = sorted({c for v in dts.values() for c in v["on"]
-                     if c.split(":")[0] in MINTED and c not in drawn_ids})
+                     if is_minted(c) and c not in drawn_ids})
     assert not orphan, f"carries a datatype property but is not on the map: {orphan[:5]}"
     left_open = sorted(pid for pid, v in dts.items() if v["open"])
     assert left_open == OPEN_DATATYPES, \
@@ -729,6 +737,13 @@ def check(data: dict, html: str) -> int:
     assert sorted(set(cov["named"]) & {n["id"] for n in minted}) == exercised, \
         "the coverage lens and the panel's coverage states disagree"
 
+    walked = {p for ln in data["lenses"] if ln["id"].startswith("cq") for p in ln["paths"]}
+    untouched = next(ln for ln in data["lenses"] if ln["id"] == "no-question")
+    unwalked = sorted(p for p in (*data["properties"], *dts) if p not in walked)
+    listed = set(untouched.get("unwalked", []))
+    assert untouched.get("unwalked") == unwalked, \
+        f"properties no question walks not listed: {sorted(set(unwalked) ^ listed)[:5]}"
+
     asked = sorted(f.stem for f in QUERIES.glob("cq*.rq"))
     have = sorted(ln["id"] for ln in data["lenses"] if ln["id"].startswith("cq"))
     assert asked == have, f"competency questions without a lens: {sorted(set(asked) - set(have))}"
@@ -756,7 +771,7 @@ def check(data: dict, html: str) -> int:
     carried = sum(len(t.get("fields", [])) for t in terms.values())
     assert notations == carried, f"{notations} API field names on the map's terms, {carried} carried"
     tombs = {c for c in map(curie, g.subjects(OWL.deprecated, Literal(True)))
-             if c and c.split(":")[0] in MINTED}
+             if c and is_minted(c)}
     assert tombs == set(data["retired"]), \
         f"tombstones not indexed for search: {sorted(tombs ^ set(data['retired']))}"
     stranded = [t for t, v in data["retired"].items()
@@ -812,11 +827,10 @@ def check(data: dict, html: str) -> int:
     crossed = crossings(data["nodes"], data["edges"])
     assert crossed <= MAX_CROSSINGS, \
         f"{crossed} subClassOf crossings, over the pinned {MAX_CROSSINGS}"
-    again = {n["id"]: dict(n) for n in data["nodes"]}
-    place(rows, again)
-    moved = sorted(n["id"] for n in data["nodes"]
-                   if (again[n["id"]]["px"], again[n["id"]]["py"]) != (n["px"], n["py"]))
-    assert not moved, f"layout differs between two runs: {moved[:5]}"
+    drawn_at = {n["id"]: [n["px"], n["py"]] for n in data["nodes"]}
+    for seed, fresh in fresh_positions().items():
+        moved = sorted(c for c in drawn_at.keys() | fresh.keys() if drawn_at.get(c) != fresh.get(c))
+        assert not moved, f"layout differs from a build under PYTHONHASHSEED={seed}: {moved[:5]}"
 
     # A pointer target of at least 24px across, whatever the dot's size.
     reach = hit_px((VIZ / "src" / "graph.js").read_text(encoding="utf-8"))
@@ -857,10 +871,10 @@ def check(data: dict, html: str) -> int:
     print(f"OK: {len(shown)} terms show change/history notes, {carried} API field names, "
           f"{len(tombs)} tombstones resolve to a replacement")
     print(f"OK: palette, {palette_summary}")
-    untouched = next(ln for ln in data["lenses"] if ln["id"] == "no-question")
     states = [n["coverage"]["state"] for n in minted]
     print(f"OK: lenses, {len(have)} competency questions, "
-          f"{len(untouched['named'])} minted classes no question touches; coverage "
+          f"{len(untouched['named'])} minted classes and {len(unwalked)} properties "
+          f"no question touches; coverage "
           + ", ".join(f"{k} {states.count(k)}" for k in
                       ("direct", "subclass", "schema", *V.COVERAGE_CATEGORIES)))
     lonely = next(ln for ln in data["lenses"] if ln["id"] == "unrelated")
@@ -876,6 +890,9 @@ def check(data: dict, html: str) -> int:
 
 def main() -> int:
     data = build()
+    if "--positions" in sys.argv:
+        print(json.dumps({n["id"]: [n["px"], n["py"]] for n in data["nodes"]}))
+        return 0
     (VIZ / "src" / "data.js").write_text(
         # </script> inside a definition would close the inlined block early.
         "window.FMO = " + json.dumps(data, indent=1).replace("</", "<\\/") + ";\n", encoding="utf-8")

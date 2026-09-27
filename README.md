@@ -121,11 +121,12 @@ links `viz/index.html` uses in development; the built file renders on the system
 stack `style.css` falls back to rather than blocking on a font server.
 
 The **Outline** button swaps the map for a list of every class, indented under its
-parent, with its depth from BFO's entity and how many relations and literals it has.
+parent, with its module, its depth from BFO's entity and how many relations and
+literals it has.
 The list is the keyboard route to every term: Tab reaches it, and the arrow keys move
 through it. It also shows the branch-depth imbalance as numbers. The line
 above the list gives each module's depth range. BFO's own classes between a borrowed
-class and entity are on both the outline and the map, so the tree has a single root.
+class and entity are on both the outline and the map, so the is-a tree has a single root.
 A class with two parents is listed under both, and the second
 listing points back to the first. The panel, search and chips work the same in both
 views.
@@ -157,7 +158,8 @@ There is also a lens for each competency question. It lights the classes the
 question's query matches on and the properties it walks, and the legend shows the
 question itself. A class's panel reads "used by CQ2, CQ5, CQ8". A last lens, **No
 question**, lights the minted classes no question uses or reaches. Today that is 68 of
-100. This doesn't count as a failure: `class-coverage-expectations.json` is where
+100. Its legend also lists the 45 properties no question walks; they are listed rather
+than lit, because a lit property would light its ends. This doesn't count as a failure: `class-coverage-expectations.json` is where
 classes are classified. The terms come from each query's parsed algebra, not its text,
 so a term that appears only in a comment doesn't count. A query that matches on a
 retired or undeclared term fails `diagram-check`.

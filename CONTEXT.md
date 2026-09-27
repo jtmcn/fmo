@@ -289,8 +289,9 @@ seed. A diff there means the generator changed, never the data.
 
 **The map**: `build/ontology.html` from `make diagram`. Not "the docs", not "the viewer".
 **The outline**: the map's second view, listing every class indented under its parent
-with its depth from BFO's entity. Not "the tree" or "the table". It is a view of the
-map, not a separate artifact, so "on the map" covers both views.
+with its depth from BFO's entity. Not "the tree" or "the table": since FM-0021 the map
+itself is laid out as **the is-a tree**, and the outline is that tree's list view. It is
+a view of the map, not a separate artifact, so "on the map" covers both views.
 **Lens**: a named subset of the map that stays lit while everything else dims. It names
 classes, walks paths, and *reaches* the classes at the ends of those paths. The export
 profile is one lens. Not "filter": a module chip *hides* terms, whereas a lens *dims*

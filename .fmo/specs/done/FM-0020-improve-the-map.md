@@ -271,3 +271,11 @@ Build in this order. Each step lands on its own, and 1–2 are small.
 
   All eight steps are done, and every acceptance claim's witness passes under
   `make test`. Resolved.
+
+- 2026-09-27: Review of the stack, fixed on `joel/map-review-fixes`. The outline gains
+  the Module column step 4 asked for. The No question lens now also lists the 45
+  properties no question walks, in a folded list under the legend; they are listed
+  rather than lit, since a lit path lights its ends. Each real lens now has its own
+  "emptied" negative test instead of one synthetic lens. The coverage lens reads its
+  ledger through `ledger.load()`. The retired-in version stays in the history note the
+  panel already shows; the ontology states it nowhere else.
