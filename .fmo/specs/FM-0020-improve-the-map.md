@@ -35,6 +35,10 @@ acceptance:
       prefixes; relation labels wear text tokens.
     witness: make diagram-negative (text set in a module colour outside the stanza)
   - claim: >-
+      Every node takes the pointer within 12 screen pixels of its centre at
+      every zoom, and the nearest node wins where targets overlap.
+    witness: make diagram-negative (a hit reach shrunk to the dot)
+  - claim: >-
       Every term on the map is reachable and selectable by keyboard alone, through
       an outline view that lists each minted class under its parent with its depth.
     witness: make diagram-check (outline row count equals minted class count)
@@ -213,3 +217,9 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   a term's last Turtle block, so every property FM-0015 gave a field name showed just
   its `skos:notation` line. Blocks are joined now, and `diagram-check` requires every
   stanza to contain its declaration.
+
+- 2026-09-26: Step 3 (hit targets) on `joel/map-hit-targets`, stacked on step 2. Hit
+  testing is nearest-node in screen space rather than a larger transparent circle:
+  circles big enough at low zoom overlap in the core, where the one drawn last would
+  win. Checked headless at zoom 1.39 and 0.4: 10px from a dot's centre selects it,
+  and 16px from an isolated dot selects nothing. `diagram-check` pins HIT_PX ≥ 12.

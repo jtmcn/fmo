@@ -57,6 +57,23 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
 ]
 
 
+def hit_cases() -> int:
+    """hit_px() reads what the check compares; prove it reads a shrink and an absence."""
+    js = (gd.VIZ / "src" / "graph.js").read_text(encoding="utf-8")
+    failed = 0
+    for name, text, ok in [
+        ("graph.js's hit reach as shipped", js, True),
+        ("a hit reach shrunk to the dot", js.replace("var HIT_PX = 12;", "var HIT_PX = 4;"), False),
+        ("a hit test with no declared reach", js.replace("var HIT_PX", "var REACH"), False),
+    ]:
+        v = gd.hit_px(text)
+        passes = v is not None and v >= gd.MIN_HIT_PX
+        bad = passes != ok
+        print(("FAIL  " if bad else "ok    ") + name + (f": read {v}" if bad else ""))
+        failed += bad
+    return failed
+
+
 def main() -> int:
     base = gd.build()
     html = gd.inline((gd.VIZ / "index.html").read_text(encoding="utf-8"))
@@ -77,7 +94,10 @@ def main() -> int:
             why = None if expect in str(e) else f"expected {expect!r}, got {e}"
         print(("FAIL  " if why else "ok    ") + name + (f": {why}" if why else ""))
         failed += bool(why)
-    print(f"\n{len(CASES) + 1 - failed}/{len(CASES) + 1} passed")
+    hit_failed = hit_cases()
+    total = len(CASES) + 1 + 3
+    failed += hit_failed
+    print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
 
 

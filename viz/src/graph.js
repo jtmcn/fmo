@@ -271,13 +271,22 @@
 
   /* ---- input ---- */
 
+  /* A dot can be 9px across, which nobody lands on. The pointer takes the nearest
+     visible node within HIT_PX screen pixels of its centre, or within the dot plus a
+     2px ring when that is bigger -- in screen space, so it holds at every zoom.
+     Nearest wins, not topmost: in the dense core the targets overlap. */
+  var HIT_PX = 12;
+
   function hit(ev) {
-    var t = ev.target;
-    if (!t || !t.getAttribute) return null;
-    var id = t.getAttribute('data-id');
-    if (!id) return null;
-    for (var i = 0; i < nodes.length; i++) if (nodes[i].id === id) return nodes[i];
-    return null;
+    var w = toWorld(ev.clientX, ev.clientY), best = null, bestD = Infinity;
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.hidden) continue;
+      var d = Math.hypot(n.x - w.x, n.y - w.y);
+      var reach = Math.max(radius(n) + 2 / cam.k, HIT_PX / cam.k);
+      if (d <= reach && d < bestD) { best = n; bestD = d; }
+    }
+    return best;
   }
 
   function wire() {
@@ -306,7 +315,9 @@
         pan.moved = true;
         paint();
       } else {
-        setHover(hit(ev));
+        var over = hit(ev);
+        svg.classList.toggle('is-over', !!over);
+        setHover(over);
       }
     });
 
@@ -326,7 +337,10 @@
     }
     svg.addEventListener('pointerup', release);
     svg.addEventListener('pointercancel', release);
-    svg.addEventListener('pointerleave', function () { setHover(null); });
+    svg.addEventListener('pointerleave', function () {
+      svg.classList.remove('is-over');
+      setHover(null);
+    });
 
     svg.addEventListener('wheel', function (ev) {
       ev.preventDefault();
