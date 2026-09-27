@@ -42,8 +42,8 @@ NS = {
 MINTED = ("fm", "wx", "ksh")
 FILE_OF = {"fm": "core.ttl", "wx": "weather.ttl", "ksh": "kalshi.ttl"}
 
-# The one export profile there is. Terms it constrains get marked so the map can
-# answer "does an export have everything the shapes ask for" without a diff.
+# The one export profile there is. Its lens answers "does an export have
+# everything the shapes ask for" without a diff.
 PROFILE_LABEL = "ThermalEdge export"
 
 # Datatype properties whose domain is left open on purpose, so nothing on the map
@@ -143,7 +143,6 @@ def build() -> dict:
                 "example": None, "ttl": None,
                 # Two different things, and the panel must not say one for the other:
                 # a shape names this class, versus an edge a shape walks lands on it.
-                "profile": False, "reached": False,
             }
         return cid
 
@@ -255,27 +254,6 @@ def build() -> dict:
     # as sh:targetClass does. Reading only the targets missed it.
     named = set(sh.objects(None, SH.targetClass)) | set(sh.objects(None, SH["class"]))
     walked = set(sh.objects(None, SH.path))
-    prof_classes = {c for c in map(curie, named) if c}
-    prof_paths = {c for c in map(curie, walked) if c}
-    for cid in prof_classes & set(nodes):
-        nodes[cid]["profile"] = True
-    for table in (properties, datatypes):
-        for pid, v in table.items():
-            v["profile"] = pid in prof_paths
-    for e in edges:
-        e["profile"] = e.get("p") in prof_paths
-
-    # An edge the shapes walk lands somewhere, and a relation drawn at full strength
-    # into a dimmed dot reads as a fault in the map. Its endpoints light too -- which
-    # is also what puts both ends of a subClassOf in the view, so the hierarchy draws
-    # instead of leaving the named classes as islands. They are only *reached*, not
-    # named: fm:hasSubject ranges over fm:ObservationTarget while the shape requires
-    # the subclass, so calling the range constrained would name the wrong class.
-    for e in edges:
-        if e["profile"]:
-            for cid in (e["s"], e["t"]):
-                nodes[cid]["reached"] = not nodes[cid]["profile"]
-
     # Targeting the reader does not understand. A shape using one of these constrains
     # a term the map never lights, and nothing downstream would notice -- the README
     # promises the opposite, so fail here instead.
@@ -284,6 +262,14 @@ def build() -> dict:
                     if (None, t, None) in sh)
     unread += ["implicit class target" for s_ in sh.subjects(RDF.type, SH.NodeShape)
                if (s_, RDF.type, RDFS.Class) in sh]
+    lenses = [lens(
+        "export", PROFILE_LABEL, f"the {PROFILE_LABEL} shapes",
+        {"named": "constrained", "reached": "reached", "path": "walked"},
+        named={c for c in map(curie, named) if c},
+        paths={c for c in map(curie, walked) if c}, edges=edges,
+        # curie() returns None for a blank-node path or a namespace the map does
+        # not draw; a term quietly leaving the lens is what this count makes loud.
+        unmapped=sum(1 for t in named | walked if curie(t) is None), unread=unread)]
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
@@ -304,20 +290,26 @@ def build() -> dict:
         "properties": properties,
         "datatypes": dict(sorted(datatypes.items())),
         "retired": dict(sorted(retired.items())),
-        "profile": {
-            "label": PROFILE_LABEL,
-            "classes": sorted(prof_classes),
-            "paths": sorted(prof_paths),
-            # Split the way the legend has to report them: one draws a line, the
-            # other cannot. curie() returns None for a blank-node property path or
-            # a namespace the map does not draw, and a term quietly leaving the
-            # profile is the failure this count exists to make loud.
-            "relations": sorted(prof_paths & set(properties)),
-            "literals": sorted(prof_paths & set(datatypes)),
-            "unmapped": sum(1 for t in named | walked if curie(t) is None),
-            "unread": unread,
-        },
+        "lenses": lenses,
     }
+
+
+def lens(key: str, label: str, source: str, words: dict[str, str], *, named: set[str],
+         paths: set[str], edges: list[dict], **extra) -> dict:
+    """A lens: a named subset of the map that lights while the rest dims.
+
+    It names classes and walks paths. A relation it walks lands somewhere, and a
+    relation drawn at full strength into a dimmed dot reads as a fault in the map,
+    so the ends light too -- which is also what puts both ends of a subClassOf in
+    view, so the hierarchy draws instead of leaving named classes as islands. They
+    are only *reached*, not named: fm:hasSubject ranges over fm:ObservationTarget
+    while the export shape requires the subclass, so calling the range constrained
+    would name the wrong class. `words` says what each of the three is called.
+    """
+    reached = {c for e in edges if e.get("p") in paths for c in (e["s"], e["t"])} - named
+    return {"id": key, "label": label, "source": source, "words": words,
+            "named": sorted(named), "reached": sorted(reached), "paths": sorted(paths),
+            **extra}
 
 
 ROOT_CLASS = "bfo:BFO_0000001"   # entity
@@ -458,25 +450,31 @@ def check(data: dict, html: str) -> int:
     assert left_open == OPEN_DATATYPES, \
         f"the set of domain-less datatype properties changed: {left_open}"
 
-    # The export profile has to land on the map. A term the shapes constrain and the
-    # map cannot show is exactly the hole this tagging exists to make visible.
-    prof = data["profile"]
-    assert prof["classes"] and prof["paths"], f"no shapes read from {SHAPES.name}"
-    assert not prof["unmapped"], \
-        f"{prof['unmapped']} shape term(s) outside the namespaces the map draws"
+    # Every lens has to land on the map and light something. A term a lens names
+    # and the map cannot show is exactly the hole the lens exists to make visible.
     known = drawn_ids | set(data["properties"]) | set(dts)
-    absent = [t for t in prof["classes"] + prof["paths"] if t not in known]
-    assert not absent, f"{prof['label']} term absent from the map: {absent}"
-    assert len(prof["relations"]) + len(prof["literals"]) == len(prof["paths"]), \
-        "a shape path is neither an object nor a datatype property"
-    assert not prof["unread"], \
-        f"the profile reader does not understand: {prof['unread']}"
-    # A class is named by a shape or merely reached by one, never both: the panel
-    # says something different for each, and saying "constrained" of a range the
-    # shapes narrow elsewhere names the wrong class.
-    both = sorted(n["id"] for n in data["nodes"] if n["profile"] and n["reached"])
-    assert not both, f"tagged as named and reached at once: {both}"
-    lit = sum(1 for n in data["nodes"] if n["profile"] or n["reached"])
+    assert data["lenses"], "no lenses built"
+    for ln in data["lenses"]:
+        name = ln["label"]
+        assert ln["named"] or ln["paths"], f"the {name} lens lights nothing"
+        assert not ln.get("unmapped"), \
+            f"{ln['unmapped']} {name} term(s) outside the namespaces the map draws"
+        assert not ln.get("unread"), f"the {name} reader does not understand: {ln['unread']}"
+        absent = [t for t in ln["named"] + ln["reached"] + ln["paths"] if t not in known]
+        assert not absent, f"{name} term absent from the map: {absent}"
+        stray = [p for p in ln["paths"] if p not in data["properties"] and p not in dts]
+        assert not stray, f"{name} path is neither an object nor a datatype property: {stray}"
+        # Named or merely reached, never both: the panel says something different for
+        # each, and saying "constrained" of a range narrowed elsewhere names the wrong class.
+        both = sorted(set(ln["named"]) & set(ln["reached"]))
+        assert not both, f"{name}: tagged as named and reached at once: {both}"
+        ends = {c for e in data["edges"] if e.get("p") in ln["paths"] for c in (e["s"], e["t"])}
+        assert set(ln["reached"]) == ends - set(ln["named"]), \
+            f"{name}: reached classes are not the ends of the paths it walks"
+    prof = next(ln for ln in data["lenses"] if ln["id"] == "export")
+    assert prof["named"] and prof["paths"], f"no shapes read from {SHAPES.name}"
+    lit = len(prof["named"]) + len(prof["reached"])
+    prof_rel = [p for p in prof["paths"] if p in data["properties"]]
 
     # Self-contained means self-contained: nothing left to fetch, nothing unresolved.
     remote = re.findall(r'(?:src|href)="(?://|https?:)[^"]*"', html)
@@ -558,8 +556,8 @@ def check(data: dict, html: str) -> int:
     print(f"OK: {len(minted)} classes, {len(data['properties'])} properties "
           f"({len(drawn)} drawn), {len(dts)} datatype properties, "
           f"{prof['label']} fully covered ({lit} classes lit, "
-          f"{len(prof['relations'])} relations, "
-          f"{len(prof['literals'])} literal properties), "
+          f"{len(prof_rel)} relations, "
+          f"{len(prof['paths']) - len(prof_rel)} literal properties), "
           f"pivot intact, all stanzas found, nothing remote")
     print(f"OK: {len(shown)} terms show change/history notes, {carried} API field names, "
           f"{len(tombs)} tombstones resolve to a replacement")

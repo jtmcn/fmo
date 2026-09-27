@@ -14,7 +14,9 @@
   var byId = {}, nodes = [], edges = [], props = {}, drawn = 0;
   // Datatype properties, grouped by the class that carries them: they end at a
   // literal, so they never reach the map and the panel is the only place they show.
-  var lits = {}, profile = null, profileOnly = false;
+  var lits = {};
+  // Lenses from data.js, each with lookup sets built once; `lens` is the one lit.
+  var lenses = [], lens = null;
   var onSelect = function () {};
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
   var showRel = true;
@@ -61,10 +63,16 @@
     });
 
     // data.js is gitignored, so it can predate the branch that reads it. A stale
-    // one should cost the profile chip, not the whole map.
-    profile = data.profile || { label: '', relations: [], literals: [] };
-    $('chip-profile').hidden = !data.profile;
-    $('chip-profile').textContent = profile.label;
+    // one should cost the lens picker, not the whole map.
+    lenses = (data.lenses || []).map(function (l) {
+      var has = { named: {}, reached: {}, paths: {} };
+      ['named', 'reached', 'paths'].forEach(function (k) {
+        l[k].forEach(function (id) { has[k][id] = true; });
+      });
+      l.has = has;
+      return l;
+    });
+    initLens();
 
     $('version').textContent = 'v' + data.version;
     buildIndex(data);
@@ -88,8 +96,8 @@
   function applyFilters() {
     nodes.forEach(function (n) { n.hidden = !modules[chipOf(n)]; });
     FMO.graph.setKind('rel', showRel);
-    FMO.graph.setProfile(profileOnly);
-    FMO.outline.paint({ profile: profileOnly, bfo: modules.bfo });
+    FMO.graph.setLens(lens);
+    FMO.outline.paint({ lens: lens, bfo: modules.bfo });
     legend();
     // Results were filtered on visibility when they were built; rebuild them, or
     // Enter opens a term that is no longer on the map. Rebuilding must not pop the
@@ -118,6 +126,38 @@
     });
   }
 
+  /* One lens at a time: two lit at once would leave no way to say which lit a dot. */
+  function initLens() {
+    var pick = $('lens');
+    pick.innerHTML = '<option value="">none</option>' + lenses.map(function (l, i) {
+      return '<option value="' + i + '">' + esc(l.label) + '</option>';
+    }).join('');
+    $('lens-pick').hidden = !lenses.length;
+    pick.addEventListener('change', function () {
+      lens = pick.value === '' ? null : lenses[+pick.value];
+      pick.classList.toggle('is-on', !!lens);
+      applyFilters();
+      // The panel's lens lines mark the active lens; redraw them.
+      if (FMO.ui.current) FMO.ui.current();
+    });
+  }
+
+  /* One line per lens the term is in, the active one first. */
+  function lensLines(id, kind) {
+    return lenses.filter(function (l) {
+      return kind === 'path' ? l.has.paths[id] : l.has.named[id] || l.has.reached[id];
+    }).sort(function (a, b) { return (b === lens) - (a === lens); }).map(function (l) {
+      var w = kind === 'path' ? 'path' : l.has.named[id] ? 'named' : 'reached';
+      return l.words[w] + ' by ' + l.source;
+    });
+  }
+
+  function markLenses(id, kind) {
+    var lines = lensLines(id, kind);
+    $('panel-prof').hidden = !lines.length;
+    $('panel-prof').innerHTML = lines.map(esc).join('<br>');
+  }
+
   function initChips() {
     Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (btn) {
       btn.addEventListener('click', function () {
@@ -125,7 +165,6 @@
         btn.classList.toggle('is-on', on);
         btn.setAttribute('aria-pressed', String(on));
         if (btn.dataset.module) modules[btn.dataset.module] = on;
-        else if (btn.dataset.profile) profileOnly = on;
         else showRel = on;
         applyFilters();
       });
@@ -165,26 +204,27 @@
     var named = 0, reached = 0, carriers = 0, seenLit = {}, litCount = 0;
     nodes.forEach(function (n) {
       if (n.hidden) return;
-      if (n.profile) named++;
-      else if (n.reached) reached++;
+      if (lens && lens.has.named[n.id]) named++;
+      else if (lens && lens.has.reached[n.id]) reached++;
       if (!lits[n.id]) return;
       carriers++;
       lits[n.id].forEach(function (d) {
-        if (d.meta.profile && !seenLit[d.id]) { seenLit[d.id] = 1; litCount++; }
+        if (lens && lens.has.paths[d.id] && !seenLit[d.id]) { seenLit[d.id] = 1; litCount++; }
       });
     });
     var seenRel = {}, relCount = 0;
-    if (showRel) {
+    if (showRel && lens) {
       edges.forEach(function (e) {
-        if (!e.profile || e.k !== 'rel' || seenRel[e.p]) return;
+        if (e.k !== 'rel' || !lens.has.paths[e.p] || seenRel[e.p]) return;
         if (byId[e.s].hidden || byId[e.t].hidden) return;
         seenRel[e.p] = 1;
         relCount++;
       });
     }
-    $('legend-note').textContent = profileOnly
-      ? profile.label + ' · ' + named + ' constrained · ' + reached + ' reached · ' +
-        plural(relCount, 'relation') + ' · ' + plural(litCount, 'literal')
+    $('legend-note').textContent = lens
+      ? lens.label + ' · ' + named + ' ' + lens.words.named + ' · ' + reached + ' ' +
+        lens.words.reached + ' · ' + plural(relCount, 'relation') + ' · ' +
+        plural(litCount, 'literal')
       : shown + ' classes · ' + drawn + ' of ' + Object.keys(props).length +
         ' object properties drawn · ' + carriers + ' carry literal values';
   }
@@ -365,7 +405,7 @@
   function show(n) {
     $('panel-empty').hidden = !!n;
     $('panel-body').hidden = !n;
-    if (!n) return;
+    if (!n) { current = null; return; }
 
     $('panel-kicker').innerHTML = key(chipOf(n)) + esc(n.minted
       ? MODULE_NAME[n.module].replace(' · the pivot', ' module')
@@ -374,12 +414,11 @@
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id;
 
-    // Named by a shape, or only landed on by an edge one walks -- fm:hasSubject
-    // ranges over fm:ObservationTarget while the shape narrows it to the subclass,
+    // Named by a lens, or only landed on by a path it walks -- fm:hasSubject ranges
+    // over fm:ObservationTarget while the export shape narrows it to the subclass,
     // so calling the range constrained would name the wrong class.
-    $('panel-prof').hidden = !(n.profile || n.reached);
-    $('panel-prof').textContent = (n.profile ? 'constrained by the ' : 'reached by the ') +
-      profile.label + ' shapes';
+    markLenses(n.id, 'class');
+    current = function () { show(n); };
 
     if (field('f-def', n.def)) $('panel-def').textContent = n.def;
     if (field('f-note', n.note)) $('panel-note').textContent = n.note;
@@ -398,7 +437,7 @@
      that type is the whole of what it says beyond its definition. */
   function literals(n) {
     var out = (lits[n.id] || []).map(function (d) {
-      return '<li' + (d.meta.profile ? ' class="in-prof"' : '') + '>' +
+      return '<li' + (lens && lens.has.paths[d.id] ? ' class="in-prof"' : '') + '>' +
         '<p class="lit-head"><button type="button" class="lk-to" data-term="' + esc(d.id) +
         '">' + key(d.id.split(':')[0]) + esc(d.id) + '</button><span class="lit-range">' + esc(d.meta.range) + '</span></p>' +
         (d.meta.def ? '<p class="lit-def">' + esc(d.meta.def) + '</p>' : '') + '</li>';
@@ -417,8 +456,8 @@
       (e.kind === 'relation' ? ' · object property' : ' · datatype property'));
     $('panel-title').textContent = t.label || e.label;
     $('panel-curie').textContent = e.id;
-    $('panel-prof').hidden = !t.profile;
-    $('panel-prof').textContent = 'walked by the ' + profile.label + ' shapes';
+    markLenses(e.id, 'path');
+    current = function () { showTerm(e); };
 
     if (field('f-def', t.def)) $('panel-def').textContent = t.def;
     if (field('f-note', t.note)) $('panel-note').textContent = t.note;
@@ -515,5 +554,9 @@
     return out + esc(src.slice(last));
   }
 
-  FMO.ui = { init: init, show: show, applyFilters: applyFilters, search: search };
+  // Redraws whatever the panel shows, when something it depends on changes.
+  var current = null;
+
+  FMO.ui = { init: init, show: show, applyFilters: applyFilters, search: search,
+             current: function () { if (current) current(); } };
 })(window.FMO);

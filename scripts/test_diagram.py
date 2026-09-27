@@ -64,6 +64,31 @@ def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
 
+def export(d: dict) -> dict:
+    return next(ln for ln in d["lenses"] if ln["id"] == "export")
+
+
+def empty_lens(d: dict) -> None:
+    d["lenses"].append({**export(d), "id": "empty", "label": "Empty", "named": [],
+                        "reached": [], "paths": []})
+
+
+def lens_off_the_map(d: dict) -> None:
+    export(d)["named"].append("fm:NoSuchClass")
+
+
+def lens_reach_drift(d: dict) -> None:
+    export(d)["reached"] = []
+
+
+def lens_named_and_reached(d: dict) -> None:
+    export(d)["reached"].append(export(d)["named"][0])
+
+
+def lens_path_not_a_property(d: dict) -> None:
+    export(d)["paths"].append("ksh:Market")
+
+
 CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("a change note dropped on the way to the panel", drop_history,
      "change/history notes not carried to the panel"),
@@ -78,6 +103,15 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("a second parent's listing dropped", drop_second_listing, "subClassOf with no outline row"),
     ("an outline row at the wrong depth", misdepth, "wx:SnowDepth under"),
     ("an outline with a second root", second_root, "outline roots are"),
+    ("a lens that lights nothing", empty_lens, "the Empty lens lights nothing"),
+    ("a lens naming a class the map lacks", lens_off_the_map,
+     "ThermalEdge export term absent from the map: ['fm:NoSuchClass']"),
+    ("a lens whose reached classes drift from its paths", lens_reach_drift,
+     "reached classes are not the ends of the paths it walks"),
+    ("a lens class both named and reached", lens_named_and_reached,
+     "tagged as named and reached at once"),
+    ("a lens path that is a class", lens_path_not_a_property,
+     "path is neither an object nor a datatype property"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]

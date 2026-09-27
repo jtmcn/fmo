@@ -140,9 +140,11 @@ one of the old `*Cents` price names opens the `*Dollars` property that replaced 
 that panel's History shows the tombstone's note. Change notes appear there too, since they are the only record
 of why a term was redefined in place (ADR 0003).
 
-The `ThermalEdge export` chip cuts the map down to the export profile: the classes
-`shapes/thermaledge-export.ttl` names and the properties it walks stay lit, and
-everything else dims to the ground it was cut from. Classes an edge merely lands on
+A **lens** lights a subset of the map and dims the rest, in both views. Pick one in
+the bar. The first is the export profile: under the `ThermalEdge export` lens, the
+classes `shapes/thermaledge-export.ttl` names and the properties it walks stay lit,
+and everything else dims to the ground it was cut from. The panel lists every lens a
+term is in, whichever one is active. Classes an edge merely lands on
 light too, or a relation would draw at full strength into a dimmed dot — but the
 panel calls those *reached*, not constrained, because `fm:hasSubject` ranges over
 `fm:ObservationTarget` while the shape narrows it to `wx:WeatherObservationTarget`,
@@ -165,6 +167,14 @@ by job (`layout` places nodes, `graph` draws the map, `outline` draws the list, 
 the chrome, `main` wires them). `generate_diagram.py` writes `viz/src/data.js` and inlines the rest; to
 change the map, edit `viz/` and rebuild. Open `viz/index.html` directly to work
 against the last generated data without a build step.
+
+Every lens passes the same checks in `diagram-check`, in `lens()` and the loop over
+`data["lenses"]`:
+- it lights something;
+- every term it names is on the map;
+- every path it walks is a property;
+- no class is both named and reached;
+- its reached classes are exactly the ends of its paths.
 
 `make diagram-check` runs in `make test`. It asserts every minted class still
 resolves to a Turtle stanza, that every object property with a declared domain and

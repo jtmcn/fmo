@@ -231,3 +231,10 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   today are fm 3–5, wx 3–6, ksh 3–7. A data key named `outline` was silently
   overwritten by the module of the same name on `window.FMO`, so `diagram-check`
   now refuses a data key named like a viz module.
+
+- 2026-09-26: Step 5 (lenses) on `joel/map-lenses`, stacked on step 4. The export
+  profile is now `data.lenses[0]`, built by `lens()`, and the per-node and per-edge
+  `profile`/`reached` flags are gone. The chip became a picker. Checked headless: the
+  same 7 classes light, with the same legend and panel wording as before. One change
+  in behaviour: the marker on a class's literal list now follows the active lens.
+  Before, it always showed the export profile.

@@ -291,6 +291,11 @@ seed. A diff there means the generator changed, never the data.
 **The outline**: the map's second view, listing every class indented under its parent
 with its depth from BFO's entity. Not "the tree" or "the table". It is a view of the
 map, not a separate artifact, so "on the map" covers both views.
+**Lens**: a named subset of the map that stays lit while everything else dims. It names
+classes, walks paths, and *reaches* the classes at the ends of those paths. The export
+profile is one lens. Not "filter": a module chip *hides* terms, whereas a lens *dims*
+the rest, so what it cuts out still shows the ground it was cut from. One lens is lit at
+a time.
 
 **Vendored** (`src/imports/bfo-core.ttl`, never edited) vs **generated**
 (`qudt-subset.ttl`, edit the extractor). Two different prohibitions on hand-editing.
