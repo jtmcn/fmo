@@ -10,7 +10,7 @@
   'use strict';
 
   var root, body, rows = [], byId = {}, labels = {}, on = {};
-  var selected = null, state = { profile: false, bfo: true };
+  var selected = null, state = { lens: null, bfo: true };
 
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
@@ -119,15 +119,17 @@
     buttons().forEach(function (b) { b.tabIndex = b === to ? 0 : -1; });
   }
 
-  function inProfile(n) { return !!(n && (n.profile || n.reached)); }
+  function inLens(n) {
+    return !!(n && (state.lens.has.named[n.id] || state.lens.has.reached[n.id]));
+  }
 
-  /* Hidden follows the module chips, as on the map; the profile dims rather than
+  /* Hidden follows the module chips, as on the map; a lens dims rather than
      hides, for the same reason it does there. */
   function paint(next) {
     if (next) state = next;
     rows.forEach(function (r) {
       r.el.hidden = r.node ? !!r.node.hidden : !state.bfo;
-      r.el.classList.toggle('is-dim', state.profile && !inProfile(r.node));
+      r.el.classList.toggle('is-dim', !!state.lens && !inLens(r.node));
       r.el.classList.toggle('is-sel', !!selected && r.node === selected);
     });
     // The tab stop sits on the selected class, or the first visible row.

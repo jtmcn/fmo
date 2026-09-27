@@ -172,8 +172,25 @@ body {
 .chip[data-module="wx"]  i { background: var(--cold); }
 .chip[data-module="ksh"] i { background: var(--warm); }
 .chip[data-module="bfo"] i { background: none; border: 1.5px dashed var(--graphite); }
-/* The profile chip carries no module swatch: it cuts across all three. */
-.chip[data-profile] { letter-spacing: .09em; }
+/* A lens cuts across all three modules, so it carries no swatch. */
+.lens-pick {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11px/1 var(--f-disp);
+  letter-spacing: .11em; text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.lens-pick[hidden] { display: none; }
+#lens {
+  padding: 4px 6px;
+  background: var(--paper-hi);
+  border: 1px solid var(--rule);
+  font: 500 11px/1 var(--f-disp);
+  letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+#lens.is-on { color: var(--ink); border-color: var(--ink-soft); }
+#lens:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
 .chip:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
 .chip-sep { width: 1px; height: 18px; background: var(--rule); margin: 0 4px; }
 
@@ -438,7 +455,7 @@ body {
 }
 .lk-to { font: 500 12.5px/1.4 var(--f-mono); }
 
-/* Term is in the export profile -- said once under the title, not per section. */
+/* The lenses a term is in -- said once under the title, not per section. */
 .prof {
   margin: -16px 0 22px;
   font: 400 10px/1.4 var(--f-disp);
