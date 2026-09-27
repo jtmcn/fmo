@@ -113,7 +113,8 @@ the active lens, or all at once with **all relations**. At rest, the tree is the
 picture. A force layout drew all 147 edges as equal springs, and the 102 subclass links
 knotted the 45 relations into a hairball. The positions are computed by the generator
 (`place()`), not simulated in the page, so `diagram-check` can count the crossings the
-page draws. It pins the count at 3. The page is still pannable and zoomable, and
+page draws. It caps the count at 3, and rebuilds the layout under two other
+`PYTHONHASHSEED`s to require the same positions, so the cap can't pass by luck of set order. The page is still pannable and zoomable, and
 dragging a class moves it along its row. It is
 one self-contained file with no dependencies and no network calls, so it opens by
 double-clicking and survives being emailed to someone. The build drops the webfont
@@ -198,7 +199,7 @@ the text's colour: labels are in ink, and a module is keyed by a swatch beside t
 The one exception is the Turtle stanza, where prefixes are syntax-highlighted.
 
 The frontend is `viz/` — `index.html`, `style.css`, and five JS modules that split
-by job (`layout` places nodes, `graph` draws the map, `outline` draws the list, `ui` is
+by job (`layout` loads the generator's positions, `graph` draws the map, `outline` draws the list, `ui` is
 the chrome, `main` wires them). `generate_diagram.py` writes `viz/src/data.js` and inlines the rest; to
 change the map, edit `viz/` and rebuild. Open `viz/index.html` directly to work
 against the last generated data without a build step.
