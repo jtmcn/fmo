@@ -70,6 +70,7 @@
     buildIndex(data);
     initSearch();
     initChips();
+    initViews();
     initPanel();
     legend();
     // On a phone the legend would cover the map; fold it rather than drop it,
@@ -88,6 +89,7 @@
     nodes.forEach(function (n) { n.hidden = !modules[chipOf(n)]; });
     FMO.graph.setKind('rel', showRel);
     FMO.graph.setProfile(profileOnly);
+    FMO.outline.paint({ profile: profileOnly, bfo: modules.bfo });
     legend();
     // Results were filtered on visibility when they were built; rebuild them, or
     // Enter opens a term that is no longer on the map. Rebuilding must not pop the
@@ -95,6 +97,25 @@
     var open = !$('results').hidden;
     search($('search').value);
     if (!open) $('results').hidden = true;
+  }
+
+  /* Map or outline: one field, two readings of it. The panel, search and chips
+     serve both, so switching changes nothing but what the field shows. */
+  function initViews() {
+    var chart = document.querySelector('.chart');
+    [$('view-map'), $('view-outline')].forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var outline = btn.id === 'view-outline';
+        chart.classList.toggle('is-outline', outline);
+        $('view-map').setAttribute('aria-pressed', String(!outline));
+        $('view-outline').setAttribute('aria-pressed', String(outline));
+        $('view-map').classList.toggle('is-on', !outline);
+        $('view-outline').classList.toggle('is-on', outline);
+        FMO.outline.show(outline);
+        // The SVG had no size while hidden; frame it again now it has one.
+        if (!outline) FMO.graph.fit();
+      });
+    });
   }
 
   function initChips() {

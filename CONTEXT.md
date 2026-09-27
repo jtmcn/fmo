@@ -288,6 +288,9 @@ reverse; the split is deliberate.
 seed. A diff there means the generator changed, never the data.
 
 **The map**: `build/ontology.html` from `make diagram`. Not "the docs", not "the viewer".
+**The outline**: the map's second view, listing every class indented under its parent
+with its depth from BFO's entity. Not "the tree" or "the table". It is a view of the
+map, not a separate artifact, so "on the map" covers both views.
 
 **Vendored** (`src/imports/bfo-core.ttl`, never edited) vs **generated**
 (`qudt-subset.ttl`, edit the extractor). Two different prohibitions on hand-editing.

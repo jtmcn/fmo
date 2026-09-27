@@ -72,7 +72,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
 | `scripts/generate_verification_data.py` | regenerates the synthetic calibration dataset (deterministic) |
 | `scripts/generate_diagram.py` | builds the interactive map from the modules |
-| `viz/` | the map's frontend: HTML, CSS, and four small JS modules |
+| `viz/` | the map's frontend: HTML, CSS, and five small JS modules |
 | `queries/` | competency questions as SPARQL, with `.expected` results |
 | `docs/design-notes.md` | why terms sit where they do, and what is still unresolved |
 
@@ -113,6 +113,16 @@ double-clicking and survives being emailed to someone. The build drops the webfo
 links `viz/index.html` uses in development; the built file renders on the system
 stack `style.css` falls back to rather than blocking on a font server.
 
+The **Outline** button swaps the map for a list of every class, indented under its
+parent, with its depth from BFO's entity and how many relations and literals it has.
+The list is the keyboard route to every term: Tab reaches it, and the arrow keys move
+through it. It also shows the branch-depth imbalance a force layout hides. The line
+above the list gives each module's depth range. The BFO classes between a borrowed
+class and entity are listed for their place in the hierarchy, even though the map
+doesn't draw them. A class with two parents is listed under both, and the second
+listing points back to the first. The panel, search and chips work the same in both
+views.
+
 A node takes the pointer anywhere within 12 screen pixels of its centre at any zoom,
 and where targets overlap the nearest node wins.
 
@@ -150,9 +160,9 @@ and borrowed BFO ground is held back in grey. Colour marks identity and never se
 the text's colour: labels are in ink, and a module is keyed by a swatch beside them.
 The one exception is the Turtle stanza, where prefixes are syntax-highlighted.
 
-The frontend is `viz/` — `index.html`, `style.css`, and four JS modules that split
-by job (`layout` places nodes, `graph` draws, `ui` is the chrome, `main` wires
-them). `generate_diagram.py` writes `viz/src/data.js` and inlines the rest; to
+The frontend is `viz/` — `index.html`, `style.css`, and five JS modules that split
+by job (`layout` places nodes, `graph` draws the map, `outline` draws the list, `ui` is
+the chrome, `main` wires them). `generate_diagram.py` writes `viz/src/data.js` and inlines the rest; to
 change the map, edit `viz/` and rebuild. Open `viz/index.html` directly to work
 against the last generated data without a build step.
 
@@ -164,7 +174,10 @@ export shapes name or walk reaches the map, that the pivot edges above survive, 
 that the built file fetches nothing — because a viewer that silently drops half the
 graph still renders a convincing picture. The notes, field names and tombstones the
 panel shows are counted a second time, straight off the ontology, and the two counts
-must agree. Every stanza must still contain its term's declaration.
+must agree. Every stanza must still contain its term's declaration. The outline's rows
+are computed by the generator, not the page, so they can be checked: one root, every
+class listed once in full, every `rdfs:subClassOf` edge on the map with a row, and every
+depth one more than its parent's.
 
 It also audits the palette off `viz/style.css` itself (`scripts/palette.py`). Text is
 checked at 4.5:1 and marks at 3:1, in both themes. Any two module colours must stay

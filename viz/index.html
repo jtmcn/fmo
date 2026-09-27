@@ -18,6 +18,11 @@
     <span class="mark-ver" id="version"></span>
   </div>
 
+  <div class="views" role="group" aria-label="View">
+    <button class="view is-on" id="view-map" type="button" aria-pressed="true">Map</button>
+    <button class="view" id="view-outline" type="button" aria-pressed="false">Outline</button>
+  </div>
+
   <div class="find">
     <input id="search" type="search" autocomplete="off" spellcheck="false"
            placeholder="Find a term" aria-label="Find a term"
@@ -48,6 +53,9 @@
   </details>
 
   <button class="reset" id="reset" type="button" hidden>Reset view</button>
+
+  <!-- The same classes as a list: filled by outline.js from data.outline. -->
+  <section class="outline" id="outline" aria-label="Class outline" hidden></section>
 </main>
 
 <aside class="panel" id="panel" aria-live="polite">
@@ -95,6 +103,7 @@
 <script src="src/data.js"></script>
 <script src="src/layout.js"></script>
 <script src="src/graph.js"></script>
+<script src="src/outline.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>
 </body>

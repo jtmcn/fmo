@@ -41,7 +41,7 @@ acceptance:
   - claim: >-
       Every term on the map is reachable and selectable by keyboard alone, through
       an outline view that lists each minted class under its parent with its depth.
-    witness: make diagram-check (outline row count equals minted class count)
+    witness: make diagram-negative (a class missing from the outline)
   - claim: >-
       Search finds object and datatype properties, and a retired term resolves
       to the term that replaced it.
@@ -223,3 +223,11 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   circles big enough at low zoom overlap in the core, where the one drawn last would
   win. Checked headless at zoom 1.39 and 0.4: 10px from a dot's centre selects it,
   and 16px from an isolated dot selects nothing. `diagram-check` pins HIT_PX ≥ 12.
+
+- 2026-09-26: Step 4 (outline) on `joel/map-outline`, stacked on step 3. The rows
+  are computed in `generate_diagram.outline()`, not in the page, so `diagram-check`
+  can test them. It walks BFO's own hierarchy too: the map draws only edges starting
+  at a minted class, which left 12 BFO roots and no depth to speak of. Depth ranges
+  today are fm 3–5, wx 3–6, ksh 3–7. A data key named `outline` was silently
+  overwritten by the module of the same name on `window.FMO`, so `diagram-check`
+  now refuses a data key named like a viz module.
