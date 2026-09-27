@@ -204,6 +204,12 @@ body {
 #svg.is-over { cursor: pointer; }
 
 .grat line { stroke: var(--grat); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.grat-rows .row-lab {
+  font: 500 10px/1 var(--f-disp);
+  letter-spacing: .14em; text-transform: uppercase;
+  fill: var(--ink-mute);
+  pointer-events: none;
+}
 
 .e-sub {
   fill: none; stroke: var(--rule); stroke-width: 1.1;
@@ -218,18 +224,19 @@ body {
 
 .n-dot { stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .n-dot.is-ext { fill: var(--paper); stroke-dasharray: 2.5 2; }
+/* Label size and halo are set per zoom in graph.js, so they hold at 11px on screen. */
 .n-lab {
-  font: 450 11px/1 var(--f-body);
+  font-family: var(--f-body); font-weight: 450;
   fill: var(--ink);
-  paint-order: stroke; stroke: var(--paper); stroke-width: 3.5px;
+  paint-order: stroke; stroke: var(--paper);
   stroke-linejoin: round;
   pointer-events: none;
   text-anchor: middle;
 }
 .e-lab {
-  font: 400 9.5px/1 var(--f-mono);
+  font-family: var(--f-mono); font-weight: 400;
   fill: var(--ink-soft);
-  paint-order: stroke; stroke: var(--paper); stroke-width: 3px;
+  paint-order: stroke; stroke: var(--paper);
   stroke-linejoin: round;
   pointer-events: none; text-anchor: middle;
 }

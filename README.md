@@ -106,8 +106,15 @@ make test                            # all of the above, plus the competency che
 
 ## The map
 
-`make diagram` writes `build/ontology.html`: every class, the subsumption
-skeleton, and the object properties that join them, on one pannable field. It is
+`make diagram` writes `build/ontology.html`: every class laid out as the is-a tree
+from BFO's entity, one row per depth. Each family is ordered forecast, pivot, market,
+left to right. Relations are drawn on demand: for the class you select or hover, for
+the active lens, or all at once with **all relations**. At rest, the tree is the whole
+picture. A force layout drew all 147 edges as equal springs, and the 102 subclass links
+knotted the 45 relations into a hairball. The positions are computed by the generator
+(`place()`), not simulated in the page, so `diagram-check` can count the crossings the
+page draws. It pins the count at 3. The page is still pannable and zoomable, and
+dragging a class moves it along its row. It is
 one self-contained file with no dependencies and no network calls, so it opens by
 double-clicking and survives being emailed to someone. The build drops the webfont
 links `viz/index.html` uses in development; the built file renders on the system
@@ -116,10 +123,10 @@ stack `style.css` falls back to rather than blocking on a font server.
 The **Outline** button swaps the map for a list of every class, indented under its
 parent, with its depth from BFO's entity and how many relations and literals it has.
 The list is the keyboard route to every term: Tab reaches it, and the arrow keys move
-through it. It also shows the branch-depth imbalance a force layout hides. The line
-above the list gives each module's depth range. The BFO classes between a borrowed
-class and entity are listed for their place in the hierarchy, even though the map
-doesn't draw them. A class with two parents is listed under both, and the second
+through it. It also shows the branch-depth imbalance as numbers. The line
+above the list gives each module's depth range. BFO's own classes between a borrowed
+class and entity are on both the outline and the map, so the tree has a single root.
+A class with two parents is listed under both, and the second
 listing points back to the first. The panel, search and chips work the same in both
 views.
 

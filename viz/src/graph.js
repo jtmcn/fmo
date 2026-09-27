@@ -17,7 +17,10 @@
   var cam = { x: 0, y: 0, k: 1 };
   var selected = null, hovered = null, lit = {};
   var drag = null, pan = null;
-  var kindOn = { sub: true, rel: true };
+  // Relations are on demand: drawn for the focused class and the active lens, and
+  // all at once only when the Relations chip asks. At rest the tree is the picture.
+  var kindOn = { sub: true, rel: false };
+  var grid = { row: 120, depth: 0 }, rowLabels = [];
   // A lens dims rather than hides: the subgraph it picks out is only legible as a
   // shape if the ontology it is cut from stays on the page behind it.
   var lens = null;
@@ -43,9 +46,13 @@
     on = handlers || {};
     nodes = data.nodes;
     edges = data.edges;
+    grid = data.grid || grid;
 
     view = el('g', {});
     svg.appendChild(view);
+    // Row labels live in screen space, outside the zoomed view, so they stay legible.
+    layers.rows = el('g', { class: 'grat-rows' });
+    svg.appendChild(layers.rows);
 
     ['grat', 'sub', 'rel', 'elab', 'dot', 'nlab'].forEach(function (name) {
       layers[name] = el('g', { class: name === 'grat' ? 'grat' : '' });
@@ -85,13 +92,18 @@
     wire();
   }
 
-  /* A faint graticule, drawn once in world space so it pans and zooms with the
-     map. Strokes are non-scaling, so it stays hairline at every zoom. */
+  /* One hairline per depth, in world space so it pans with the map; the labels
+     are placed in screen space by paint(). Depth is the outline's, from entity. */
   function graticule() {
-    var S = 120, N = 26;
-    for (var i = -N; i <= N; i++) {
-      layers.grat.appendChild(el('line', { x1: i * S, y1: -N * S, x2: i * S, y2: N * S }));
-      layers.grat.appendChild(el('line', { x1: -N * S, y1: i * S, x2: N * S, y2: i * S }));
+    var b = FMO.layout.extent(), pad = 400;
+    for (var d = 0; d <= grid.depth; d++) {
+      layers.grat.appendChild(el('line', {
+        x1: b.x0 - pad, y1: d * grid.row, x2: b.x1 + pad, y2: d * grid.row
+      }));
+      var t = el('text', { class: 'row-lab', x: 8 });
+      t.textContent = 'depth ' + d;
+      layers.rows.appendChild(t);
+      rowLabels.push(t);
     }
   }
 
@@ -100,17 +112,30 @@
       'translate(' + cam.x + ',' + cam.y + ') scale(' + cam.k + ')');
 
     var focus = hovered || selected;
-    var showLabels = cam.k > 1.15;
     var placed = [];
+
+    // Labels live in world space but read at a fixed screen size: the tree fits at
+    // a third of full zoom, where an 11px world label would be a 4px smudge.
+    layers.nlab.setAttribute('font-size', 11 / cam.k);
+    layers.nlab.setAttribute('stroke-width', 3.5 / cam.k);
+    layers.elab.setAttribute('font-size', 9.5 / cam.k);
+    layers.elab.setAttribute('stroke-width', 3 / cam.k);
+
+    rowLabels.forEach(function (t, d) {
+      t.setAttribute('y', cam.y + d * grid.row * cam.k - 5);
+    });
 
     edges.forEach(function (e) {
       var a = e.a, b = e.b;
       if (!a || !b) return;
-      var off = a.hidden || b.hidden || !kindOn[e.k];
+      var asked = e.k === 'sub' ? kindOn.sub : kindOn.rel ||
+        !!(focus && (a.id === focus.id || b.id === focus.id)) ||
+        !!(lens && lens.has.paths[e.p]);
+      var off = a.hidden || b.hidden || !asked;
       e.el.style.display = off ? 'none' : '';
       if (off) { if (e.lab) e.lab.style.display = 'none'; return; }
 
-      e.el.setAttribute('d', path(a, b));
+      e.el.setAttribute('d', path(a, b, e.k));
       // A relation is in the lens when it walks that path; a subClassOf is in it
       // when both ends are, which is what makes the hierarchy still read.
       var inProf = !lens ||
@@ -152,9 +177,10 @@
       n.el.classList.toggle('is-dim', !isLit);
       n.el.setAttribute('r', radius(n) * (n === focus ? 1.5 : 1));
 
-      var ly = n.y - radius(n) - 5;
-      var want = isLit && (showLabels || n.deg >= 4 || n === focus || n.flagged) &&
-                 reserve(n.x, ly - 6, n.label.length * 5.6 + 8, 13, placed);
+      var ly = n.y - radius(n) - 5 / cam.k;
+      // Every label that fits gets drawn; reserve() drops the ones that would collide,
+      // most-connected first, and zooming in frees room for the rest.
+      var want = isLit && reserve(n.x, ly - 6 / cam.k, n.label.length * 5.6 + 8, 13, placed);
 
       n.lab.style.display = want ? '' : 'none';
       if (want) {
@@ -191,7 +217,14 @@
 
   /* Relations bow, so a pair joined both by subClassOf and by a property does not
      draw one line on top of the other. Self-relations become a visible loop. */
-  function path(a, b) {
+  function path(a, b, kind) {
+    // The tree reads as a tree: a subClassOf leaves the child upward and arrives
+    // at the parent from below, as a smooth vertical S.
+    if (kind === 'sub' && a !== b) {
+      var my = (a.y + b.y) / 2;
+      return 'M' + a.x + ',' + a.y + 'C' + a.x + ',' + my + ' ' + b.x + ',' + my +
+             ' ' + b.x + ',' + b.y;
+    }
     if (a === b) {
       var r = radius(a) + 9;
       return 'M' + a.x + ',' + (a.y - r * 0.5) +
@@ -304,11 +337,10 @@
 
     svg.addEventListener('pointermove', function (ev) {
       if (drag) {
-        var w = toWorld(ev.clientX, ev.clientY);
-        drag.node.x = w.x; drag.node.y = w.y;
+        // Along its row only: y is the class's depth, which a drag cannot change.
+        drag.node.x = toWorld(ev.clientX, ev.clientY).x;
         drag.moved = true;
         paint();
-        if (on.disturb) on.disturb();
       } else if (pan) {
         cam.x = ev.clientX - pan.x;
         cam.y = ev.clientY - pan.y;
