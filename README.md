@@ -144,7 +144,16 @@ A **lens** lights a subset of the map and dims the rest, in both views. Pick one
 the bar. The first is the export profile: under the `ThermalEdge export` lens, the
 classes `shapes/thermaledge-export.ttl` names and the properties it walks stay lit,
 and everything else dims to the ground it was cut from. The panel lists every lens a
-term is in, whichever one is active. Classes an edge merely lands on
+term is in, whichever one is active.
+
+There is also a lens for each competency question. It lights the classes the
+question's query matches on and the properties it walks, and the legend shows the
+question itself. A class's panel reads "used by CQ2, CQ5, CQ8". A last lens, **No
+question**, lights the minted classes no question uses or reaches. Today that is 68 of
+100. This doesn't count as a failure: `class-coverage-expectations.json` is where
+classes are classified. The terms come from each query's parsed algebra, not its text,
+so a term that appears only in a comment doesn't count. A query that matches on a
+retired or undeclared term fails `diagram-check`. Classes an edge merely lands on
 light too, or a relation would draw at full strength into a dimmed dot — but the
 panel calls those *reached*, not constrained, because `fm:hasSubject` ranges over
 `fm:ObservationTarget` while the shape narrows it to `wx:WeatherObservationTarget`,

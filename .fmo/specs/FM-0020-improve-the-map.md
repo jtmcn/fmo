@@ -238,3 +238,11 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   same 7 classes light, with the same legend and panel wording as before. One change
   in behaviour: the marker on a class's literal list now follows the active lens.
   Before, it always showed the export profile.
+
+- 2026-09-26: Step 6 (question lenses) on `joel/map-cq-lens`, stacked on step 5. There
+  is one lens per `queries/cq*.rq`, with terms read from the parsed algebra, plus a
+  **No question** lens. 68 of 100 minted classes are untouched by any question. That
+  is a finding for whoever owns the CQ set, not something this spec should fix.
+  `diagram-check` refuses a query matching on a retired or undeclared term. The lens
+  picker and the view toggle made the bar overflow below 1336px, so the bar now sheds
+  its subtitle, then search width and the "Lens" label. It fits from 1440 down to 901.
