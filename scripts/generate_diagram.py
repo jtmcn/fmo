@@ -22,10 +22,12 @@ from pathlib import Path
 
 from rdflib import Graph, Literal, OWL, RDF, RDFS, URIRef
 from rdflib.namespace import DCTERMS, SH, SKOS
+from rdflib.paths import Path as PropertyPath
+from rdflib.plugins.sparql import prepareQuery
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import palette  # noqa: E402
-from registry import MODULES, ROOT, SHAPES, SRC  # noqa: E402
+from registry import MODULES, QUERIES, ROOT, SHAPES, SRC  # noqa: E402
 
 VIZ = ROOT / "viz"
 BUILD = ROOT / "build"
@@ -269,7 +271,9 @@ def build() -> dict:
         paths={c for c in map(curie, walked) if c}, edges=edges,
         # curie() returns None for a blank-node path or a namespace the map does
         # not draw; a term quietly leaving the lens is what this count makes loud.
-        unmapped=sum(1 for t in named | walked if curie(t) is None), unread=unread)]
+        unmapped=sum(1 for t in named | walked if curie(t) is None), unread=unread,
+        group="Export profile")]
+    lenses += question_lenses(g, set(nodes), set(properties) | set(datatypes), edges)
 
     # BFO local names are opaque numerics; borrow their labels so the map reads.
     inverse = {pre: full for full, pre in NS.items()}
@@ -292,6 +296,66 @@ def build() -> dict:
         "retired": dict(sorted(retired.items())),
         "lenses": lenses,
     }
+
+
+def query_terms(o, seen: set[int] | None = None) -> set[URIRef]:
+    """Every IRI in a parsed query's algebra -- what it matches on, never what its
+    comments mention. Property paths (a/rdfs:subClassOf*) are walked too."""
+    seen = set() if seen is None else seen
+    if id(o) in seen:
+        return set()
+    seen.add(id(o))
+    if isinstance(o, URIRef):
+        return {o}
+    if isinstance(o, dict):
+        parts = list(o.values())
+    elif isinstance(o, (list, tuple, set)):
+        parts = list(o)
+    elif isinstance(o, PropertyPath):
+        parts = list(vars(o).values())
+    else:
+        return set()
+    return set().union(*(query_terms(x, seen) for x in parts)) if parts else set()
+
+
+def question_lenses(g: Graph, classes: set[str], props: set[str], edges: list[dict]) -> list[dict]:
+    """One lens per competency question: the classes its query matches on and the
+    properties it walks. Plus one for the classes no question touches -- the book's
+    "every term traces back to a competency question", made visible rather than
+    enforced, since class-coverage-expectations.json is where classes are classified.
+    """
+    prefixes = (QUERIES / "prefixes.txt").read_text(encoding="utf-8")
+    out: list[dict] = []
+    for f in sorted(QUERIES.glob("cq*.rq")):
+        text_ = f.read_text(encoding="utf-8")
+        head = re.match(r"# (CQ\w+)\. (.*?)\n#\s*\n", text_, re.S)
+        cq = head.group(1) if head else f.stem
+        question = " ".join(l.lstrip("# ") for l in head.group(2).splitlines()) if head else ""
+        used = {c for c in map(curie, query_terms(prepareQuery(prefixes + text_).algebra))
+                if c and c.split(":")[0] in MINTED}
+        inverse = {pre: full for full, pre in NS.items()}
+
+        def iri(c: str) -> URIRef:
+            pre, local = c.split(":", 1)
+            return URIRef(inverse[pre] + local)
+        # Anything the map cannot draw must at least be a live individual: a query
+        # matching on a retired or undeclared term answers a question about nothing.
+        stale = sorted(c for c in used if (iri(c), OWL.deprecated, Literal(True)) in g
+                       or (c not in classes and c not in props
+                           and (iri(c), RDF.type, OWL.NamedIndividual) not in g))
+        slug = f.stem.split("-", 1)[1].replace("-", " ") if "-" in f.stem else ""
+        out.append(lens(f.stem, f"{cq} · {slug}", cq,
+                        {"named": "used", "reached": "reached", "path": "walked"},
+                        named=used & classes, paths=used & props, edges=edges,
+                        question=question, stale=stale, group="Competency questions"))
+    touched = {c for ln in out for c in ln["named"] + ln["reached"]}
+    minted = {c for c in classes if c.split(":")[0] in MINTED}
+    out.append(lens("no-question", "No question", "any competency question",
+                    {"named": "untouched", "reached": "reached", "path": "walked"},
+                    named=minted - touched, paths=set(), edges=edges,
+                    question="Minted classes that no competency question uses or reaches.",
+                    group="Competency questions"))
+    return out
 
 
 def lens(key: str, label: str, source: str, words: dict[str, str], *, named: set[str],
@@ -460,6 +524,7 @@ def check(data: dict, html: str) -> int:
         assert not ln.get("unmapped"), \
             f"{ln['unmapped']} {name} term(s) outside the namespaces the map draws"
         assert not ln.get("unread"), f"the {name} reader does not understand: {ln['unread']}"
+        assert not ln.get("stale"), f"{name} matches on a retired or undeclared term: {ln['stale']}"
         absent = [t for t in ln["named"] + ln["reached"] + ln["paths"] if t not in known]
         assert not absent, f"{name} term absent from the map: {absent}"
         stray = [p for p in ln["paths"] if p not in data["properties"] and p not in dts]
@@ -471,6 +536,9 @@ def check(data: dict, html: str) -> int:
         ends = {c for e in data["edges"] if e.get("p") in ln["paths"] for c in (e["s"], e["t"])}
         assert set(ln["reached"]) == ends - set(ln["named"]), \
             f"{name}: reached classes are not the ends of the paths it walks"
+    asked = sorted(f.stem for f in QUERIES.glob("cq*.rq"))
+    have = sorted(ln["id"] for ln in data["lenses"] if ln["id"].startswith("cq"))
+    assert asked == have, f"competency questions without a lens: {sorted(set(asked) - set(have))}"
     prof = next(ln for ln in data["lenses"] if ln["id"] == "export")
     assert prof["named"] and prof["paths"], f"no shapes read from {SHAPES.name}"
     lit = len(prof["named"]) + len(prof["reached"])
@@ -562,6 +630,9 @@ def check(data: dict, html: str) -> int:
     print(f"OK: {len(shown)} terms show change/history notes, {carried} API field names, "
           f"{len(tombs)} tombstones resolve to a replacement")
     print(f"OK: palette, {palette_summary}")
+    untouched = next(ln for ln in data["lenses"] if ln["id"] == "no-question")
+    print(f"OK: lenses, {len(have)} competency questions, "
+          f"{len(untouched['named'])} minted classes no question touches")
     print(f"OK: outline, {len(rows)} rows under {ROOT_CLASS}, "
           f"{sum(r['dup'] for r in rows)} second listings, "
           f"{sum(not r['on'] for r in rows)} BFO classes shown only for their place")

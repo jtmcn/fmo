@@ -129,9 +129,14 @@
   /* One lens at a time: two lit at once would leave no way to say which lit a dot. */
   function initLens() {
     var pick = $('lens');
-    pick.innerHTML = '<option value="">none</option>' + lenses.map(function (l, i) {
-      return '<option value="' + i + '">' + esc(l.label) + '</option>';
-    }).join('');
+    var groups = [], html = '<option value="">none</option>';
+    lenses.forEach(function (l) { if (groups.indexOf(l.group) < 0) groups.push(l.group); });
+    groups.forEach(function (g) {
+      html += '<optgroup label="' + esc(g || 'Lenses') + '">' + lenses.map(function (l, i) {
+        return l.group === g ? '<option value="' + i + '">' + esc(l.label) + '</option>' : '';
+      }).join('') + '</optgroup>';
+    });
+    pick.innerHTML = html;
     $('lens-pick').hidden = !lenses.length;
     pick.addEventListener('change', function () {
       lens = pick.value === '' ? null : lenses[+pick.value];
@@ -142,14 +147,19 @@
     });
   }
 
-  /* One line per lens the term is in, the active one first. */
+  /* One line per way the term is in a lens group -- "used by CQ2, CQ5, CQ8" --
+     with the active lens's line first. */
   function lensLines(id, kind) {
-    return lenses.filter(function (l) {
+    var lines = [], at = {};
+    lenses.filter(function (l) {
       return kind === 'path' ? l.has.paths[id] : l.has.named[id] || l.has.reached[id];
-    }).sort(function (a, b) { return (b === lens) - (a === lens); }).map(function (l) {
-      var w = kind === 'path' ? 'path' : l.has.named[id] ? 'named' : 'reached';
-      return l.words[w] + ' by ' + l.source;
+    }).sort(function (a, b) { return (b === lens) - (a === lens); }).forEach(function (l) {
+      var w = l.words[kind === 'path' ? 'path' : l.has.named[id] ? 'named' : 'reached'];
+      var k = l.group + '|' + w;
+      if (!(k in at)) { at[k] = lines.length; lines.push({ w: w, src: [] }); }
+      lines[at[k]].src.push(l.source);
     });
+    return lines.map(function (x) { return x.w + ' by ' + x.src.join(', '); });
   }
 
   function markLenses(id, kind) {
@@ -221,6 +231,9 @@
         relCount++;
       });
     }
+    // A question lens says what it asks; the counts alone would not.
+    $('legend-q').hidden = !(lens && lens.question);
+    $('legend-q').textContent = lens && lens.question || '';
     $('legend-note').textContent = lens
       ? lens.label + ' · ' + named + ' ' + lens.words.named + ' · ' + reached + ' ' +
         lens.words.reached + ' · ' + plural(relCount, 'relation') + ' · ' +

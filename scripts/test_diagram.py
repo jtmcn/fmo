@@ -60,6 +60,14 @@ def second_root(d: dict) -> None:
     next(r for r in d["tree"] if r["id"] == "wx:SnowDepth")["via"] = None
 
 
+def question_without_lens(d: dict) -> None:
+    d["lenses"] = [ln for ln in d["lenses"] if ln["id"] != "cq02-probability-gap"]
+
+
+def stale_question(d: dict) -> None:
+    next(ln for ln in d["lenses"] if ln["id"].startswith("cq"))["stale"] = ["ksh:yesBidCents"]
+
+
 def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
@@ -112,6 +120,10 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "tagged as named and reached at once"),
     ("a lens path that is a class", lens_path_not_a_property,
      "path is neither an object nor a datatype property"),
+    ("a competency question with no lens", question_without_lens,
+     "competency questions without a lens: ['cq02-probability-gap']"),
+    ("a question lens flagged stale", stale_question,
+     "matches on a retired or undeclared term"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]
@@ -130,6 +142,44 @@ def hit_cases() -> int:
         passes = v is not None and v >= gd.MIN_HIT_PX
         bad = passes != ok
         print(("FAIL  " if bad else "ok    ") + name + (f": read {v}" if bad else ""))
+        failed += bad
+    return failed
+
+
+def question_cases() -> int:
+    """question_lenses() reads queries off disk, so these run it on a copied set:
+    a query matching on a retired term is stale; one only *mentioning* it in a
+    comment is not, because terms come from the parsed algebra, not the text."""
+    import shutil
+    import tempfile
+    from rdflib import Graph
+
+    g = Graph()
+    for m in gd.MODULES:
+        g.parse(gd.SRC / m, format="turtle")
+    base = gd.build()
+    classes = {n["id"] for n in base["nodes"]}
+    props = set(base["properties"]) | set(base["datatypes"])
+    head = "# CQ99. A question for the test.\n#\n"
+    failed = 0
+    real = gd.QUERIES
+    for name, body, expect in [
+        ("a query matching on a retired term", head +
+         "SELECT ?q WHERE { ?q ksh:yesBidCents ?v }\n", ["ksh:yesBidCents"]),
+        ("a retired term named only in a comment", head +
+         "# was ksh:yesBidCents before 0.19.0\nSELECT ?q WHERE { ?q ksh:yesBidDollars ?v }\n", []),
+    ]:
+        with tempfile.TemporaryDirectory() as tmp:
+            q = Path(tmp)
+            shutil.copy(real / "prefixes.txt", q / "prefixes.txt")
+            (q / "cq99-test.rq").write_text(body, encoding="utf-8")
+            gd.QUERIES = q
+            try:
+                ln = gd.question_lenses(g, classes, props, base["edges"])[0]
+            finally:
+                gd.QUERIES = real
+        bad = ln.get("stale") != expect
+        print(("FAIL  " if bad else "ok    ") + name + (f": stale {ln.get('stale')}" if bad else ""))
         failed += bad
     return failed
 
@@ -154,8 +204,8 @@ def main() -> int:
             why = None if expect in str(e) else f"expected {expect!r}, got {e}"
         print(("FAIL  " if why else "ok    ") + name + (f": {why}" if why else ""))
         failed += bool(why)
-    hit_failed = hit_cases()
-    total = len(CASES) + 1 + 3
+    hit_failed = hit_cases() + question_cases()
+    total = len(CASES) + 1 + 3 + 2
     failed += hit_failed
     print(f"\n{total - failed}/{total} passed")
     return 1 if failed else 0
