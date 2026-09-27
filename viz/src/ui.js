@@ -17,6 +17,8 @@
   var lits = {};
   // Lenses from data.js, each with lookup sets built once; `lens` is the one lit.
   var lenses = [], lens = null;
+  // Depth from BFO's entity, off the outline's rows: one computation, two views.
+  var depth = {};
   var onSelect = function () {};
   var modules = { fm: true, wx: true, ksh: true, bfo: true };
   var showRel = true;
@@ -73,6 +75,7 @@
       return l;
     });
     initLens();
+    (data.tree || []).forEach(function (r) { if (!r.dup) depth[r.id] = r.d; });
 
     $('version').textContent = 'v' + data.version;
     buildIndex(data);
@@ -155,11 +158,13 @@
       return kind === 'path' ? l.has.paths[id] : l.has.named[id] || l.has.reached[id];
     }).sort(function (a, b) { return (b === lens) - (a === lens); }).forEach(function (l) {
       var w = l.words[kind === 'path' ? 'path' : l.has.named[id] ? 'named' : 'reached'];
+      // A lens with nothing to attribute it to says its own line.
+      if (l.line && l.has.named[id]) { lines.push({ line: l.line }); return; }
       var k = l.group + '|' + w;
       if (!(k in at)) { at[k] = lines.length; lines.push({ w: w, src: [] }); }
       lines[at[k]].src.push(l.source);
     });
-    return lines.map(function (x) { return x.w + ' by ' + x.src.join(', '); });
+    return lines.map(function (x) { return x.line || x.w + ' by ' + x.src.join(', '); });
   }
 
   function markLenses(id, kind) {
@@ -400,6 +405,11 @@
       var pivot = byId['fm:Proposition'];
       if (pivot) { onSelect(pivot); FMO.graph.centre(pivot, 1.5); }
     });
+    $('panel-disj').addEventListener('click', function (ev) {
+      var btn = ev.target.closest('button[data-to]');
+      var n = btn && byId[btn.dataset.to];
+      if (n) { onSelect(n); FMO.graph.centre(n, Math.max(FMO.graph.camera.k, 1.3)); }
+    });
     $('panel-links').addEventListener('click', function (ev) {
       var btn = ev.target.closest('button[data-to]');
       if (!btn) return;
@@ -428,7 +438,7 @@
       : (EXTERNAL_NAME[n.module] || n.module));
 
     $('panel-title').textContent = n.label;
-    $('panel-curie').textContent = n.id;
+    $('panel-curie').textContent = n.id + (n.id in depth ? ' · depth ' + depth[n.id] : '');
 
     // Named by a lens, or only landed on by a path it walks -- fm:hasSubject ranges
     // over fm:ObservationTarget while the export shape narrows it to the subclass,
@@ -441,6 +451,7 @@
     if (field('f-example', n.example)) $('panel-example').textContent = n.example;
     history(n.history, replaces[n.id]);
     coverage(n.coverage);
+    disjoint(n.disjoint);
     field('f-api', false);
 
     literals(n);
@@ -481,6 +492,7 @@
     field('f-example', false);
     history(t.history, replaces[e.id]);
     coverage(null);
+    disjoint(null);
     if (field('f-api', (t.fields || []).length)) {
       $('panel-api').innerHTML = t.fields.map(function (f) {
         return '<code>' + esc(f) + '</code>';
@@ -518,6 +530,20 @@
     schema: 'enumerated in src/', unassertable: 'unassertable',
     unlisted: 'unlisted', unwritten: 'not yet written'
   };
+
+  /* Disjointness draws nothing on the canvas -- the classes share no edge -- so
+     the panel is where it shows. A partner off the map is named, not linked. */
+  function disjoint(ids) {
+    $('panel-disj').innerHTML = '';
+    if (!field('f-disj', ids && ids.length)) return;
+    $('panel-disj').innerHTML = ids.map(function (id) {
+      var n = byId[id];
+      return n
+        ? '<li><button type="button" data-to="' + esc(id) + '"><span class="lk-to">' +
+          key(chipOf(n)) + esc(id) + '</span></button></li>'
+        : '<li><span class="lk-to">' + key('bfo') + esc(id) + '</span></li>';
+    }).join('');
+  }
 
   function coverage(c) {
     if (!field('f-cov', c && c.state)) return;

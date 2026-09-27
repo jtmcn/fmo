@@ -253,3 +253,21 @@ Build in this order. Each step lands on its own, and 1–2 are small.
   subclass, 9 enumerated in src/, and 29 in the ledger (2 unassertable, 6 unlisted,
   21 unwritten). A lens's prose field is now `about` rather than `question`, since
   not every lens asks one.
+
+- 2026-09-26: Step 8 (structure) on `joel/map-structure`, stacked on step 7. The panel
+  shows depth and "Disjoint with", and `diagram-check` re-reads 53 pairs by SPARQL.
+  The orphan count became the **Unrelated classes** lens, and counting it properly
+  took three passes:
+  - drawn relations alone flagged 61 classes, because every quality relates to its
+    bearer through an OWL restriction, which the map does not draw;
+  - following ancestors through BFO then flagged none, because `fm:isAbout` ranges
+    over entity itself;
+  - counting restrictions at both ends and leaving entity out gives 5:
+    `fm:AgentRole`, `ksh:ContractHolderObligation`, `ksh:TraderRole`,
+    `wx:ForecastZone`, `wx:MeasurementFunction`.
+  Those five are a finding for the ontology, not for this spec. This lens and
+  No question are `goal_empty`: lighting nothing is their success state, so the
+  "lights nothing" guard does not apply to them.
+
+  All eight steps are done, and every acceptance claim's witness passes under
+  `make test`. Resolved.

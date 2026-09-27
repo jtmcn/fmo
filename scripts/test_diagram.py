@@ -76,6 +76,17 @@ def coverage_disagrees(d: dict) -> None:
     next(ln for ln in d["lenses"] if ln["id"] == "coverage")["named"].append("wx:AirMotion")
 
 
+def drop_disjoint(d: dict) -> None:
+    for cid in ("ksh:YesContract", "ksh:NoContract"):
+        node(d, cid)["disjoint"] = [x for x in node(d, cid)["disjoint"]
+                                    if x not in ("ksh:YesContract", "ksh:NoContract")]
+
+
+def no_orphans(d: dict) -> None:
+    # The goal state for this lens, and so a pass rather than "lights nothing".
+    next(ln for ln in d["lenses"] if ln["id"] == "unrelated")["named"] = []
+
+
 def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
@@ -136,6 +147,9 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "minted class with no example-coverage state: ['wx:AirMotion']"),
     ("the coverage lens lighting an unexercised class", coverage_disagrees,
      "the coverage lens and the panel's coverage states disagree"),
+    ("a disjointness pair dropped from the panel", drop_disjoint,
+     "disjoint pairs not carried to the panel"),
+    ("an ontology with no unrelated classes", no_orphans, ""),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
 ]
@@ -209,11 +223,12 @@ def main() -> int:
     for name, damage, expect in CASES:
         data = copy.deepcopy(base)
         damage(data)
+        # An empty expectation is a case that must pass: a goal state, not a defect.
         try:
             gd.check(data, html)
-            why: str | None = f"expected {expect!r}, got a pass"
+            why: str | None = f"expected {expect!r}, got a pass" if expect else None
         except AssertionError as e:
-            why = None if expect in str(e) else f"expected {expect!r}, got {e}"
+            why = None if expect and expect in str(e) else f"expected {expect or 'a pass'!r}, got {e}"
         print(("FAIL  " if why else "ok    ") + name + (f": {why}" if why else ""))
         failed += bool(why)
     hit_failed = hit_cases() + question_cases()
