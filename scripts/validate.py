@@ -1805,6 +1805,7 @@ def check_retrievals(g: Graph) -> None:
 TRADING_DECISION = URIRef(KSH + "TradingDecision")
 DECISION_STATEMENT = URIRef(KSH + "DecisionStatement")
 HOLD_STATEMENT = URIRef(KSH + "HoldStatement")
+TRADE_INSTRUCTION = URIRef(KSH + "TradeInstruction")
 HOLD_REASON = URIRef(KSH + "holdReason")
 
 
@@ -1828,6 +1829,11 @@ def check_trading_decisions(g: Graph) -> None:
         if len(statements) != 1:
             fail(f"{decision}: a trading decision needs exactly one ksh:DecisionStatement "
                  f"as output, has {len(statements)}")
+        for statement in statements:
+            # CQ9 answers per verdict class; OWL's covering axiom infers one, never demands it.
+            if not {TRADE_INSTRUCTION, HOLD_STATEMENT} & types_of(g, statement):
+                fail(f"{decision}: its statement {statement} is neither a "
+                     f"ksh:TradeInstruction nor a ksh:HoldStatement")
         if len(ends) != 1:
             fail(f"{decision}: a trading decision needs exactly one prov:endedAtTime, has {len(ends)}")
             continue
@@ -1841,6 +1847,9 @@ def check_trading_decisions(g: Graph) -> None:
             if not retrievals:
                 fail(f"{decision}: cites {copy}, which no retrieval produced, so when it "
                      f"was fetched is unknown")
+            elif len(retrievals) > 1:
+                fail(f"{decision}: cites {copy}, which {len(retrievals)} retrievals produced, "
+                     f"so which fetch it read is ambiguous")
             for retrieval in retrievals:
                 for fetched in g.objects(retrieval, ENDED_AT):
                     try:

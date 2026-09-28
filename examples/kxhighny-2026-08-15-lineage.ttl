@@ -43,7 +43,7 @@ lex:Forecast-GEFS-12Z a wx:Forecast ;
     wx:forecastFor ex:Target-HighTemp ;
     wx:producedByModel ex:GEFS ;
     fm:issuedBy ex:NWS ;
-    wx:issuanceTime "2026-08-15T15:40:00Z"^^xsd:dateTime .
+    wx:issuanceTime "2026-08-15T15:40:00Z"^^xsd:dateTimeStamp .
 
 ################################################################
 # 3. Retrievals, and the copies they leave
@@ -79,13 +79,13 @@ lex:Copy-12Z a fm:RetrievedCopy ;
 lex:Retrieval-Quote-1200Z a fm:Retrieval ;
     rdfs:label "ingest fetches the noon quote" ;
     fm:hasInput ex:Quote-1200Z ;
-    fm:hasOutput lex:Copy-Quote-1200Z ;
     prov:wasAssociatedWith lex:IngestJob ;
     fm:retrievedFrom "https://api.elections.kalshi.com/trade-api/v2/markets/KXHIGHNY-26AUG15-B82.5"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T12:00:03Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T12:00:04Z"^^xsd:dateTime .
 
 lex:Copy-Quote-1200Z a fm:RetrievedCopy ;
+    fm:isOutputOf lex:Retrieval-Quote-1200Z ;     # stated from the copy's side
     rdfs:label "stored copy of the noon quote" ;
     bfo:BFO_0000101 ex:Quote-1200Z .
 
@@ -109,10 +109,10 @@ tex:Placement-A fm:hasInput lex:Statement-Trade .
 lex:Decision-Hold a ksh:TradingDecision ;
     rdfs:label "strategy holds on 82-83F" ;
     fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;
-    fm:hasOutput lex:Statement-Hold ;
     prov:wasAssociatedWith lex:Strategy ;
     prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .
 
 lex:Statement-Hold a ksh:HoldStatement ;
+    fm:isOutputOf lex:Decision-Hold ;
     rdfs:label "hold on 82-83F" ;
     ksh:holdReason "position limit reached for KXHIGHNY-26AUG15" .

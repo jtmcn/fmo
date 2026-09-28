@@ -1254,6 +1254,22 @@ lex:Copy-12Z a fm:RetrievedCopy ;
         "    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z , [ a fm:RetrievedCopy ] ;",
         "which no retrieval produced",
     ),
+    (
+        # CQ9 answers per verdict class, so a bare statement would drop the decision.
+        "a decision statement typed neither trade instruction nor hold statement",
+        LINEAGE,
+        "lex:Statement-Trade a ksh:TradeInstruction ;",
+        "lex:Statement-Trade a ksh:DecisionStatement ;",
+        "is neither a ksh:TradeInstruction nor a ksh:HoldStatement",
+    ),
+    (
+        # The copy is what says which fetch a decision read; two producers say two.
+        "a cited copy that two retrievals produced",
+        LINEAGE,
+        "    fm:hasOutput lex:Copy-12Z ;",
+        "    fm:hasOutput lex:Copy-12Z , lex:Copy-06Z ;",
+        "which 2 retrievals produced",
+    ),
 ]
 
 
