@@ -188,3 +188,9 @@ Two chains need to be walkable:
 - 2026-09-27, planning: the SHACL constraints moved into check_retrievals and
   check_trading_decisions, because example data is validated only against the
   forbidden export contract. fm:hasAgent joined the alignment.
+- 2026-09-27, landed as 0.21.0: every acceptance witness passes under `make test`
+  (JDK, nothing skipped). The final review added two checks the spec did not
+  name: a decision's statement must be a trade instruction or a hold statement,
+  and a cited copy must come from exactly one retrieval. CQ9 reads outputs from
+  either end and casts instants before comparing. Pipeline transforms remain
+  FM-0023, not yet filed.
