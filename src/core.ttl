@@ -9,13 +9,15 @@
 @prefix qudt: <http://qudt.org/schema/qudt/> .
 @prefix unit: <http://qudt.org/vocab/unit/> .
 @prefix quantitykind: <http://qudt.org/vocab/quantitykind/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
     owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.20.0> ;
     owl:priorVersion <https://w3id.org/forecast-market-ontology/core/0.19.0> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
-                <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ;
+                <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ,
+                <https://w3id.org/forecast-market-ontology/imports/prov-subset> ;
     dcterms:title "FMO Core: information, propositions, and probability" ;
     dcterms:description """A minimal BFO-conformant layer for information content entities,
 propositions with truth conditions, and probability assignments. This is the shared
@@ -182,6 +184,14 @@ qudt:QuantityKind rdfs:subClassOf fm:Designation .
 # Every quantity kind carries exactly one, and the unit checks compare them, so it
 # arrives in the subset as a class and needs grounding like the other two.
 qudt:QuantityKindDimensionVector rdfs:subClassOf fm:Designation .
+
+# PROV makes no BFO commitment. Entity under continuant makes PROV-DM's
+# entity/activity disjointness follow from BFO's own.
+prov:Entity rdfs:subClassOf bfo:BFO_0000002 .   # continuant
+prov:Activity rdfs:subClassOf bfo:BFO_0000015 .   # process
+# Not under fm:Agent, which is material: the agent of a retrieval is usually software.
+prov:Agent rdfs:subClassOf bfo:BFO_0000002 .   # continuant
+fm:Agent rdfs:subClassOf prov:Agent .
 
 # QUDT does not assert that its units are pairwise distinct, and OWL does not assume
 # it. Without this, any axiom that accidentally forces two units together -- most

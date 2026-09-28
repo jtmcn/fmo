@@ -36,7 +36,7 @@ PY      := $(PY_BIN) python3
 # a JVM, and `make typecheck` should not pay for a question it never asks.
 robot_cmd = cmd=$$($(PY) scripts/reasoner.py $(1)) || exit 1; [ -n "$$cmd" ] || exit 0
 
-.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta lineage lineage-negative shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt verification-data verification-data-check diagram diagram-check diagram-negative clean
+.PHONY: all setup test typecheck typecheck-negative validate validate-negative meta lineage lineage-negative shapes shapes-negative export-check cq cq-update reason reason-negative axioms signatures shape-signatures shape-signatures-update competency merge qudt prov verification-data verification-data-check diagram diagram-check diagram-negative clean
 
 all: validate
 
@@ -119,6 +119,12 @@ export-check:
 QUDT_REPO ?= /tmp/qudt
 qudt:
 	$(PY) scripts/extract_qudt_subset.py $(QUDT_REPO)
+
+## Regenerate the vendored PROV-O subset from the pinned W3C file:
+##   curl -sSLo /tmp/prov-o.ttl https://www.w3.org/ns/prov-o-20130430.ttl
+PROV_O ?= /tmp/prov-o.ttl
+prov:
+	$(PY) scripts/extract_prov_subset.py $(PROV_O)
 
 ## Regenerate the synthetic verification dataset for CQ6. Deterministic (fixed
 ## seed), so a diff means the generator changed, not the data.
@@ -234,7 +240,7 @@ diagram-negative:
 
 merge: $(BUILD)/merged.owl $(BUILD)/full.owl
 
-$(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(SRC)/imports/qudt-subset.ttl $(CATALOG)
+$(BUILD)/merged.owl: $(TOP) $(SRC)/core.ttl $(SRC)/weather.ttl $(SRC)/kalshi.ttl $(SRC)/imports/qudt-subset.ttl $(SRC)/imports/prov-subset.ttl $(CATALOG)
 	@mkdir -p $(BUILD)
 	@$(call robot_cmd,merge); \
 	 set -ex; \

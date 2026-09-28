@@ -327,6 +327,7 @@ def minted_classes(g: Graph) -> list:
 
 
 QUDT = "http://qudt.org/schema/qudt/"
+PROV = "http://www.w3.org/ns/prov#"
 FM = "https://w3id.org/forecast-market-ontology/core#"
 WX = "https://w3id.org/forecast-market-ontology/weather#"
 KSH = "https://w3id.org/forecast-market-ontology/kalshi#"
@@ -1601,11 +1602,11 @@ def check_bfo_grounding(g: Graph) -> None:
 
 
 @check(takes=("schema",), population="schema",
-       reason="its population is the bridged QUDT classes")
+       reason="its population is the bridged QUDT and PROV classes")
 def check_bridged_grounding(g: Graph) -> None:
     """External classes we bridge into the hierarchy must be grounded too.
 
-    QUDT makes no upper-level commitment, so without the bridge axioms in core.ttl
+    QUDT and PROV make no upper-level commitment, so without the bridge axioms in core.ttl
     its classes float under owl:Thing. check_bfo_grounding would not notice, because
     these are not in our namespace.
 
@@ -1621,6 +1622,15 @@ def check_bridged_grounding(g: Graph) -> None:
             fail(f"bridged external class not grounded in BFO: {iri}")
     coverage("bridged QUDT classes", len(qudt_classes), "class(es) checked for BFO grounding",
              "the QUDT subset declares no owl:Class, so the bridge axioms guard nothing",
+             always=True)
+    prov_classes = sorted(
+        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(PROV)), key=str
+    )
+    for iri in prov_classes:
+        if ENTITY not in ancestors(g, iri):
+            fail(f"bridged external class not grounded in BFO: {iri}")
+    coverage("bridged PROV classes", len(prov_classes), "class(es) checked for BFO grounding",
+             "the PROV subset declares no owl:Class, so the bridge axioms guard nothing",
              always=True)
 
 

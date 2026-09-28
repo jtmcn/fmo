@@ -1162,6 +1162,22 @@ wx:DewPoint a owl:Class ;""",
         'skos:editorialNote "The CF cell_methods string',
         "no skos:definition: https://w3id.org/forecast-market-ontology/weather#cfCellMethods",
     ),
+    (
+        # Exercises check_bridged_grounding's PROV traversal: PROV makes no BFO
+        # commitment, so without the bridge its classes float under owl:Thing.
+        "a bridged PROV class left ungrounded",
+        "src/core.ttl",
+        "prov:Entity rdfs:subClassOf bfo:BFO_0000002 .   # continuant\n",
+        "",
+        "bridged external class not grounded in BFO: http://www.w3.org/ns/prov#Entity",
+    ),
+    (
+        "the PROV traversal finding no class",
+        "scripts/validate.py",
+        'PROV = "http://www.w3.org/ns/prov#"',
+        'PROV = "http://www.w3.org/ns/zz#"',
+        "bridged PROV classes: nothing to check",
+    ),
 ]
 
 

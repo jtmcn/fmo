@@ -20,7 +20,7 @@ SHAPES = ROOT / "shapes" / "thermaledge-export.ttl"
 VOCABULARY_SHAPES = ROOT / "shapes" / "vocabulary.ttl"
 
 MODULES = [
-    "imports/bfo-core.ttl", "imports/qudt-subset.ttl",
+    "imports/bfo-core.ttl", "imports/qudt-subset.ttl", "imports/prov-subset.ttl",
     "core.ttl", "weather.ttl", "kalshi.ttl", "fmo.ttl",
 ]
 
@@ -44,6 +44,7 @@ EXTERNAL_PREFIXES = {
     "unit": "http://qudt.org/vocab/unit/",
     "quantitykind": "http://qudt.org/vocab/quantitykind/",
     "qudt": "http://qudt.org/schema/qudt/",
+    "prov": "http://www.w3.org/ns/prov#",
 }
 
 OUR_NS = tuple(ONTOLOGY_PREFIXES.values())

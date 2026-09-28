@@ -3,6 +3,7 @@ PREFIX wx:   <https://w3id.org/forecast-market-ontology/weather#>
 PREFIX ksh:  <https://w3id.org/forecast-market-ontology/kalshi#>
 PREFIX bfo:  <http://purl.obolibrary.org/obo/>
 PREFIX qudt: <http://qudt.org/schema/qudt/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX unit: <http://qudt.org/vocab/unit/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
