@@ -88,3 +88,31 @@ lex:Retrieval-Quote-1200Z a fm:Retrieval ;
 lex:Copy-Quote-1200Z a fm:RetrievedCopy ;
     rdfs:label "stored copy of the noon quote" ;
     bfo:BFO_0000101 ex:Quote-1200Z .
+
+################################################################
+# 4. Two decisions: a fresh trade and a stale hold
+################################################################
+
+lex:Decision-Trade a ksh:TradingDecision ;
+    rdfs:label "strategy decides to buy yes on 82-83F" ;
+    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;
+    fm:hasOutput lex:Statement-Trade ;
+    prov:wasAssociatedWith lex:Strategy ;
+    prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime .
+
+lex:Statement-Trade a ksh:TradeInstruction ;
+    rdfs:label "buy yes on 82-83F" .
+
+tex:Placement-A fm:hasInput lex:Statement-Trade .
+
+# Reads the 06Z copy although the 12Z forecast was issued at 15:40Z and fetched at 15:52Z.
+lex:Decision-Hold a ksh:TradingDecision ;
+    rdfs:label "strategy holds on 82-83F" ;
+    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;
+    fm:hasOutput lex:Statement-Hold ;
+    prov:wasAssociatedWith lex:Strategy ;
+    prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .
+
+lex:Statement-Hold a ksh:HoldStatement ;
+    rdfs:label "hold on 82-83F" ;
+    ksh:holdReason "position limit reached for KXHIGHNY-26AUG15" .

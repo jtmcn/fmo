@@ -212,6 +212,42 @@ ksh:OrderPlacement a owl:Class ;
     rdfs:label "order placement" ;
     skos:definition "A process in which a trader submits an order to an exchange." .
 
+ksh:TradingDecision a owl:Class ;
+    rdfs:subClassOf fm:InformationProcess ;
+    rdfs:label "trading decision" ;
+    skos:definition "An information process in which a trader or a program acting for one reads copies of forecasts, observations or quotes and states whether to trade." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty fm:hasInput ; owl:someValuesFrom fm:RetrievedCopy ] ,
+                    [ a owl:Restriction ;
+        owl:onProperty fm:hasOutput ; owl:someValuesFrom ksh:DecisionStatement ] ;
+    skos:scopeNote "Inputs are the copies read, not the content alone: two fetches of one forecast are the same content, and only the copy says which fetch the decision saw. Holds are decisions too, so a backtest that joins on them is not limited to the days that traded." ;
+    skos:editorialNote "check_trading_decisions in scripts/validate.py requires a cited copy, one statement and one end time." .
+
+ksh:DecisionStatement a owl:Class ;
+    rdfs:subClassOf fm:DirectiveInformationEntity ;
+    rdfs:label "decision statement" ;
+    skos:definition "A directive information entity that is the output of a trading decision and states whether to trade." ;
+    rdfs:subClassOf [ a owl:Class ; owl:unionOf ( ksh:TradeInstruction ksh:HoldStatement ) ] .
+
+ksh:TradeInstruction a owl:Class ;
+    rdfs:subClassOf ksh:DecisionStatement ;
+    owl:disjointWith ksh:HoldStatement ;
+    rdfs:label "trade instruction" ;
+    skos:definition "A decision statement directing that an order be placed." ;
+    skos:scopeNote "The input to the ksh:OrderPlacement that follows it. Not ksh:Trade, which is the exchange matching two orders." .
+
+ksh:HoldStatement a owl:Class ;
+    rdfs:subClassOf ksh:DecisionStatement ;
+    rdfs:label "hold statement" ;
+    skos:definition "A decision statement directing that no order be placed, and saying why." .
+
+ksh:holdReason a owl:DatatypeProperty ;
+    rdfs:label "hold reason" ;
+    rdfs:domain ksh:HoldStatement ;
+    rdfs:range xsd:string ;
+    skos:definition "Why a trading decision directed that no order be placed, as the deciding program stated it." ;
+    skos:scopeNote "Prose rather than a controlled vocabulary: the reasons are the deciding program's own code paths and change with it." .
+
 ksh:Trade a owl:Class ;
     rdfs:subClassOf bfo:BFO_0000015 ;   # process
     rdfs:label "trade" ;

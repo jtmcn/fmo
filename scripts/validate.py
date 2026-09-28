@@ -1802,6 +1802,68 @@ def check_retrievals(g: Graph) -> None:
              "no retrieved copy carries content with a wx:issuanceTime")
 
 
+TRADING_DECISION = URIRef(KSH + "TradingDecision")
+DECISION_STATEMENT = URIRef(KSH + "DecisionStatement")
+HOLD_STATEMENT = URIRef(KSH + "HoldStatement")
+HOLD_REASON = URIRef(KSH + "holdReason")
+
+
+@check(takes=("data",))
+def check_trading_decisions(g: Graph) -> None:
+    """A decision cites the copies it read, states one verdict, and follows every fetch it cites.
+
+    Cardinality in OWL entails identity rather than rejecting absence, so the lineage
+    the ontology promises is enforced here or not at all.
+    """
+    decisions = instances_of(g, TRADING_DECISION)
+    holds = instances_of(g, HOLD_STATEMENT)
+    cited = 0
+    for decision in decisions:
+        ends = list(g.objects(decision, ENDED_AT))
+        copies = [c for c in g.objects(decision, HAS_INPUT) if RETRIEVED_COPY in types_of(g, c)]
+        statements = [s for s in outputs_of(g, decision) if DECISION_STATEMENT in types_of(g, s)]
+        if not copies:
+            fail(f"{decision}: a trading decision cites no fm:RetrievedCopy, "
+                 f"so nothing it read can be traced")
+        if len(statements) != 1:
+            fail(f"{decision}: a trading decision needs exactly one ksh:DecisionStatement "
+                 f"as output, has {len(statements)}")
+        if len(ends) != 1:
+            fail(f"{decision}: a trading decision needs exactly one prov:endedAtTime, has {len(ends)}")
+            continue
+        try:
+            decided = aware_instant(ends[0])
+        except (ValueError, TypeError) as exc:
+            fail(f"{decision}: cannot read prov:endedAtTime: {exc}")
+            continue
+        for copy in copies:
+            retrievals = set(g.subjects(HAS_OUTPUT, copy)) | set(g.objects(copy, IS_OUTPUT_OF))
+            if not retrievals:
+                fail(f"{decision}: cites {copy}, which no retrieval produced, so when it "
+                     f"was fetched is unknown")
+            for retrieval in retrievals:
+                for fetched in g.objects(retrieval, ENDED_AT):
+                    try:
+                        fetched_at = aware_instant(fetched)
+                    except (ValueError, TypeError):
+                        continue  # check_retrievals reports it
+                    cited += 1
+                    if fetched_at > decided:
+                        fail(f"{decision} decided at {decided.isoformat()} on {copy}, which "
+                             f"{retrieval} fetched later, at {fetched_at.isoformat()}")
+    for hold in holds:
+        reasons = list(g.objects(hold, HOLD_REASON))
+        if len(reasons) != 1:
+            fail(f"{hold}: a hold statement needs exactly one ksh:holdReason, has {len(reasons)}")
+    coverage("trading decisions", len(decisions),
+             "decision(s) checked for a cited copy, one statement and one end time",
+             "no example asserts a ksh:TradingDecision")
+    coverage("decision after retrieval", cited, "cited fetch(es) ordered before their decision",
+             "no decision cites a copy whose retrieval has an end time")
+    coverage("hold reasons", len(holds), "hold statement(s) checked for one reason",
+             "no example asserts a ksh:HoldStatement")
+
+
 @check(takes=("schema",), population="example-files",
        reason="re-parses the example files itself, not the graph handed to it")
 def check_declared_properties(g: Graph) -> None:

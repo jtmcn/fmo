@@ -1224,6 +1224,36 @@ lex:Copy-12Z a fm:RetrievedCopy ;
     fm:isOutputOf lex:Retrieval-12Z ;""",
         "ended at 2026-08-15T15:20:01+00:00, before",
     ),
+    (
+        # Exercises check_trading_decisions.
+        "a decision dated before a fetch it cites",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:00:00Z"^^xsd:dateTime',
+        "fetched later",
+    ),
+    (
+        "a decision citing no retrieved copy",
+        LINEAGE,
+        "    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;",
+        "    fm:hasInput ex:ForecastProb-82-83 ;",
+        "cites no fm:RetrievedCopy",
+    ),
+    (
+        "a hold with no reason",
+        LINEAGE,
+        '    rdfs:label "hold on 82-83F" ;\n    ksh:holdReason "position limit reached for KXHIGHNY-26AUG15" .',
+        '    rdfs:label "hold on 82-83F" .',
+        "needs exactly one ksh:holdReason, has 0",
+    ),
+    (
+        # A copy no retrieval produced has no fetch time, so its staleness is unknowable.
+        "a decision citing a copy no retrieval produced",
+        LINEAGE,
+        "    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;",
+        "    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z , [ a fm:RetrievedCopy ] ;",
+        "which no retrieval produced",
+    ),
 ]
 
 
