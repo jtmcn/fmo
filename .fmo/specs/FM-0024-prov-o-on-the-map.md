@@ -10,8 +10,8 @@ touches:
   - scripts/test_diagram.py
   - viz/src/ui.js
   - viz/src/graph.js
-  - viz/src/data.js
   - README.md
+  - CONTEXT.md
 forbidden:
   - src/**
   - shapes/**
@@ -20,29 +20,38 @@ forbidden:
 risk: low
 acceptance:
   - claim: >-
-      Every rdfs:subClassOf between named classes asserted in a minted module
-      is drawn, whether or not its subject is minted: the QUDT bridges
-      (qudt:Unit under fm:MeasurementUnit, and the rest) and the PROV bridges
-      (prov:Entity, prov:Agent under continuant, prov:Activity under process,
-      fm:Agent under prov:Agent) all appear.
-    witness: make diagram-check, which derives the bridge set from the minted modules; a mutant in scripts/test_diagram.py dropping one bridge edge
+      Every rdfs:subClassOf between named classes asserted in src/core.ttl,
+      src/weather.ttl or src/kalshi.ttl is drawn, and its subject is a node,
+      whether or not the subject is minted. Today five of the six bridges are
+      missing: prov:Entity, prov:Agent, prov:Activity, qudt:QuantityKind and
+      qudt:QuantityKindDimensionVector.
+    witness: make diagram-check, whose bridge comparison fails against today's generator on the five missing bridges; a mutant in scripts/test_diagram.py dropping one bridge edge
   - claim: >-
-      Edges asserted only inside src/imports/ are not drawn, so the map does
-      not grow a copy of BFO's, QUDT's or PROV's own hierarchy.
-    witness: make diagram-check (prov:SoftwareAgent is absent: its one parent is asserted in prov-subset.ttl); a mutant in scripts/test_diagram.py adding it
+      Every subClassOf or subPropertyOf target asserted in a minted file has a
+      prefix the map can name. An IRI curie() cannot name fails the check
+      instead of dropping out of both the page data and the comparison.
+    witness: make diagram-check, comparing raw IRIs; a mutant in scripts/test_diagram.py removing prov from NS
   - claim: >-
-      PROV classes are borrowed-ground nodes that the panel names "PROV-O", on
-      their BFO parent's depth row like every other node.
-    witness: make diagram-check (the depth-row assertion already covers every node); the EXTERNAL_NAME entry in viz/src/ui.js, reviewed
+      The node set is exactly the minted classes, the ends of the bridges, the
+      classes the map already reaches as a domain or range, and the ancestors
+      of all of those up to bfo:entity. An imported class that nothing in a
+      minted file mentions is not a node.
+    witness: make diagram-check; a mutant in scripts/test_diagram.py adding prov:SoftwareAgent and its import-asserted edge
+  - claim: >-
+      Every borrowed prefix on the map has a display name carried in the page
+      data. PROV classes show as "PROV-O", and none falls back to its bare
+      prefix.
+    witness: make diagram-check; a mutant in scripts/test_diagram.py deleting the prov entry from the page's external names
   - claim: >-
       A minted property's panel lists its super-properties outside FMO's
-      namespaces, read off the graph: fm:hasInput shows prov:used, and the
-      other four aligned properties show theirs.
-    witness: make diagram-check, which compares each property's supers against rdfs:subPropertyOf in the schema; a mutant in scripts/test_diagram.py dropping one
+      namespaces, read off the graph: fm:hasInput shows prov:used, the other
+      four PROV-aligned properties show theirs, and fm:hasAgent also shows
+      bfo:BFO_0000057.
+    witness: make diagram-check, which compares each property's supers against rdfs:subPropertyOf in the minted files and fails on an empty set; a mutant in scripts/test_diagram.py dropping one
   - claim: >-
-      The subClassOf crossing ceiling is not raised past 5, or the spec's
-      Comments name each new crossing and why no ordering removes it.
-    witness: make diagram-check (MAX_CROSSINGS); this file's Comments
+      MAX_CROSSINGS is re-pinned to the count the new map measures, with PROV
+      ordered after every other family.
+    witness: make diagram-check (MAX_CROSSINGS)
 ---
 
 ## Context
@@ -52,13 +61,21 @@ properties sub-properties of PROV ones. None of it shows up in `make diagram`.
 There are two reasons:
 
 - `NS` in `scripts/generate_diagram.py` has no `prov:` entry, so `curie()`
-  returns nothing for a PROV IRI. Even `fm:Agent ⊑ prov:Agent`, which starts at
-  a minted class, is dropped.
-- The map draws only subClassOf edges whose subject is minted. A bridge axiom
-  points the other way (`prov:Entity ⊑ bfo:continuant`,
-  `qudt:Unit ⊑ fm:MeasurementUnit`), so no bridge has ever been drawn. QUDT's
-  have been missing since the first map. PROV's made it visible, because the
-  grounding is the point of that import.
+  returns nothing for a PROV IRI. `parents()` drops any edge with an end it
+  cannot name, so even `fm:Agent ⊑ prov:Agent`, which starts at a minted class,
+  is lost. Nothing fails: the missing IRI drops out of everything that would
+  have compared it.
+- A class becomes a node only when it is minted, or when the map reaches it as
+  a domain or range, or as an ancestor of either. Edges come from the minted
+  subjects plus the outline's rows (`build()`, the loop over `tree`). A bridge
+  whose subject nothing else reaches never becomes a node. `qudt:Unit ⊑
+  fm:MeasurementUnit` is drawn, but only because `qudt:Unit` is
+  `fm:hasUnit`'s range. `qudt:QuantityKind` and
+  `qudt:QuantityKindDimensionVector` under `fm:Designation` have never been
+  drawn, and neither have the three PROV groundings in `src/core.ttl`.
+
+`outline()`'s docstring still says the BFO skeleton is "not on the map".
+FM-0021 put it there (`r["on"] = True`), and the docstring was never updated.
 
 Property panels show domain and range. They don't show super-properties, so
 `fm:hasInput ⊑ prov:used` has nowhere to appear.
@@ -72,50 +89,66 @@ entities as continuants, `fm:Agent` beneath `prov:Agent` rather than above it.
 
 ### Decisions already made
 
-- **The rule: draw what FMO asserts.** A subClassOf between named classes is
-  drawn when it is asserted in a minted module (`core.ttl`, `weather.ttl`,
-  `kalshi.ttl`), whatever its subject. Being minted is a fact about the
-  subject; being asserted here is a fact about the axiom, and a bridge is an
-  axiom FMO makes about someone else's class. The vendored and generated files
-  under `src/imports/` stay undrawn, so the map doesn't grow a copy of BFO's,
-  QUDT's or PROV's hierarchy.
-- **`prov:` joins `NS`** and gets an `EXTERNAL_NAME` entry, "PROV-O", in
-  `viz/src/ui.js`. PROV classes are borrowed ground, like QUDT and BFO: stub
-  nodes with no stanza, placed last in their family order.
+- **Bridges are added to the ancestor rule, not substituted for it.** A
+  subClassOf between named classes asserted in `src/core.ttl`,
+  `src/weather.ttl` or `src/kalshi.ttl` is drawn whatever its subject, and the
+  subject becomes a node. The outline still climbs from every node to
+  `bfo:entity` through the imports, so BFO's skeleton stays drawn and the is-a
+  tree keeps its single root (`README.md`, "BFO's own classes between a
+  borrowed class and entity"). What stays off the map is an imported class that
+  nothing in a minted file mentions, such as `prov:SoftwareAgent`.
+- **`prov:` joins `NS`, and the external names move into the page data.**
+  `viz/src/ui.js`'s `EXTERNAL_NAME` falls back to the bare prefix when a name
+  is missing, which is the `curie()` failure again, one layer up. The generator
+  emits the names next to `NS`, and the check fails on a borrowed prefix
+  without one. PROV classes are borrowed ground, like QUDT and BFO: nodes with
+  no stanza.
+- **PROV is ordered last explicitly.** `SIDE_ORDER` gives every borrowed prefix
+  the same rank, 3, and breaks ties by label, so "agent" sorts ahead of
+  `fm:Agent`'s siblings and pulls the tree across. A probe that added only
+  `prov:` to `NS` measured 72 crossings, and `fm:Agent` moved from depth 4 to
+  3. Giving `prov` its own `SIDE_ORDER` entry after every other family brought
+  it to 12. Five is not reachable without changing `place()`, which is out of
+  scope, so the pin moves and the PR body names each new crossing.
 - **Super-properties outside FMO go on the property panel, not the map.** Each
-  minted object or datatype property gets a `supers` list: its
-  `rdfs:subPropertyOf` targets in a borrowed namespace, as curies. The panel
-  shows them as a "Sub-property of" row. The map draws no property-to-property
-  edges, which keeps FM-0021's rule that relations are drawn on demand and the
-  tree is the picture at rest. `bfo:BFO_0000057` on `fm:hasAgent` is a
-  super-property too and appears the same way.
-- **Derived, never listed.** `diagram-check` computes the bridge set and each
-  property's `supers` from the parsed modules, and compares the page data
-  against them. Naming the five aligned properties in the checker would pass
-  the day a sixth is added and not drawn.
+  minted property gets a `supers` list: its `rdfs:subPropertyOf` targets in a
+  borrowed namespace. The panel shows them as a "Sub-property of" row. The map
+  draws no property-to-property edges, which keeps FM-0021's rule that
+  relations are drawn on demand and the is-a tree is the picture at rest.
+- **Derived independently, never listed.** `diagram-check` parses the three
+  minted files itself and compares raw IRIs. It does not reuse `curie()`,
+  `parents()` or the generator's per-module parse, because a derivation shared
+  with the generator only checks the generator against itself. It also fails
+  when the bridge set or the super-property set is empty, since two empty sets
+  agree. Naming the five aligned properties in the checker would pass the day a
+  sixth is added and not drawn.
 
 ## Out of scope
 
 - Drawing PROV properties, or any property-to-property edge.
-- `prov:SoftwareAgent` and other imported classes that no minted module
-  places.
-- Changing `place()` to reduce crossings beyond what ordering borrowed ground
-  last already gives.
+- `prov:SoftwareAgent` and other imported classes that no minted file mentions.
+- Changing `place()` to reduce crossings beyond what ordering PROV last gives.
 
 ## Notes for the agent
 
 - The generator builds one merged graph. To tell where an axiom was asserted,
-  parse the three minted modules on their own as well; `src_text` already reads
-  them per module.
-- The check's "every node on its depth's row" assertion covers the new stubs,
+  parse the three minted files on their own as well; `src_text` already reads
+  them per file.
+- `prov:Entity` and `prov:Activity` land as leaves with nothing under them.
+  `fm:hasInput` and `fm:hasOutput` range over `bfo:entity`, not over PROV
+  classes. That is the honest picture, not a layout defect.
+- The check's "every node on its depth's row" assertion covers the new nodes,
   as long as depth is computed over the same edges that are drawn.
-- `test_diagram.py` mutates the built data and requires `check()` to fail.
-  Add one mutant per new claim: a dropped bridge edge, a drawn import-only
-  edge, and a dropped super-property.
+- Fix `outline()`'s docstring in the same change.
+- The mutants in `test_diagram.py` run under `make diagram-negative`. Each one
+  mutates the built data and requires `check()` to fail.
 - Look at the result, don't just count it: render `build/ontology.html`
   headless (the Playwright cache has chrome-headless-shell) and inspect where
-  the PROV stubs land.
-- No new vocabulary. "Borrowed ground" and "bridge" are the map's existing
-  words; if `CONTEXT.md` needs "bridge axiom", add it there in the same PR.
+  the PROV nodes land.
+- Vocabulary: add two entries to `CONTEXT.md` §4 alongside "the is-a tree".
+  **Borrowed ground** is a class on the map from a namespace FMO does not mint.
+  **Bridge** is a subClassOf asserted in a minted file whose subject is
+  borrowed ground. Avoid "stub" and "bridged class", and use them in neither
+  code nor prose.
 
 ## Comments
