@@ -221,7 +221,7 @@ ksh:TradingDecision a owl:Class ;
                     [ a owl:Restriction ;
         owl:onProperty fm:hasOutput ; owl:someValuesFrom ksh:DecisionStatement ] ;
     skos:scopeNote "Inputs are the copies read, not the content alone: two fetches of one forecast are the same content, and only the copy says which fetch the decision saw. Holds are decisions too, so a backtest that joins on them is not limited to the days that traded." ;
-    skos:editorialNote "check_trading_decisions in scripts/validate.py requires a cited copy, one statement and one end time." .
+    skos:editorialNote "check_trading_decisions in scripts/validate.py requires a cited copy, one statement and one end time. CQ9 walks the lineage." .
 
 ksh:DecisionStatement a owl:Class ;
     rdfs:subClassOf fm:DirectiveInformationEntity ;
