@@ -40,6 +40,7 @@ PREFIXES = {
     "http://qudt.org/vocab/unit/": "unit",
     "http://qudt.org/vocab/quantitykind/": "quantitykind",
     "http://purl.obolibrary.org/obo/": "bfo",
+    "http://www.w3.org/ns/prov#": "prov",
 }
 
 # (label, predicate) for the restriction filler, in the order a key reports them.

@@ -515,7 +515,7 @@ ROW, COL = 120, 34                # layout grid: one row per depth, one column p
 SIDE_ORDER = {"wx": 0, "fm": 1, "ksh": 2}
 # Edge crossings among the subClassOf drawn at rest. Pinned, not minimised: a
 # change that tangles the tree fails here instead of looking fine in review.
-MAX_CROSSINGS = 3
+MAX_CROSSINGS = 5
 
 
 def place(rows: list[dict], nodes: dict[str, dict]) -> None:

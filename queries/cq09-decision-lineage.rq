@@ -1,0 +1,36 @@
+# CQ9. What did each trading decision read, and was a newer issuance out when it decided?
+#
+# Inputs are reached through rdfs:subPropertyOf* prov:used, not fm:hasInput by
+# name, so this answering at all is what shows the alignment holds. A copy of
+# content with no issuance time -- a quote -- still returns its row. Outputs are
+# read from either end, as the validator reads them.
+
+SELECT ?decision ?verdict ?copy ?endpoint ?fetchedAt ?issuedAt ?newerIssuance
+WHERE {
+    ?decision a/rdfs:subClassOf* ksh:TradingDecision ;
+              prov:endedAtTime ?decidedAt ;
+              fm:hasOutput|^fm:isOutputOf ?statement .
+    ?statement a ?verdict .
+    ?verdict rdfs:subClassOf ksh:DecisionStatement .
+
+    ?decision ?uses ?copy .
+    ?uses rdfs:subPropertyOf* prov:used .
+    ?copy a/rdfs:subClassOf* fm:RetrievedCopy ;
+          bfo:BFO_0000101 ?content .
+    ?retrieval fm:hasOutput|^fm:isOutputOf ?copy .
+    ?retrieval prov:endedAtTime ?fetchedAt ;
+               fm:retrievedFrom ?endpoint .
+
+    OPTIONAL { ?content wx:issuanceTime ?issuedAt }
+    OPTIONAL {
+        ?content wx:forecastFor ?target .
+        ?newerIssuance wx:forecastFor ?target ;
+                       wx:issuanceTime ?newerAt .
+        # Cast: wx:issuanceTime ranges over xsd:dateTimeStamp, which rdflib will not
+        # order against xsd:dateTime, so an uncast comparison is silently false.
+        FILTER (?newerIssuance != ?content
+                && xsd:dateTime(STR(?newerAt)) > xsd:dateTime(STR(?issuedAt))
+                && xsd:dateTime(STR(?newerAt)) < xsd:dateTime(STR(?decidedAt)))
+    }
+}
+ORDER BY ?decision ?copy ?newerIssuance

@@ -40,9 +40,6 @@
   },
 
   "unwritten": {
-    "fm:InformationBearingEntity": {
-      "reason": "The material carrier of an information content entity -- a printed report, a disk. The examples record what documents say, never the object they are inscribed on, and no competency question asks about carriers."
-    },
     "ksh:Exchange": {
       "reason": "Kalshi itself. Every example takes the exchange as ambient rather than naming it, because no check and no competency question needs the organisation as a relatum. Its child ksh:DesignatedContractMarket does carry a schema individual."
     },

@@ -6,8 +6,8 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.20.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All eight competency questions are mechanically tested. Kalshi enumerations were checked
+Status: **0.21.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+All nine competency questions are mechanically tested. Kalshi enumerations were checked
 against the live API on 2026-08-17, and the precipitation series on 2026-08-23; each designation
 carries its API code, checked against that enumeration by `make shapes`. Field names were
 re-checked against Trade API 3.31.0 on 2026-09-25: each property that mirrors a field carries
@@ -54,6 +54,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/fmo.ttl` | top module; imports all three |
 | `src/imports/bfo-core.ttl` | vendored BFO 2020 core, unmodified |
 | `src/imports/qudt-subset.ttl` | 16 units + 10 quantity kinds extracted from QUDT (generated) |
+| `src/imports/prov-subset.ttl` | 4 classes + 8 properties extracted from PROV-O (generated) |
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
 | `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
@@ -69,6 +70,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `queries/cf-mapping-expectations.json` | why each `wx:` quality or weather variable has no CF standard name |
 | `scripts/validate_shapes.py` | runs the shapes over a data file, or the examples union |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
+| `scripts/extract_prov_subset.py` | regenerates the PROV-O subset from the pinned W3C file |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
 | `scripts/generate_verification_data.py` | regenerates the synthetic calibration dataset (deterministic) |
 | `scripts/generate_diagram.py` | builds the interactive map from the modules |
@@ -89,7 +91,7 @@ make setup                           # poetry install, plus robot.jar if it is m
 make typecheck                       # static types over scripts/, via ty
 make typecheck-negative              # prove ty fails on the narrowings, and on nothing to check
 make validate                        # structure, BFO grounding, unit coherence, docs
-make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
+make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8, 9 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make meta                            # tests about the checks: none may pass with nothing to check
 make shapes                          # SHACL: does the data satisfy the export contract? do the API codes match the API?
@@ -113,7 +115,7 @@ the active lens, or all at once with **all relations**. At rest, the tree is the
 picture. A force layout drew all 147 edges as equal springs, and the 102 subclass links
 knotted the 45 relations into a hairball. The positions are computed by the generator
 (`place()`), not simulated in the page, so `diagram-check` can count the crossings the
-page draws. It caps the count at 3, and rebuilds the layout under two other
+page draws. It caps the count at 5, and rebuilds the layout under two other
 `PYTHONHASHSEED`s to require the same positions, so the cap can't pass by luck of set order. The page is still pannable and zoomable, and
 dragging a class moves it along its row. It is
 one self-contained file with no dependencies and no network calls, so it opens by

@@ -1,0 +1,118 @@
+# Worked example: where a trading decision's inputs came from.
+#
+# Two GEFS forecasts for the Central Park high, issued 09:40Z and 15:40Z, each
+# fetched once, and a quote fetched at noon. A decision at 11:59:30Z trades on the
+# 06Z copy, which was then the latest. A hold at 16:30Z still reads the 06Z copy,
+# though the 12Z forecast had been issued and fetched by then: CQ9 flags it stale.
+#
+# Values are illustrative and are not real fetches, orders, or holdings.
+
+@prefix lex:  <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-lineage#> .
+@prefix ex:   <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#> .
+@prefix tex:  <https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#> .
+@prefix fm:   <https://w3id.org/forecast-market-ontology/core#> .
+@prefix wx:   <https://w3id.org/forecast-market-ontology/weather#> .
+@prefix ksh:  <https://w3id.org/forecast-market-ontology/kalshi#> .
+@prefix bfo:  <http://purl.obolibrary.org/obo/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+<https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-lineage>
+    a owl:Ontology ;
+    owl:imports <https://w3id.org/forecast-market-ontology/fmo> ;
+    rdfs:label "Worked example: decision lineage for KXHIGHNY-26AUG15-B82.5" .
+
+################################################################
+# 1. The software agents
+################################################################
+
+lex:IngestJob-2.4.0 a prov:SoftwareAgent ;
+    rdfs:label "ThermalEdge ingest job 2.4.0" .
+
+lex:Strategy-2.4.0 a prov:SoftwareAgent ;
+    rdfs:label "ThermalEdge strategy 2.4.0" .
+
+################################################################
+# 2. A later forecast for the same target
+################################################################
+
+lex:Forecast-GEFS-12Z a wx:Forecast ;
+    rdfs:label "GEFS 12Z forecast for Central Park high, 2026-08-15" ;
+    wx:forecastFor ex:Target-HighTemp ;
+    wx:producedByModel ex:GEFS ;
+    fm:issuedBy ex:NWS ;
+    wx:issuanceTime "2026-08-15T15:40:00Z"^^xsd:dateTimeStamp .
+
+################################################################
+# 3. Retrievals, and the copies they leave
+################################################################
+
+lex:Retrieval-06Z a fm:Retrieval ;
+    rdfs:label "ingest fetches the GEFS 06Z forecast" ;
+    fm:hasInput ex:Forecast-GEFS-06Z ;
+    fm:hasOutput lex:Copy-06Z ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime .
+
+lex:Copy-06Z a fm:RetrievedCopy ;
+    rdfs:label "stored copy of the GEFS 06Z forecast" ;
+    bfo:BFO_0000101 ex:Forecast-GEFS-06Z .     # is carrier of
+
+lex:Retrieval-12Z a fm:Retrieval ;
+    rdfs:label "ingest fetches the GEFS 12Z forecast" ;
+    fm:hasInput lex:Forecast-GEFS-12Z ;
+    fm:hasOutput lex:Copy-12Z ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T15:52:10Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime .
+
+lex:Copy-12Z a fm:RetrievedCopy ;
+    rdfs:label "stored copy of the GEFS 12Z forecast" ;
+    bfo:BFO_0000101 lex:Forecast-GEFS-12Z .
+
+# A quote has no issuance time, so this copy is never ordered against one.
+lex:Retrieval-Quote-1200Z a fm:Retrieval ;
+    rdfs:label "ingest fetches the noon quote" ;
+    fm:hasInput ex:Quote-1200Z ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    fm:retrievedFrom "https://api.elections.kalshi.com/trade-api/v2/markets/KXHIGHNY-26AUG15-B82.5"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T12:00:03Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T12:00:04Z"^^xsd:dateTime .
+
+lex:Copy-Quote-1200Z a fm:RetrievedCopy ;
+    fm:isOutputOf lex:Retrieval-Quote-1200Z ;     # stated from the copy's side
+    rdfs:label "stored copy of the noon quote" ;
+    bfo:BFO_0000101 ex:Quote-1200Z .
+
+################################################################
+# 4. Two decisions: a fresh trade and a stale hold
+################################################################
+
+lex:Decision-Trade a ksh:TradingDecision ;
+    rdfs:label "strategy decides to buy yes on 82-83F" ;
+    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;
+    fm:hasOutput lex:Statement-Trade ;
+    prov:wasAssociatedWith lex:Strategy-2.4.0 ;
+    prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime .
+
+lex:Statement-Trade a ksh:TradeInstruction ;
+    rdfs:label "buy yes on 82-83F" .
+
+tex:Placement-A fm:hasInput lex:Statement-Trade .
+
+# Reads the 06Z copy although the 12Z forecast was issued at 15:40Z and fetched at 15:52Z.
+lex:Decision-Hold a ksh:TradingDecision ;
+    rdfs:label "strategy holds on 82-83F" ;
+    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;
+    prov:wasAssociatedWith lex:Strategy-2.4.0 ;
+    prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .
+
+lex:Statement-Hold a ksh:HoldStatement ;
+    fm:isOutputOf lex:Decision-Hold ;
+    rdfs:label "hold on 82-83F" ;
+    ksh:holdReason "position limit reached for KXHIGHNY-26AUG15" .

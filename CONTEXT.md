@@ -84,7 +84,23 @@ _Avoid_: "horizon", "forecast age".
 displacing an earlier one. The earlier record is *superseded*, never "wrong" or
 "deleted"; both stay in the graph.
 _Avoid_: "amendment" — `ksh:Amended` is a market status, on the other side of the model.
-_Avoid_ also "revision", "restatement".
+_Avoid_ also "revision", "restatement". `prov:wasRevisionOf` is PROV's name for supersedes; "revision" stays out of prose.
+
+**Retrieval** (`fm:Retrieval`) / **retrieved copy** (`fm:RetrievedCopy`): fetching
+content makes a new carrier of the same information content entity, never new
+content. The copy is ours; the content is the issuer's. A decision cites the copy.
+_Avoid_: "record" for the copy (see **Record**), and "the data" for either.
+
+**Data handling process** (`fm:DataHandlingProcess`): what the system does to
+content for its own use. Its parent is not `fm:InformationProcess`, because a
+retrieval produces no new content.
+
+**Trading decision** (`ksh:TradingDecision`) / **decision statement**
+(`ksh:DecisionStatement`): a decision always has a statement, a
+**trade instruction** (`ksh:TradeInstruction`) or a **hold statement**
+(`ksh:HoldStatement`). A hold is a decision, not the absence of one.
+_Avoid_: "trade" for the instruction — `ksh:Trade` is the exchange matching orders.
+_Avoid_ also "outcome" for the verdict, which is the market side's word.
 
 **Verification** vs **validation**: verification is the weather-science sense — scoring a
 forecast against what happened (`examples/verification-synthetic.ttl`, CQ6). Validation is
@@ -312,7 +328,7 @@ a time.
   does not; strikethrough is how to spell one without failing the check, and it is the
   only exemption.
 - Prefixes are `fm:`, `wx:`, `ksh:` — never "core:". Example data uses `ex:` (worked
-  example), `tex:` (trading), `vex:` (verification), `rex:` (rain).
+  example), `tex:` (trading), `vex:` (verification), `rex:` (rain), `lex:` (lineage).
 - Kalshi tickers verbatim and uppercase: `KXHIGHNY-26AUG15-B82.5`.
 - Files by path from the repo root: `src/weather.ttl`, `queries/cq05-*.rq`.
 - Say which side: "the forecast side" (`wx:`) and "the market side" (`ksh:`) meet at

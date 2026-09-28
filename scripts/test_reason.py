@@ -41,6 +41,7 @@ from reasoner import ReasonerBroken, robot_command  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = "examples/kxhighny-2026-08-15.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
+LINEAGE = "examples/kxhighny-2026-08-15-lineage.ttl"
 EXPORT = "examples/export/thermaledge-kxhighaus-2026-08-22.ttl"
 
 # (name, path-to-mutate, find, replace), then optionally the substrings the reasoner's
@@ -212,6 +213,35 @@ ksh:TraderRole a owl:Class ;""",
         EXAMPLE,
         "ex:ForecastProb-82-83 a fm:ForecastProbability ;",
         "ex:ForecastProb-82-83 a fm:ForecastProbability , fm:MarketImpliedProbability ;",
+    ),
+    (
+        # prov:used ranges over prov:Entity, grounded under continuant, so an
+        # occurrent input is a BFO branch clash rather than a quiet retyping.
+        "a bare process used as the input to a process",
+        EXAMPLE,
+        """ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
+    fm:hasInput ex:Quote-1200Z ;""",
+        """ex:BareProcess a bfo:BFO_0000015 .
+
+ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
+    fm:hasInput ex:Quote-1200Z , ex:BareProcess ;""",
+    ),
+    (
+        # prov:wasGeneratedBy's domain is prov:Entity too, so the same clash holds for outputs.
+        "a bare process as the output of a process",
+        EXAMPLE,
+        """ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;""",
+        """ex:BareProcess a bfo:BFO_0000015 ; fm:isOutputOf ex:Derivation-1200Z .
+
+ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;""",
+    ),
+    (
+        "a decision statement typed both trade instruction and hold statement",
+        LINEAGE,
+        "lex:Statement-Hold a ksh:HoldStatement ;",
+        "lex:Statement-Hold a ksh:HoldStatement , ksh:TradeInstruction ;",
+        "inconsistent",
+        ("src/fmo.ttl", EXAMPLE, TRADING, LINEAGE),
     ),
     (
         # FM-0013: the export fixture is reasoned on its own, so this reasons over

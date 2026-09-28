@@ -5,6 +5,7 @@
     <uri id="bfo"      name="http://purl.obolibrary.org/obo/bfo.owl"    uri="imports/bfo-core.ttl"/>
     <uri id="bfo-purl" name="http://purl.obolibrary.org/obo/bfo/2020/bfo-core.ttl" uri="imports/bfo-core.ttl"/>
     <uri id="qudt"     name="https://w3id.org/forecast-market-ontology/imports/qudt-subset" uri="imports/qudt-subset.ttl"/>
+    <uri id="prov"     name="https://w3id.org/forecast-market-ontology/imports/prov-subset" uri="imports/prov-subset.ttl"/>
     <uri id="core"     name="https://w3id.org/forecast-market-ontology/core"           uri="core.ttl"/>
     <uri id="weather"  name="https://w3id.org/forecast-market-ontology/weather"        uri="weather.ttl"/>
     <uri id="kalshi"   name="https://w3id.org/forecast-market-ontology/kalshi"         uri="kalshi.ttl"/>

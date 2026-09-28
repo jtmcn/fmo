@@ -28,6 +28,7 @@ BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
 CORRECTION = "examples/kxhighny-2026-08-15-correction.ttl"
 VERIFICATION = "examples/verification-synthetic.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
+LINEAGE = "examples/kxhighny-2026-08-15-lineage.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -925,12 +926,12 @@ wx:DewPoint a owl:Class ;""",
         "the ledger classifying a class the examples do exercise",
         "queries/class-coverage-expectations.json",
         """  "unwritten": {
-    "fm:InformationBearingEntity": {""",
+""",
         """  "unwritten": {
     "ksh:Market": {
       "reason": "An injected entry for a class the worked examples instantiate."
     },
-    "fm:InformationBearingEntity": {""",
+""",
         "classified but exercised: ksh:Market",
     ),
     (
@@ -1161,6 +1162,141 @@ wx:DewPoint a owl:Class ;""",
         'skos:definition "The CF cell_methods string',
         'skos:editorialNote "The CF cell_methods string',
         "no skos:definition: https://w3id.org/forecast-market-ontology/weather#cfCellMethods",
+    ),
+    (
+        # Exercises check_bridged_grounding's PROV traversal: PROV makes no BFO
+        # commitment, so without the bridge its classes float under owl:Thing.
+        "a bridged PROV class left ungrounded",
+        "src/core.ttl",
+        "prov:Entity rdfs:subClassOf bfo:BFO_0000002 .   # continuant\n",
+        "",
+        "bridged external class not grounded in BFO: http://www.w3.org/ns/prov#Entity",
+    ),
+    (
+        "the PROV traversal finding no class",
+        "scripts/validate.py",
+        'PROV = "http://www.w3.org/ns/prov#"',
+        'PROV = "http://www.w3.org/ns/zz#"',
+        "bridged PROV classes: nothing to check",
+    ),
+    (
+        # Exercises check_retrievals: a fetch cannot precede the content's issuance.
+        "a retrieval ending before its content was issued",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T15:30:00Z"^^xsd:dateTime',
+        "ended at 2026-08-15T15:30:00+00:00, before",
+    ),
+    (
+        "a retrieval with no endpoint",
+        LINEAGE,
+        '    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;\n',
+        "",
+        "a retrieval needs exactly one fm:retrievedFrom, has 0",
+    ),
+    (
+        # prov:endedAtTime ranges over xsd:dateTime, so only an extended
+        # check_timestamp_offsets sees a missing offset here.
+        "a retrieval end time with no offset",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:47:03"^^xsd:dateTime',
+        "prov#endedAtTime on https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-lineage#Retrieval-06Z has no timezone offset",
+    ),
+    (
+        # Data may link the copy to its retrieval from either end: with the link
+        # stated only from the copy, the ordering must still be found and reported.
+        "a late fetch stated from the copy's side",
+        LINEAGE,
+        """    fm:hasOutput lex:Copy-12Z ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T15:52:10Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime .
+
+lex:Copy-12Z a fm:RetrievedCopy ;""",
+        """    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T15:20:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T15:20:01Z"^^xsd:dateTime .
+
+lex:Copy-12Z a fm:RetrievedCopy ;
+    fm:isOutputOf lex:Retrieval-12Z ;""",
+        "ended at 2026-08-15T15:20:01+00:00, before",
+    ),
+    (
+        # Exercises check_trading_decisions.
+        "a decision dated before a fetch it cites",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:00:00Z"^^xsd:dateTime',
+        "fetched later",
+    ),
+    (
+        "a decision citing no retrieved copy",
+        LINEAGE,
+        "    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;",
+        "    fm:hasInput ex:ForecastProb-82-83 ;",
+        "cites no fm:RetrievedCopy",
+    ),
+    (
+        "a hold with no reason",
+        LINEAGE,
+        '    rdfs:label "hold on 82-83F" ;\n    ksh:holdReason "position limit reached for KXHIGHNY-26AUG15" .',
+        '    rdfs:label "hold on 82-83F" .',
+        "needs exactly one ksh:holdReason, has 0",
+    ),
+    (
+        # A copy no retrieval produced has no fetch time, so its staleness is unknowable.
+        "a decision citing a copy no retrieval produced",
+        LINEAGE,
+        "    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;",
+        "    fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z , [ a fm:RetrievedCopy ] ;",
+        "which no retrieval produced",
+    ),
+    (
+        # CQ9 answers per verdict class, so a bare statement would drop the decision.
+        "a decision statement typed neither trade instruction nor hold statement",
+        LINEAGE,
+        "lex:Statement-Trade a ksh:TradeInstruction ;",
+        "lex:Statement-Trade a ksh:DecisionStatement ;",
+        "is neither a ksh:TradeInstruction nor a ksh:HoldStatement",
+    ),
+    (
+        # The copy is what says which fetch a decision read; two producers say two.
+        "a cited copy that two retrievals produced",
+        LINEAGE,
+        "    fm:hasOutput lex:Copy-12Z ;",
+        "    fm:hasOutput lex:Copy-12Z , lex:Copy-06Z ;",
+        "which 2 retrievals produced",
+    ),
+    (
+        "a retrieval with no copy as output",
+        LINEAGE,
+        "    fm:hasOutput lex:Copy-06Z ;\n",
+        "",
+        "a retrieval has no fm:RetrievedCopy as output",
+    ),
+    (
+        "a retrieval with no end time",
+        LINEAGE,
+        'prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime ;\n    prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime .',
+        'prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime .',
+        "a retrieval needs exactly one prov:endedAtTime, has 0",
+    ),
+    (
+        "a decision with two statements",
+        LINEAGE,
+        "    fm:hasOutput lex:Statement-Trade ;",
+        "    fm:hasOutput lex:Statement-Trade , lex:Statement-Hold ;",
+        "needs exactly one ksh:DecisionStatement as output, has 2",
+    ),
+    (
+        "a decision with no end time",
+        LINEAGE,
+        '    prov:wasAssociatedWith lex:Strategy-2.4.0 ;\n    prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .',
+        "    prov:wasAssociatedWith lex:Strategy-2.4.0 .",
+        "a trading decision needs exactly one prov:endedAtTime, has 0",
     ),
 ]
 
