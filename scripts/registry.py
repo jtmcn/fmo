@@ -37,6 +37,7 @@ EXAMPLE_PREFIXES = {
     "tex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-trading#",
     "vex": "https://w3id.org/forecast-market-ontology/examples/verification#",
     "rex": "https://w3id.org/forecast-market-ontology/examples/kxrainnyc-2026-07-15#",
+    "lex": "https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-lineage#",
 }
 
 EXTERNAL_PREFIXES = {

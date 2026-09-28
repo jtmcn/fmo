@@ -82,7 +82,7 @@ import inspect
 import re
 import sys
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from types import FunctionType
 from typing import NamedTuple
@@ -1714,11 +1714,17 @@ def check_domain_range_typing(g: Graph, ex: Graph) -> None:
 
 
 TIMEZONED = re.compile(r"(Z|[+-]\d{2}:\d{2})$")
+ENDED_AT = URIRef(PROV + "endedAtTime")
+RETRIEVAL = URIRef(FM + "Retrieval")
+RETRIEVED_COPY = URIRef(FM + "RetrievedCopy")
+RETRIEVED_FROM = URIRef(FM + "retrievedFrom")
+IS_OUTPUT_OF = URIRef(FM + "isOutputOf")
+CARRIER_OF = URIRef(BFO + "BFO_0000101")
 
 
 @check(takes=("data",))
 def check_timestamp_offsets(ex: Graph) -> None:
-    """Every value of a property ranged xsd:dateTimeStamp carries a timezone offset (FM-0014).
+    """Every value of a property ranged xsd:dateTimeStamp or xsd:dateTime carries a timezone offset (FM-0014).
 
     The range makes HermiT refuse an offset-less value, but the reasoner is optional
     and this is not. Climatological-day boundaries are local standard time, so a
@@ -1726,7 +1732,8 @@ def check_timestamp_offsets(ex: Graph) -> None:
     partially against one with an offset. The properties are read off the schema, so
     a new time property is covered by declaring its range.
     """
-    props = sorted(set(ex.subjects(RDFS.range, XSD.dateTimeStamp)), key=str)
+    props = sorted({p for dt in (XSD.dateTimeStamp, XSD.dateTime)
+                    for p in ex.subjects(RDFS.range, dt)}, key=str)
     checked = 0
     for prop in props:
         for s, value in ex.subject_objects(prop):
@@ -1734,8 +1741,65 @@ def check_timestamp_offsets(ex: Graph) -> None:
             if not isinstance(value, Literal) or not TIMEZONED.search(str(value)):
                 fail(f"{prop} on {s} has no timezone offset: {value!r}")
     coverage("timestamp offsets", checked,
-             f"value(s) of {len(props)} xsd:dateTimeStamp propert(ies) checked for an offset",
-             "no property is ranged xsd:dateTimeStamp, or no example states a time")
+             f"value(s) of {len(props)} timestamp propert(ies) checked for an offset",
+             "no property is ranged over a timestamp type, or no example states a time")
+
+
+def aware_instant(value: Node) -> datetime:
+    """An instant with a UTC offset, or ValueError: naive and aware datetimes do not compare."""
+    instant = datetime.fromisoformat(str(value))
+    if instant.tzinfo is None:
+        raise ValueError(f"{value!r} has no UTC offset")
+    return instant
+
+
+def outputs_of(g: Graph, process: Node) -> set:
+    """What a process output, stated from either end."""
+    return set(g.objects(process, HAS_OUTPUT)) | set(g.subjects(IS_OUTPUT_OF, process))
+
+
+@check(takes=("data",))
+def check_retrievals(g: Graph) -> None:
+    """A retrieval says when and where it fetched, and cannot end before its content was issued.
+
+    CQ9's staleness answer reads the fetch time. A missing one empties a row; a wrong
+    one moves it, and neither makes the query fail.
+    """
+    retrievals = instances_of(g, RETRIEVAL)
+    ordered = 0
+    for retrieval in retrievals:
+        ends = list(g.objects(retrieval, ENDED_AT))
+        sources = list(g.objects(retrieval, RETRIEVED_FROM))
+        copies = [c for c in outputs_of(g, retrieval) if RETRIEVED_COPY in types_of(g, c)]
+        if len(sources) != 1:
+            fail(f"{retrieval}: a retrieval needs exactly one fm:retrievedFrom, has {len(sources)}")
+        if not copies:
+            fail(f"{retrieval}: a retrieval has no fm:RetrievedCopy as output")
+        if len(ends) != 1:
+            fail(f"{retrieval}: a retrieval needs exactly one prov:endedAtTime, has {len(ends)}")
+            continue
+        try:
+            ended = aware_instant(ends[0])
+        except (ValueError, TypeError) as exc:
+            fail(f"{retrieval}: cannot read prov:endedAtTime: {exc}")
+            continue
+        for copy in copies:
+            for content in g.objects(copy, CARRIER_OF):
+                for issued in g.objects(content, ISSUANCE):
+                    try:
+                        issued_at = aware_instant(issued)
+                    except (ValueError, TypeError) as exc:
+                        fail(f"{content}: cannot read wx:issuanceTime: {exc}")
+                        continue
+                    ordered += 1
+                    if ended < issued_at:
+                        fail(f"{retrieval} ended at {ended.isoformat()}, before {content} "
+                             f"was issued at {issued_at.isoformat()}")
+    coverage("retrievals", len(retrievals),
+             "retrieval(s) checked for an end time, an endpoint and a copy",
+             "no example asserts an fm:Retrieval")
+    coverage("retrieval after issuance", ordered, "fetch/issuance pair(s) ordered",
+             "no retrieved copy carries content with a wx:issuanceTime")
 
 
 @check(takes=("schema",), population="example-files",

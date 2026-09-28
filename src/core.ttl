@@ -387,6 +387,41 @@ fm:EvaluationProcess a owl:Class ;
     skos:scopeNote "Market settlement is a species of this, as is the scoring of a forecast." .
 
 ################################################################
+# Data handling
+################################################################
+
+fm:DataHandlingProcess a owl:Class ;
+    rdfs:subClassOf bfo:BFO_0000015 ;   # process
+    rdfs:label "data handling process" ;
+    skos:definition "A process in which an agent acquires, stores or transforms information content entities for its own use." ;
+    skos:scopeNote "Not under fm:InformationProcess, which requires new content as output: a retrieval makes a new carrier of existing content and nothing more." .
+
+fm:Retrieval a owl:Class ;
+    rdfs:subClassOf fm:DataHandlingProcess ;
+    rdfs:label "retrieval" ;
+    skos:definition "A data handling process in which an agent requests an information content entity from an endpoint and brings a copy of it onto a carrier the agent controls." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty fm:hasInput ; owl:someValuesFrom fm:InformationContentEntity ] ,
+                    [ a owl:Restriction ;
+        owl:onProperty fm:hasOutput ; owl:someValuesFrom fm:RetrievedCopy ] ;
+    skos:scopeNote "The fetch time is prov:endedAtTime. Set against the content's wx:issuanceTime, it says how stale the copy was when it arrived." ;
+    skos:editorialNote "check_retrievals in scripts/validate.py requires one end time and one endpoint." .
+
+fm:RetrievedCopy a owl:Class ;
+    rdfs:subClassOf fm:InformationBearingEntity ;
+    rdfs:label "retrieved copy" ;
+    skos:definition "An information bearing entity that is the output of a retrieval and carries the content that retrieval requested." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty fm:isOutputOf ; owl:someValuesFrom fm:Retrieval ] ;
+    skos:scopeNote "The content is the issuer's; the copy is ours. Two fetches of one forecast are two copies of one information content entity, so a decision cites the copy to say which fetch it read." .
+
+fm:retrievedFrom a owl:DatatypeProperty ;
+    rdfs:label "retrieved from" ;
+    rdfs:domain fm:Retrieval ;
+    rdfs:range xsd:anyURI ;
+    skos:definition "The endpoint a retrieval requested its content from." .
+
+################################################################
 # Object properties
 ################################################################
 

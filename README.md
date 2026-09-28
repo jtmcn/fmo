@@ -113,7 +113,7 @@ the active lens, or all at once with **all relations**. At rest, the tree is the
 picture. A force layout drew all 147 edges as equal springs, and the 102 subclass links
 knotted the 45 relations into a hairball. The positions are computed by the generator
 (`place()`), not simulated in the page, so `diagram-check` can count the crossings the
-page draws. It caps the count at 3, and rebuilds the layout under two other
+page draws. It caps the count at 5, and rebuilds the layout under two other
 `PYTHONHASHSEED`s to require the same positions, so the cap can't pass by luck of set order. The page is still pannable and zoomable, and
 dragging a class moves it along its row. It is
 one self-contained file with no dependencies and no network calls, so it opens by

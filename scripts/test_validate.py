@@ -28,6 +28,7 @@ BRACKETS = "examples/kxhighny-2026-08-15-bracketset.ttl"
 CORRECTION = "examples/kxhighny-2026-08-15-correction.ttl"
 VERIFICATION = "examples/verification-synthetic.ttl"
 TRADING = "examples/kxhighny-2026-08-15-trading.ttl"
+LINEAGE = "examples/kxhighny-2026-08-15-lineage.ttl"
 
 # (name, path-to-mutate, find, replace, substring expected in the failure output)
 CASES = [
@@ -925,12 +926,12 @@ wx:DewPoint a owl:Class ;""",
         "the ledger classifying a class the examples do exercise",
         "queries/class-coverage-expectations.json",
         """  "unwritten": {
-    "fm:InformationBearingEntity": {""",
+""",
         """  "unwritten": {
     "ksh:Market": {
       "reason": "An injected entry for a class the worked examples instantiate."
     },
-    "fm:InformationBearingEntity": {""",
+""",
         "classified but exercised: ksh:Market",
     ),
     (
@@ -1177,6 +1178,51 @@ wx:DewPoint a owl:Class ;""",
         'PROV = "http://www.w3.org/ns/prov#"',
         'PROV = "http://www.w3.org/ns/zz#"',
         "bridged PROV classes: nothing to check",
+    ),
+    (
+        # Exercises check_retrievals: a fetch cannot precede the content's issuance.
+        "a retrieval ending before its content was issued",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T15:30:00Z"^^xsd:dateTime',
+        "ended at 2026-08-15T15:30:00+00:00, before",
+    ),
+    (
+        "a retrieval with no endpoint",
+        LINEAGE,
+        '    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;\n',
+        "",
+        "a retrieval needs exactly one fm:retrievedFrom, has 0",
+    ),
+    (
+        # prov:endedAtTime ranges over xsd:dateTime, so only an extended
+        # check_timestamp_offsets sees a missing offset here.
+        "a retrieval end time with no offset",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:47:03"^^xsd:dateTime',
+        "prov#endedAtTime on https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15-lineage#Retrieval-06Z has no timezone offset",
+    ),
+    (
+        # Data may link the copy to its retrieval from either end: with the link
+        # stated only from the copy, the ordering must still be found and reported.
+        "a late fetch stated from the copy's side",
+        LINEAGE,
+        """    fm:hasOutput lex:Copy-12Z ;
+    prov:wasAssociatedWith lex:IngestJob ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T15:52:10Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime .
+
+lex:Copy-12Z a fm:RetrievedCopy ;""",
+        """    prov:wasAssociatedWith lex:IngestJob ;
+    fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
+    prov:startedAtTime "2026-08-15T15:20:00Z"^^xsd:dateTime ;
+    prov:endedAtTime "2026-08-15T15:20:01Z"^^xsd:dateTime .
+
+lex:Copy-12Z a fm:RetrievedCopy ;
+    fm:isOutputOf lex:Retrieval-12Z ;""",
+        "ended at 2026-08-15T15:20:01+00:00, before",
     ),
 ]
 
