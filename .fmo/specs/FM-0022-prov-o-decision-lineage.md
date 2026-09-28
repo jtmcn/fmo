@@ -16,8 +16,9 @@ touches:
   - scripts/validate.py
   - scripts/test_validate.py
   - scripts/test_reason.py
-  - shapes/
-  - scripts/test_shapes.py
+  - scripts/axioms.py
+  - queries/axiom-expectations.json
+  - queries/prefixes.txt
   - examples/kxhighny-2026-08-15-lineage.ttl
   - queries/cq09-decision-lineage.rq
   - queries/cq09-decision-lineage.expected
@@ -42,20 +43,20 @@ acceptance:
       input to another process is a HermiT inconsistency.
     witness: make reason; a mutant in scripts/test_reason.py
   - claim: >-
-      fm:hasInput, fm:isOutputOf, fm:issuedBy and wx:supersedes are
-      sub-properties of prov:used, prov:wasGeneratedBy, prov:wasAttributedTo
-      and prov:wasRevisionOf; wx:issuanceTime is not a sub-property of
+      fm:hasInput, fm:isOutputOf, fm:issuedBy, fm:hasAgent and wx:supersedes are
+      sub-properties of prov:used, prov:wasGeneratedBy, prov:wasAttributedTo,
+      prov:wasAssociatedWith and prov:wasRevisionOf; wx:issuanceTime is not a sub-property of
       prov:generatedAtTime.
     witness: src/core.ttl and src/weather.ttl, reviewed; CQ9 walks prov:used without naming fm:hasInput
   - claim: >-
       A retrieval never ends before the issuance of the content its copy
       carries, and a trading decision never ends before the retrievals of the
       copies it cites.
-    witness: make validate (check_retrieval_after_issuance, check_decision_after_retrieval), each with a negative test
+    witness: make validate (check_retrievals, check_trading_decisions), each with a negative test
   - claim: >-
       A decision statement is a trade instruction or a hold statement and never
       both, and every hold carries exactly one reason.
-    witness: make reason (disjointness mutant); make shapes-negative (hold-reason mutant)
+    witness: make reason (disjointness mutant); make validate-negative (check_trading_decisions, hold with no reason)
   - claim: >-
       For each trading decision, CQ9 returns the copies it cited, when and
       where each was retrieved, the issuance time of what each carries, and a
@@ -112,7 +113,7 @@ Two chains need to be walkable:
   of a retrieval is usually software.
 - **Alignment by sub-property.** `fm:hasInput ⊑ prov:used`,
   `fm:isOutputOf ⊑ prov:wasGeneratedBy`, `fm:issuedBy ⊑ prov:wasAttributedTo`,
-  `wx:supersedes ⊑ prov:wasRevisionOf`. `prov:used`'s range therefore
+  `fm:hasAgent ⊑ prov:wasAssociatedWith`, `wx:supersedes ⊑ prov:wasRevisionOf`. `prov:used`'s range therefore
   makes every FMO input a continuant; every input in `examples/` already is.
 - **Issuance is not generation.** `wx:issuanceTime` stays out of
   `prov:generatedAtTime`, and its scope note says why: a report can be
@@ -183,3 +184,7 @@ Two chains need to be walkable:
   target alongside `make qudt` and README rows.
 
 ## Comments
+
+- 2026-09-27, planning: the SHACL constraints moved into check_retrievals and
+  check_trading_decisions, because example data is validated only against the
+  forbidden export contract. fm:hasAgent joined the alignment.
