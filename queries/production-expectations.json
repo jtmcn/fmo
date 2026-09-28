@@ -33,5 +33,9 @@
   "cq08-order-flow-payout": {
     "may_be_empty": true,
     "why": "The export omits the trading layer entirely -- no orders, trades, lots or payouts. Empty here is the export being what it says it is."
+  },
+  "cq09-decision-lineage": {
+    "may_be_empty": true,
+    "why": "The export carries no trading decisions or retrievals yet: the exporter is out of FM-0022's scope. Once it emits them this becomes a floor, since a day with a decision must trace to what it read."
   }
 }

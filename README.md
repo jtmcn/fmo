@@ -6,7 +6,7 @@ An ontology relating **weather forecasts** to the **Kalshi prediction markets** 
 them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-2020)
 (ISO/IEC 21838-2).
 
-Status: **0.20.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
+Status: **0.21.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
 All eight competency questions are mechanically tested. Kalshi enumerations were checked
 against the live API on 2026-08-17, and the precipitation series on 2026-08-23; each designation
 carries its API code, checked against that enumeration by `make shapes`. Field names were
@@ -54,6 +54,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `src/fmo.ttl` | top module; imports all three |
 | `src/imports/bfo-core.ttl` | vendored BFO 2020 core, unmodified |
 | `src/imports/qudt-subset.ttl` | 16 units + 10 quantity kinds extracted from QUDT (generated) |
+| `src/imports/prov-subset.ttl` | 4 classes + 8 properties extracted from PROV-O (generated) |
 | `src/catalog-v001.xml` | OASIS catalog so imports resolve offline |
 | `examples/` | worked data: one bracket end-to-end, the full ladder, a correction, the order flow behind one match, a settled rain market, 40 synthetic days |
 | `scripts/validate.py` | structural, grounding, and unit checks (no Java needed) |
@@ -69,6 +70,7 @@ means something. Nothing else has to line up — not tickers, not station names,
 | `queries/cf-mapping-expectations.json` | why each `wx:` quality or weather variable has no CF standard name |
 | `scripts/validate_shapes.py` | runs the shapes over a data file, or the examples union |
 | `scripts/extract_qudt_subset.py` | regenerates the QUDT subset from an upstream checkout |
+| `scripts/extract_prov_subset.py` | regenerates the PROV-O subset from the pinned W3C file |
 | `scripts/run_competency.py` | runs the competency queries against checked-in expected results |
 | `scripts/generate_verification_data.py` | regenerates the synthetic calibration dataset (deterministic) |
 | `scripts/generate_diagram.py` | builds the interactive map from the modules |

@@ -273,6 +273,29 @@ since no market settles on it. The cover and the portion are not declared disjoi
 would commit on material coincidence, and would buy nothing, because BFO 2020's `inheres in`
 is not functional, so disjoint bearers would not make their qualities disjoint.
 
+## PROV-O, and not SOSA
+
+Added in FM-0022. SOSA was declined because it duplicated an observation pattern FMO
+already had and would have been a second model to argue with. PROV-O fills a gap
+instead: FMO could say who issued a document and which one a settlement read, but
+not how content reached ThermalEdge or what a decision read. That is lineage, which
+is what PROV-O is for.
+
+**A subset, grounded.** `src/imports/prov-subset.ttl` is generated from the pinned
+W3C file. `prov:Entity` sits under continuant, so PROV-DM's entity/activity
+disjointness is BFO's own, and an occurrent used as an input is a HermiT
+inconsistency. `prov:Agent` is under continuant rather than `fm:Agent`, because
+`fm:Agent` is material and the agent of a fetch is usually software.
+
+**Aligned, not replaced.** `fm:hasInput`, `fm:isOutputOf`, `fm:issuedBy`,
+`fm:hasAgent` and `wx:supersedes` are sub-properties of their PROV counterparts, so
+a PROV query walks FMO data unchanged. `wx:issuanceTime` is deliberately not
+`prov:generatedAtTime`: issuance is publication, not creation.
+
+**Copies, not records.** A retrieval's output is a carrier of the issuer's content,
+not new content, which is why `fm:DataHandlingProcess` is not an information
+process. A later transformation step will be, and will sit beside retrieval.
+
 ## Bugs the checks caught
 
 Recorded because they are representative of what goes wrong, not for posterity.
@@ -300,7 +323,7 @@ A competency question is a requirement: a question the ontology must be able to 
 fix scope and then to test it. If a question cannot be answered, a term or a relation is
 missing. They are the difference between an ontology that earns its keep and a tidy taxonomy.
 
-All eight are mechanically checked by `make test` and fail the build if they regress.
+All nine are mechanically checked by `make test` and fail the build if they regress.
 Through 0.1.0 the first four carried a tick mark on the strength of "you could query the example for
 this", which was true and not the same as tested; only 3 had a real check. Made honest in 0.2.0.
 
@@ -314,6 +337,7 @@ this", which was true and not the same as tested; only 3 had a real check. Made 
 | 6 | Given a lead time, what is the historical calibration of a model against settled outcomes? | `queries/cq06a-...`, `cq06b-...` |
 | 7 | Which settled markets were contradicted by a later correction to their settlement source? | `queries/cq07-correction-contradiction.rq` |
 | 8 | Who took which side of a market, at what price, and what were they paid? | `queries/cq08-order-flow-payout.rq` |
+| 9 | What did each trading decision read, when was it fetched, and was a newer issuance out when it decided? | `queries/cq09-decision-lineage.rq` |
 
 Every question but 3 is answered by SPARQL over the asserted graph; 3 needs OWL reasoning
 because the answer is derived from the `ksh:WeatherMarket` equivalent-class axiom rather than
