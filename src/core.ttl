@@ -455,7 +455,8 @@ fm:assignsProbabilityTo a owl:ObjectProperty ;
     skos:definition "Relates a probability assignment to the single proposition whose degree of belief it states." .
 
 fm:hasAgent a owl:ObjectProperty ;
-    rdfs:subPropertyOf bfo:BFO_0000057 ;   # has participant
+    rdfs:subPropertyOf bfo:BFO_0000057 ,   # has participant
+                       prov:wasAssociatedWith ;
     rdfs:label "has agent" ;
     rdfs:domain bfo:BFO_0000015 ;
     rdfs:range fm:Agent ;
@@ -469,15 +470,18 @@ fm:hasOutput a owl:ObjectProperty ;
     owl:inverseOf fm:isOutputOf .
 
 fm:isOutputOf a owl:ObjectProperty ; rdfs:label "is output of" ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
     skos:definition "Relates an entity to the process as a result of which it exists, or comes to have the character it has." .
 
 fm:hasInput a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:used ;
     rdfs:label "has input" ;
     rdfs:domain bfo:BFO_0000015 ;
     rdfs:range bfo:BFO_0000001 ;
     skos:definition "Relates a process to an entity that is present at the start of the process and is used by it." .
 
 fm:issuedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasAttributedTo ;
     rdfs:label "issued by" ;
     rdfs:domain fm:InformationContentEntity ;
     rdfs:range fm:Agent ;

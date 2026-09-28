@@ -214,6 +214,18 @@ ksh:TraderRole a owl:Class ;""",
         "ex:ForecastProb-82-83 a fm:ForecastProbability , fm:MarketImpliedProbability ;",
     ),
     (
+        # prov:used ranges over prov:Entity, grounded under continuant, so an
+        # occurrent input is a BFO branch clash rather than a quiet retyping.
+        "a bare process used as the input to a process",
+        EXAMPLE,
+        """ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
+    fm:hasInput ex:Quote-1200Z ;""",
+        """ex:BareProcess a bfo:BFO_0000015 .
+
+ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
+    fm:hasInput ex:Quote-1200Z , ex:BareProcess ;""",
+    ),
+    (
         # FM-0013: the export fixture is reasoned on its own, so this reasons over
         # the modules and the export alone -- the examples would answer for nothing.
         "an exported market also typed as an event grouping",
