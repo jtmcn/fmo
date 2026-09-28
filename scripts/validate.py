@@ -1614,24 +1614,17 @@ def check_bridged_grounding(g: Graph) -> None:
     originally were the two that happened to be floating that day; the generator
     later added a third (qudt:QuantityKindDimensionVector) and the check missed it.
     """
-    qudt_classes = sorted(
-        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(QUDT)), key=str
-    )
-    for iri in qudt_classes:
-        if ENTITY not in ancestors(g, iri):
-            fail(f"bridged external class not grounded in BFO: {iri}")
-    coverage("bridged QUDT classes", len(qudt_classes), "class(es) checked for BFO grounding",
-             "the QUDT subset declares no owl:Class, so the bridge axioms guard nothing",
-             always=True)
-    prov_classes = sorted(
-        (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(PROV)), key=str
-    )
-    for iri in prov_classes:
-        if ENTITY not in ancestors(g, iri):
-            fail(f"bridged external class not grounded in BFO: {iri}")
-    coverage("bridged PROV classes", len(prov_classes), "class(es) checked for BFO grounding",
-             "the PROV subset declares no owl:Class, so the bridge axioms guard nothing",
-             always=True)
+    # One traversal and one coverage() per namespace: a shared count survives one emptying.
+    for name, ns in (("QUDT", QUDT), ("PROV", PROV)):
+        classes = sorted(
+            (s for s in g.subjects(RDF.type, OWL.Class) if str(s).startswith(ns)), key=str
+        )
+        for iri in classes:
+            if ENTITY not in ancestors(g, iri):
+                fail(f"bridged external class not grounded in BFO: {iri}")
+        coverage(f"bridged {name} classes", len(classes), "class(es) checked for BFO grounding",
+                 f"the {name} subset declares no owl:Class, so the bridge axioms guard nothing",
+                 always=True)
 
 
 @check(takes=("schema",), population="schema", reason="its population is the minted classes")
@@ -1758,6 +1751,24 @@ def outputs_of(g: Graph, process: Node) -> set:
     return set(g.objects(process, HAS_OUTPUT)) | set(g.subjects(IS_OUTPUT_OF, process))
 
 
+def producers_of(g: Graph, entity: Node) -> set:
+    """The processes that output an entity, stated from either end."""
+    return set(g.subjects(HAS_OUTPUT, entity)) | set(g.objects(entity, IS_OUTPUT_OF))
+
+
+def single_end(g: Graph, process: Node, kind: str) -> datetime | None:
+    """The one prov:endedAtTime of a process as an aware instant, or None once failed."""
+    ends = list(g.objects(process, ENDED_AT))
+    if len(ends) != 1:
+        fail(f"{process}: a {kind} needs exactly one prov:endedAtTime, has {len(ends)}")
+        return None
+    try:
+        return aware_instant(ends[0])
+    except (ValueError, TypeError) as exc:
+        fail(f"{process}: cannot read prov:endedAtTime: {exc}")
+        return None
+
+
 @check(takes=("data",))
 def check_retrievals(g: Graph) -> None:
     """A retrieval says when and where it fetched, and cannot end before its content was issued.
@@ -1768,20 +1779,14 @@ def check_retrievals(g: Graph) -> None:
     retrievals = instances_of(g, RETRIEVAL)
     ordered = 0
     for retrieval in retrievals:
-        ends = list(g.objects(retrieval, ENDED_AT))
         sources = list(g.objects(retrieval, RETRIEVED_FROM))
         copies = [c for c in outputs_of(g, retrieval) if RETRIEVED_COPY in types_of(g, c)]
         if len(sources) != 1:
             fail(f"{retrieval}: a retrieval needs exactly one fm:retrievedFrom, has {len(sources)}")
         if not copies:
             fail(f"{retrieval}: a retrieval has no fm:RetrievedCopy as output")
-        if len(ends) != 1:
-            fail(f"{retrieval}: a retrieval needs exactly one prov:endedAtTime, has {len(ends)}")
-            continue
-        try:
-            ended = aware_instant(ends[0])
-        except (ValueError, TypeError) as exc:
-            fail(f"{retrieval}: cannot read prov:endedAtTime: {exc}")
+        ended = single_end(g, retrieval, "retrieval")
+        if ended is None:
             continue
         for copy in copies:
             for content in g.objects(copy, CARRIER_OF):
@@ -1820,7 +1825,6 @@ def check_trading_decisions(g: Graph) -> None:
     holds = instances_of(g, HOLD_STATEMENT)
     cited = 0
     for decision in decisions:
-        ends = list(g.objects(decision, ENDED_AT))
         copies = [c for c in g.objects(decision, HAS_INPUT) if RETRIEVED_COPY in types_of(g, c)]
         statements = [s for s in outputs_of(g, decision) if DECISION_STATEMENT in types_of(g, s)]
         if not copies:
@@ -1834,16 +1838,11 @@ def check_trading_decisions(g: Graph) -> None:
             if not {TRADE_INSTRUCTION, HOLD_STATEMENT} & types_of(g, statement):
                 fail(f"{decision}: its statement {statement} is neither a "
                      f"ksh:TradeInstruction nor a ksh:HoldStatement")
-        if len(ends) != 1:
-            fail(f"{decision}: a trading decision needs exactly one prov:endedAtTime, has {len(ends)}")
-            continue
-        try:
-            decided = aware_instant(ends[0])
-        except (ValueError, TypeError) as exc:
-            fail(f"{decision}: cannot read prov:endedAtTime: {exc}")
+        decided = single_end(g, decision, "trading decision")
+        if decided is None:
             continue
         for copy in copies:
-            retrievals = set(g.subjects(HAS_OUTPUT, copy)) | set(g.objects(copy, IS_OUTPUT_OF))
+            retrievals = producers_of(g, copy)
             if not retrievals:
                 fail(f"{decision}: cites {copy}, which no retrieval produced, so when it "
                      f"was fetched is unknown")

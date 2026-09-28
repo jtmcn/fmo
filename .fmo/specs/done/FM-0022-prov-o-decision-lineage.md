@@ -194,3 +194,12 @@ Two chains need to be walkable:
   and a cited copy must come from exactly one retrieval. CQ9 reads outputs from
   either end and casts instants before comparing. Pipeline transforms remain
   FM-0023, not yet filed.
+- 2026-09-28, review of PR #72: `owl:incompatibleWith` covers outputs as well as
+  inputs, since `fm:isOutputOf ⊑ prov:wasGeneratedBy` makes an occurrent output
+  inconsistent too; `fm:hasInput`, `fm:hasOutput` and `fm:isOutputOf` now carry
+  change notes, and `scripts/test_reason.py` has a mutant for each end. The
+  example's agents carry their version in the IRI. Its forecasts are issued at
+  09:40Z and 15:40Z, not 06:00 and 12:00, and its trade reuses the trading
+  example's placement, so the times differ from the Notes; the fresh trade and
+  the stale hold are unchanged. Staleness is flagged for forecasts only: an
+  observation has no `wx:forecastFor` target to find a newer issuance by.

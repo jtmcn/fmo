@@ -7,7 +7,7 @@ them, built on [Basic Formal Ontology 2020](https://github.com/BFO-ontology/BFO-
 (ISO/IEC 21838-2).
 
 Status: **0.21.0.** Consistent under HermiT, structurally validated, unit-checked against QUDT.
-All eight competency questions are mechanically tested. Kalshi enumerations were checked
+All nine competency questions are mechanically tested. Kalshi enumerations were checked
 against the live API on 2026-08-17, and the precipitation series on 2026-08-23; each designation
 carries its API code, checked against that enumeration by `make shapes`. Field names were
 re-checked against Trade API 3.31.0 on 2026-09-25: each property that mirrors a field carries
@@ -91,7 +91,7 @@ make setup                           # poetry install, plus robot.jar if it is m
 make typecheck                       # static types over scripts/, via ty
 make typecheck-negative              # prove ty fails on the narrowings, and on nothing to check
 make validate                        # structure, BFO grounding, unit coherence, docs
-make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8 as SPARQL
+make cq                              # competency questions 1, 2, 4, 5, 6, 7, 8, 9 as SPARQL
 make validate-negative               # prove the checks catch what they claim to
 make meta                            # tests about the checks: none may pass with nothing to check
 make shapes                          # SHACL: does the data satisfy the export contract? do the API codes match the API?

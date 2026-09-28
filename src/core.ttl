@@ -28,7 +28,8 @@ probability to the SAME proposition object.
 This layer covers the same ground as the Information Artifact Ontology (IAO) and does not
 import it. That is a settled decision, not a deferral: IAO's value here would have been
 standard IRIs for downstream consumers, and the one consumer reads FMO's own. See docs/design-notes.md for
-the comparison. BFO is the sole upstream dependency.""" ;
+the comparison. BFO is the upper ontology; QUDT and PROV-O enter as generated subsets,
+bridged under it.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     owl:versionInfo "0.21.0" .
 
@@ -503,18 +504,21 @@ fm:hasOutput a owl:ObjectProperty ;
     rdfs:domain bfo:BFO_0000015 ;   # process
     rdfs:range bfo:BFO_0000001 ;
     skos:definition "Relates a process to an entity that exists, or comes to have the character it has, as a result of that process." ;
+    skos:changeNote "Changed in 0.21.0 (FM-0022): an output could be any entity; through the inverse fm:isOutputOf, now a sub-property of prov:wasGeneratedBy, it must be a prov:Entity and so a continuant. Data with an occurrent output is inconsistent." ;
     owl:inverseOf fm:isOutputOf .
 
 fm:isOutputOf a owl:ObjectProperty ; rdfs:label "is output of" ;
     rdfs:subPropertyOf prov:wasGeneratedBy ;
-    skos:definition "Relates an entity to the process as a result of which it exists, or comes to have the character it has." .
+    skos:definition "Relates an entity to the process as a result of which it exists, or comes to have the character it has." ;
+    skos:changeNote "Changed in 0.21.0 (FM-0022): the entity could be of any kind; now a sub-property of prov:wasGeneratedBy, whose domain prov:Entity is grounded under continuant, so it must be a continuant. Data with an occurrent output is inconsistent." .
 
 fm:hasInput a owl:ObjectProperty ;
     rdfs:subPropertyOf prov:used ;
     rdfs:label "has input" ;
     rdfs:domain bfo:BFO_0000015 ;
     rdfs:range bfo:BFO_0000001 ;
-    skos:definition "Relates a process to an entity that is present at the start of the process and is used by it." .
+    skos:definition "Relates a process to an entity that is present at the start of the process and is used by it." ;
+    skos:changeNote "Changed in 0.21.0 (FM-0022): an input could be any entity; now a sub-property of prov:used, whose range prov:Entity is grounded under continuant, so it must be a continuant. Data with an occurrent input is inconsistent." .
 
 fm:issuedBy a owl:ObjectProperty ;
     rdfs:subPropertyOf prov:wasAttributedTo ;

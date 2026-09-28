@@ -227,6 +227,15 @@ ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;
     fm:hasInput ex:Quote-1200Z , ex:BareProcess ;""",
     ),
     (
+        # prov:wasGeneratedBy's domain is prov:Entity too, so the same clash holds for outputs.
+        "a bare process as the output of a process",
+        EXAMPLE,
+        """ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;""",
+        """ex:BareProcess a bfo:BFO_0000015 ; fm:isOutputOf ex:Derivation-1200Z .
+
+ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;""",
+    ),
+    (
         "a decision statement typed both trade instruction and hold statement",
         LINEAGE,
         "lex:Statement-Hold a ksh:HoldStatement ;",

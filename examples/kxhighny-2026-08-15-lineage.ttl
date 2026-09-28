@@ -28,10 +28,10 @@
 # 1. The software agents
 ################################################################
 
-lex:IngestJob a prov:SoftwareAgent ;
+lex:IngestJob-2.4.0 a prov:SoftwareAgent ;
     rdfs:label "ThermalEdge ingest job 2.4.0" .
 
-lex:Strategy a prov:SoftwareAgent ;
+lex:Strategy-2.4.0 a prov:SoftwareAgent ;
     rdfs:label "ThermalEdge strategy 2.4.0" .
 
 ################################################################
@@ -53,7 +53,7 @@ lex:Retrieval-06Z a fm:Retrieval ;
     rdfs:label "ingest fetches the GEFS 06Z forecast" ;
     fm:hasInput ex:Forecast-GEFS-06Z ;
     fm:hasOutput lex:Copy-06Z ;
-    prov:wasAssociatedWith lex:IngestJob ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
     fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime .
@@ -66,7 +66,7 @@ lex:Retrieval-12Z a fm:Retrieval ;
     rdfs:label "ingest fetches the GEFS 12Z forecast" ;
     fm:hasInput lex:Forecast-GEFS-12Z ;
     fm:hasOutput lex:Copy-12Z ;
-    prov:wasAssociatedWith lex:IngestJob ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
     fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T15:52:10Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime .
@@ -79,7 +79,7 @@ lex:Copy-12Z a fm:RetrievedCopy ;
 lex:Retrieval-Quote-1200Z a fm:Retrieval ;
     rdfs:label "ingest fetches the noon quote" ;
     fm:hasInput ex:Quote-1200Z ;
-    prov:wasAssociatedWith lex:IngestJob ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
     fm:retrievedFrom "https://api.elections.kalshi.com/trade-api/v2/markets/KXHIGHNY-26AUG15-B82.5"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T12:00:03Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T12:00:04Z"^^xsd:dateTime .
@@ -97,7 +97,7 @@ lex:Decision-Trade a ksh:TradingDecision ;
     rdfs:label "strategy decides to buy yes on 82-83F" ;
     fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;
     fm:hasOutput lex:Statement-Trade ;
-    prov:wasAssociatedWith lex:Strategy ;
+    prov:wasAssociatedWith lex:Strategy-2.4.0 ;
     prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime .
 
 lex:Statement-Trade a ksh:TradeInstruction ;
@@ -109,7 +109,7 @@ tex:Placement-A fm:hasInput lex:Statement-Trade .
 lex:Decision-Hold a ksh:TradingDecision ;
     rdfs:label "strategy holds on 82-83F" ;
     fm:hasInput lex:Copy-06Z , lex:Copy-Quote-1200Z ;
-    prov:wasAssociatedWith lex:Strategy ;
+    prov:wasAssociatedWith lex:Strategy-2.4.0 ;
     prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .
 
 lex:Statement-Hold a ksh:HoldStatement ;

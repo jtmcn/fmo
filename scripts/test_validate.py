@@ -1209,13 +1209,13 @@ wx:DewPoint a owl:Class ;""",
         "a late fetch stated from the copy's side",
         LINEAGE,
         """    fm:hasOutput lex:Copy-12Z ;
-    prov:wasAssociatedWith lex:IngestJob ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
     fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T15:52:10Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T15:52:11Z"^^xsd:dateTime .
 
 lex:Copy-12Z a fm:RetrievedCopy ;""",
-        """    prov:wasAssociatedWith lex:IngestJob ;
+        """    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
     fm:retrievedFrom "https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/12/"^^xsd:anyURI ;
     prov:startedAtTime "2026-08-15T15:20:00Z"^^xsd:dateTime ;
     prov:endedAtTime "2026-08-15T15:20:01Z"^^xsd:dateTime .
@@ -1269,6 +1269,34 @@ lex:Copy-12Z a fm:RetrievedCopy ;
         "    fm:hasOutput lex:Copy-12Z ;",
         "    fm:hasOutput lex:Copy-12Z , lex:Copy-06Z ;",
         "which 2 retrievals produced",
+    ),
+    (
+        "a retrieval with no copy as output",
+        LINEAGE,
+        "    fm:hasOutput lex:Copy-06Z ;\n",
+        "",
+        "a retrieval has no fm:RetrievedCopy as output",
+    ),
+    (
+        "a retrieval with no end time",
+        LINEAGE,
+        'prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime ;\n    prov:endedAtTime "2026-08-15T09:47:03Z"^^xsd:dateTime .',
+        'prov:startedAtTime "2026-08-15T09:47:02Z"^^xsd:dateTime .',
+        "a retrieval needs exactly one prov:endedAtTime, has 0",
+    ),
+    (
+        "a decision with two statements",
+        LINEAGE,
+        "    fm:hasOutput lex:Statement-Trade ;",
+        "    fm:hasOutput lex:Statement-Trade , lex:Statement-Hold ;",
+        "needs exactly one ksh:DecisionStatement as output, has 2",
+    ),
+    (
+        "a decision with no end time",
+        LINEAGE,
+        '    prov:wasAssociatedWith lex:Strategy-2.4.0 ;\n    prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .',
+        "    prov:wasAssociatedWith lex:Strategy-2.4.0 .",
+        "a trading decision needs exactly one prov:endedAtTime, has 0",
     ),
 ]
 
