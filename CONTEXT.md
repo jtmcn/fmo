@@ -89,6 +89,10 @@ _Avoid_ also "revision", "restatement". `prov:wasRevisionOf` is PROV's name for 
 **Retrieval** (`fm:Retrieval`) / **retrieved copy** (`fm:RetrievedCopy`): fetching
 content makes a new carrier of the same information content entity, never new
 content. The copy is ours; the content is the issuer's. A decision cites the copy.
+**Ingestion** is its synonym (`skos:altLabel`): the EL of ELT, landing content
+unchanged. A lossless format change (JSON to rows) still makes a copy; anything that
+changes what the content says is a transformation, not ingestion. Say "retrieval" in
+Turtle, and never mint an ingestion class beside it.
 _Avoid_: "record" for the copy (see **Record**), and "the data" for either.
 
 **Data handling process** (`fm:DataHandlingProcess`): what the system does to
