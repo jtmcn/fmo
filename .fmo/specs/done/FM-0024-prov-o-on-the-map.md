@@ -152,3 +152,14 @@ entities as continuants, `fm:Agent` beneath `prov:Agent` rather than above it.
   code nor prose.
 
 ## Comments
+
+**2026-09-28 — resolved.** All six bridges drawn; `diagram-check` against the
+previous generator fails naming exactly the five that were missing. The node set is
+now 134 (27 borrowed). `fm:Agent` stays at depth 4, and `prov:Agent` and
+`prov:Entity` sit at depth 2 under continuant, with `prov:Activity` at depth 3
+under process. `MAX_CROSSINGS` moved from 5 to 12. All seven new crossings are the
+one edge `fm:Agent ⊑ prov:Agent`, which climbs two rows and crosses
+`fm:InformationBearingEntity ⊑ material entity`, fiat object part, object aggregate
+and object under material entity, site under immaterial entity, and quality and
+realizable entity under specifically dependent continuant. Five mutants were added
+to `make diagram-negative`, which now passes 46 of 46.

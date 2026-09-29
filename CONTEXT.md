@@ -308,6 +308,10 @@ seed. A diff there means the generator changed, never the data.
 with its depth from BFO's entity. Not "the tree" or "the table": since FM-0021 the map
 itself is laid out as **the is-a tree**, and the outline is that tree's list view. It is
 a view of the map, not a separate artifact, so "on the map" covers both views.
+**Borrowed ground**: a class on the map from a namespace FMO does not mint (BFO, QUDT,
+PROV-O). It has a node and no stanza.
+**Bridge**: a subClassOf asserted in a minted file whose subject is borrowed ground,
+such as `prov:Entity` under continuant. Not "stub" or "bridged class", in code or prose.
 **Lens**: a named subset of the map that stays lit while everything else dims. It names
 classes, walks paths, and *reaches* the classes at the ends of those paths. The export
 profile is one lens. Not "filter": a module chip *hides* terms, whereas a lens *dims*
