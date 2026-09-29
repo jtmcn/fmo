@@ -1351,6 +1351,14 @@ lex:Copy-12Z a fm:RetrievedCopy ;
         "a transformation has no output",
     ),
     (
+        # The copy-boundary rule reads what input copies carry; with nothing carried it proves nothing.
+        "a transformation whose input copy carries nothing",
+        LINEAGE,
+        "    rdfs:label \"stored copy of the GEFS 06Z forecast\" ;\n    bfo:BFO_0000101 ex:Forecast-GEFS-06Z .",
+        "    rdfs:label \"stored copy of the GEFS 06Z forecast\" .",
+        "transformation copy boundary: nothing to check",
+    ),
+    (
         "a transformation with two end times",
         LINEAGE,
         'prov:endedAtTime "2026-08-15T09:48:00Z"^^xsd:dateTime',

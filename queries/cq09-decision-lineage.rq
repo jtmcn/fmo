@@ -1,11 +1,11 @@
 # CQ9. What did each trading decision read, and was a newer issuance out when it decided?
 #
-# Inputs are reached through rdfs:subPropertyOf* prov:used, not fm:hasInput by
-# name, so this answering at all is what shows the alignment holds. A copy of
-# content with no issuance time -- a quote -- still returns its row. Outputs are
-# read from either end, as the validator reads them. Derived content is walked
-# back through the processes that output it to the copies they read; ?via names
-# it, and is unbound for a copy the decision read itself.
+# A decision's inputs are reached through rdfs:subPropertyOf* prov:used, not
+# fm:hasInput by name, so this answering at all is what shows the alignment
+# holds. A copy of content with no issuance time -- a quote -- still returns its
+# row. Outputs are read from either end, as the validator reads them. Derived
+# content is walked back through the processes that output it to the copies they
+# read; ?via names it, and is unbound for a copy the decision read itself.
 
 SELECT ?decision ?verdict ?via ?copy ?endpoint ?fetchedAt ?issuedAt ?newerIssuance
 WHERE {

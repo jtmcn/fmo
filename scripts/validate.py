@@ -81,7 +81,7 @@ from __future__ import annotations
 import inspect
 import re
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import date, datetime
 from pathlib import Path
 from types import FunctionType
@@ -1814,6 +1814,15 @@ TRADE_INSTRUCTION = URIRef(KSH + "TradeInstruction")
 HOLD_REASON = URIRef(KSH + "holdReason")
 
 
+def fetch_instants(g: Graph, retrieval: Node) -> Iterator[datetime]:
+    """When a retrieval ended, skipping values check_retrievals already reports."""
+    for fetched in g.objects(retrieval, ENDED_AT):
+        try:
+            yield aware_instant(fetched)
+        except (ValueError, TypeError):
+            continue
+
+
 @check(takes=("data",))
 def check_trading_decisions(g: Graph) -> None:
     """A decision cites the copies it read, states one verdict, and follows every fetch it cites.
@@ -1850,11 +1859,7 @@ def check_trading_decisions(g: Graph) -> None:
                 fail(f"{decision}: cites {copy}, which {len(retrievals)} retrievals produced, "
                      f"so which fetch it read is ambiguous")
             for retrieval in retrievals:
-                for fetched in g.objects(retrieval, ENDED_AT):
-                    try:
-                        fetched_at = aware_instant(fetched)
-                    except (ValueError, TypeError):
-                        continue  # check_retrievals reports it
+                for fetched_at in fetch_instants(g, retrieval):
                     cited += 1
                     if fetched_at > decided:
                         fail(f"{decision} decided at {decided.isoformat()} on {copy}, which "
@@ -1899,6 +1904,7 @@ def check_transformations(g: Graph) -> None:
     """
     transformations = instances_of(g, TRANSFORMATION)
     outputs_checked = 0
+    against_copies = 0
     content_inputs = 0
     ordered = 0
     for transformation in transformations:
@@ -1917,6 +1923,7 @@ def check_transformations(g: Graph) -> None:
             if output in inputs:
                 fail(f"{transformation}: its output {output} is also one of its inputs")
             for copy, content in carried.items():
+                against_copies += bool(content)
                 if output in content:
                     fail(f"{transformation}: its output {output} is content {copy} already "
                          f"carries, so it made a copy, not new content")
@@ -1930,11 +1937,7 @@ def check_transformations(g: Graph) -> None:
             continue
         for copy in copies:
             for retrieval in producers_of(g, copy):
-                for fetched in g.objects(retrieval, ENDED_AT):
-                    try:
-                        fetched_at = aware_instant(fetched)
-                    except (ValueError, TypeError):
-                        continue  # check_retrievals reports it
+                for fetched_at in fetch_instants(g, retrieval):
                     ordered += 1
                     if ended < fetched_at:
                         fail(f"{transformation} ended at {ended.isoformat()}, before "
@@ -1945,6 +1948,9 @@ def check_transformations(g: Graph) -> None:
     coverage("transformation outputs", outputs_checked,
              "output(s) checked to be new content",
              "no transformation states an output")
+    coverage("transformation copy boundary", against_copies,
+             "output(s) checked against content an input copy carries",
+             "no transformation reads a copy that carries anything")
     coverage("transformation content inputs", content_inputs,
              "input(s) read as content rather than a copy",
              "no transformation reads content directly -- if the derivations stopped "

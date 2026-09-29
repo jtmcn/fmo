@@ -96,7 +96,7 @@ lex:Copy-Quote-1200Z a fm:RetrievedCopy ;
 # ThermalEdge's own number, computed from the member temperatures in the copy.
 # The 0.52 the base example files under the forecast is the issuer's; this is ours.
 lex:Projection-06Z a fm:Transformation ;
-    rdfs:label "ingest projects the GEFS 06Z members onto the 82-83F bracket" ;
+    rdfs:label "the ingest job projects the GEFS 06Z members onto the 82-83F bracket" ;
     fm:hasInput lex:Copy-06Z ;
     fm:hasOutput lex:ProjectedProb-06Z-82-83 ;
     prov:wasAssociatedWith lex:IngestJob-2.4.0 ;

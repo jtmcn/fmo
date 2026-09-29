@@ -421,7 +421,7 @@ fm:RetrievedCopy a owl:Class ;
 fm:Transformation a owl:Class ;
     rdfs:subClassOf fm:DataHandlingProcess , fm:InformationProcess ;
     rdfs:label "transformation" ;
-    skos:definition "A data handling process in which an agent derives new information content entities from content it already holds." ;
+    skos:definition "A data handling process in which an agent derives new information content entities from the content of its inputs." ;
     rdfs:subClassOf [ a owl:Restriction ;
         owl:onProperty fm:hasInput ; owl:someValuesFrom prov:Entity ] ,
                     [ a owl:Restriction ;
