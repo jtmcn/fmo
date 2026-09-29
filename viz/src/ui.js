@@ -43,13 +43,13 @@
 
   // Borrowed terms name their own source; not all of them are BFO. The names come
   // with the data, where diagram-check can refuse a prefix that has none.
-  var EXTERNAL_NAME = {};
+  var externalName = {};
 
   function init(data, handlers) {
     nodes = data.nodes;
     edges = data.edges;
     props = data.properties;
-    EXTERNAL_NAME = data.external || {};
+    externalName = data.external || {};
     onSelect = handlers.select;
     nodes.forEach(function (n) { byId[n.id] = n; });
 
@@ -442,7 +442,7 @@
 
     $('panel-kicker').innerHTML = key(chipOf(n)) + esc(n.minted
       ? MODULE_NAME[n.module].replace(' · the pivot', ' module')
-      : (EXTERNAL_NAME[n.module] || n.module));
+      : (externalName[n.module] || n.module));
 
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id + (n.id in depth ? ' · depth ' + depth[n.id] : '');

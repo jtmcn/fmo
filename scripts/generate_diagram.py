@@ -32,8 +32,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ledger as L  # noqa: E402
 import palette  # noqa: E402
 import validate as V  # noqa: E402
-from registry import (MODULES, ONTOLOGY_PREFIXES, QUERIES, ROOT, SHAPES, SRC,  # noqa: E402
-                      examples)
+from registry import MODULES, OUR_NS, QUERIES, ROOT, SHAPES, SRC, examples  # noqa: E402
 
 VIZ = ROOT / "viz"
 BUILD = ROOT / "build"
@@ -196,8 +195,7 @@ def build() -> dict:
         })
 
     # Hierarchy: named superclasses only. Restrictions are blank nodes and already
-    # legible in the stanza, so drawing them would duplicate without adding. Read
-    # from the minted files alone, so a bridge is drawn whatever its subject.
+    # legible in the stanza. Minted files only, so a bridge is drawn whatever its subject.
     for s, o in minted_graph().subject_objects(RDFS.subClassOf):
         a, b = curie(s), curie(o)
         if a and b and a != b:
@@ -533,8 +531,8 @@ def lens(key: str, label: str, source: str, named_as: str, *, named: set[str],
 
 ROOT_CLASS = "bfo:BFO_0000001"   # entity
 ROW, COL = 120, 34                # layout grid: one row per depth, one column per leaf
-# Families read forecast, pivot, market, left to right; borrowed ground last, and
-# PROV after it: tied with the rest, "agent" sorted ahead of fm:Agent's siblings.
+# Families read forecast, pivot, market, left to right; borrowed ground (3) last.
+# PROV after that: at 3, prov:Agent sorted by label into fm:Agent's siblings.
 SIDE_ORDER = {"wx": 0, "fm": 1, "ksh": 2, "prov": 4}
 # Edge crossings among the subClassOf drawn at rest. Pinned, not minimised: a
 # change that tangles the tree fails here instead of looking fine in review.
@@ -688,13 +686,15 @@ def check(data: dict, html: str) -> int:
     assert len(minted) > 90, f"expected ~102 minted classes, got {len(minted)}"
     assert len(data["properties"]) > 40, f"only {len(data['properties'])} properties"
 
-    # Where FMO meets what it borrows, read off the minted files by their own parse
-    # and compared as raw IRIs: curie() and parents() would check the generator
-    # against itself, and an IRI they cannot name would drop out of both sides.
-    ours = tuple(ONTOLOGY_PREFIXES.values())
+    # Read off the minted files by its own parse, as raw IRIs: reusing curie() would
+    # check the generator against itself. Minted means not under imports/.
     asserted = Graph()
-    for f in ("core.ttl", "weather.ttl", "kalshi.ttl"):
-        asserted.parse(SRC / f, format="turtle")
+    for m in MODULES:
+        if not m.startswith("imports/"):
+            asserted.parse(SRC / m, format="turtle")
+    g = Graph()
+    for m in MODULES:
+        g.parse(SRC / m, format="turtle")
     subs = {(s_, o) for s_, o in asserted.subject_objects(RDFS.subClassOf)
             if isinstance(s_, URIRef) and isinstance(o, URIRef) and s_ != o}
     ups = {(s_, o) for s_, o in asserted.subject_objects(RDFS.subPropertyOf)
@@ -702,27 +702,29 @@ def check(data: dict, html: str) -> int:
     unnamed = sorted({str(t) for pair in subs | ups for t in pair
                       if not any(str(t).startswith(ns) for ns in NS)})
     assert not unnamed, f"asserted in a minted file, but no prefix the map can name: {unnamed[:5]}"
-    bridges = {(s_, o) for s_, o in subs if not str(s_).startswith(ours)}
+    bridges = {(s_, o) for s_, o in subs if not str(s_).startswith(OUR_NS)}
     assert bridges, "no bridge asserted in a minted file: the comparison below proves nothing"
     drawn_subs = {(iri(e["s"]), iri(e["t"])) for e in data["edges"] if e["k"] == "sub"}
     undrawn = sorted(f"{s_} ⊑ {o}" for s_, o in subs - drawn_subs)
     assert not undrawn, f"subClassOf asserted in a minted file but not drawn: {undrawn[:5]}"
 
-    # The node set: minted classes, bridge ends, domains and ranges, and everything
-    # they climb to. An imported class nothing minted mentions stays off.
-    merged = Graph()
-    for m in MODULES:
-        merged.parse(SRC / m, format="turtle")
-    seeds = {iri(n["id"]) for n in data["nodes"] if n["minted"]}
+    # The node set: minted classes, bridge ends, object-property domains and ranges
+    # (a union's members), and everything they climb to. All seeded from the files.
+    seeds = {c for c in asserted.subjects(RDF.type, OWL.Class)
+             if isinstance(c, URIRef) and str(c).startswith(OUR_NS)}
     seeds |= {t for pair in bridges for t in pair}
-    seeds |= {iri(c) for v in data["properties"].values() for c in v["dom"] + v["rng"]}
+    for p in asserted.subjects(RDF.type, OWL.ObjectProperty):
+        for end_ in (asserted.value(p, RDFS.domain), asserted.value(p, RDFS.range)):
+            u = asserted.value(end_, OWL.unionOf) if end_ is not None else None
+            seeds |= ({end_} if isinstance(end_, URIRef)
+                      else {m for m in asserted.items(u) if isinstance(m, URIRef)} if u else set())
     want_nodes: set = set()
     stack = list(seeds)
     while stack:
         c = stack.pop()
         if c not in want_nodes:
             want_nodes.add(c)
-            stack += [o for o in merged.objects(c, RDFS.subClassOf)
+            stack += [o for o in g.objects(c, RDFS.subClassOf)
                       if isinstance(o, URIRef) and o != c]
     have_nodes = {iri(n["id"]) for n in data["nodes"]}
     assert have_nodes == want_nodes, \
@@ -735,7 +737,7 @@ def check(data: dict, html: str) -> int:
     assert not nameless, f"borrowed prefix with no display name in the page data: {nameless}"
 
     # Super-properties outside FMO, per property, as the minted files assert them.
-    want_supers = {(s_, o) for s_, o in ups if not str(o).startswith(ours)}
+    want_supers = {(s_, o) for s_, o in ups if not str(o).startswith(OUR_NS)}
     assert want_supers, "no super-property outside FMO asserted: the comparison proves nothing"
     shown_supers = {(iri(pid), iri(c)) for v in (data["properties"], data["datatypes"])
                     for pid, t in v.items() for c in t.get("supers", [])}
@@ -837,9 +839,6 @@ def check(data: dict, html: str) -> int:
 
     # Notes, field names and tombstones are counted again straight off the graph:
     # a panel that silently stops showing them looks exactly like a term without any.
-    g = Graph()
-    for m in MODULES:
-        g.parse(SRC / m, format="turtle")
     terms = {**{n["id"]: n for n in minted}, **data["properties"], **dts}
     noted = {c for p in (SKOS.changeNote, SKOS.historyNote) for c in map(curie, g.subjects(p, None))
              if c is not None and c in terms}

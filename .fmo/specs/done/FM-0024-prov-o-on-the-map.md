@@ -153,8 +153,10 @@ entities as continuants, `fm:Agent` beneath `prov:Agent` rather than above it.
 
 ## Comments
 
-**2026-09-28 — resolved.** All six bridges drawn; `diagram-check` against the
-previous generator fails naming exactly the five that were missing. The node set is
+**2026-09-28 — resolved.** All six bridges drawn. The previous generator's `build()`, checked by
+the new `diagram-check`, fails its bridge comparison naming the five that were
+missing (four if only `prov:` is added to its `NS`, since `prov:Agent ⊑
+continuant` is then reached through `fm:Agent`). The node set is
 now 134 (27 borrowed). `fm:Agent` stays at depth 4, and `prov:Agent` and
 `prov:Entity` sit at depth 2 under continuant, with `prov:Activity` at depth 3
 under process. `MAX_CROSSINGS` moved from 5 to 12. All seven new crossings are the

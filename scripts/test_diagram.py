@@ -129,8 +129,10 @@ def drop_bridge(d: dict) -> None:
 
 
 def forget_prov(d: dict) -> None:
-    # The generator's table, not the data: main() puts it back after each case.
+    # Rebuilt without it, so the IRI leaves the page data too; main() restores NS.
     del gd.NS["http://www.w3.org/ns/prov#"]
+    d.clear()
+    d.update(gd.build())
 
 
 def unmentioned_import(d: dict) -> None:
@@ -220,7 +222,7 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
     ("prov missing from the namespaces the map names", forget_prov,
      "no prefix the map can name: ['http://www.w3.org/ns/prov#"),
     ("an imported class no minted file mentions, drawn", unmentioned_import,
-     "http://www.w3.org/ns/prov#SoftwareAgent"),
+     "node set is not the minted classes"),
     ("a borrowed prefix with no display name", unnamed_source,
      "borrowed prefix with no display name in the page data: ['prov']"),
     ("a borrowed super-property dropped from the panel", drop_super,
