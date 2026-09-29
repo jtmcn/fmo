@@ -1235,8 +1235,8 @@ lex:Copy-12Z a fm:RetrievedCopy ;
     (
         "a decision citing no retrieved copy",
         LINEAGE,
-        "    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;",
-        "    fm:hasInput ex:ForecastProb-82-83 ;",
+        "    fm:hasInput lex:Copy-06Z , lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasInput lex:ProjectedProb-06Z-82-83 ;",
         "cites no fm:RetrievedCopy",
     ),
     (
@@ -1297,6 +1297,65 @@ lex:Copy-12Z a fm:RetrievedCopy ;
         '    prov:wasAssociatedWith lex:Strategy-2.4.0 ;\n    prov:endedAtTime "2026-08-15T16:30:00Z"^^xsd:dateTime .',
         "    prov:wasAssociatedWith lex:Strategy-2.4.0 .",
         "a trading decision needs exactly one prov:endedAtTime, has 0",
+    ),
+    (
+        # Exercises check_transformations: the copy boundary. Re-encoding what the
+        # copy carries makes another copy, not new content.
+        "a transformation outputting the content its input copy carries",
+        LINEAGE,
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 , ex:Forecast-GEFS-06Z ;",
+        "already carries, so it made a copy, not new content",
+    ),
+    (
+        # A part of the carried content is the issuer's too.
+        "a transformation outputting a part of the content its input copy carries",
+        LINEAGE,
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 , ex:ForecastProb-82-83 ;",
+        "its output https://w3id.org/forecast-market-ontology/examples/kxhighny-2026-08-15#ForecastProb-82-83 is content",
+    ),
+    (
+        "a transformation outputting one of its own inputs",
+        LINEAGE,
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 , lex:Copy-06Z ;",
+        "is also one of its inputs",
+    ),
+    (
+        "a transformation outputting a carrier",
+        LINEAGE,
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 , lex:Copy-12Z ;",
+        "Copy-12Z is a carrier, not content",
+    ),
+    (
+        "a transformation ending before the fetch it read",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T09:48:00Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:47:00Z"^^xsd:dateTime',
+        "Projection-06Z ended at 2026-08-15T09:47:00+00:00, before",
+    ),
+    (
+        "a transformation with no input",
+        LINEAGE,
+        "    fm:hasInput lex:Copy-06Z ;\n    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;",
+        "a transformation has no fm:hasInput",
+    ),
+    (
+        "a transformation with no output",
+        LINEAGE,
+        "    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;\n",
+        "",
+        "a transformation has no output",
+    ),
+    (
+        "a transformation with two end times",
+        LINEAGE,
+        'prov:endedAtTime "2026-08-15T09:48:00Z"^^xsd:dateTime',
+        'prov:endedAtTime "2026-08-15T09:48:00Z"^^xsd:dateTime , "2026-08-15T09:49:00Z"^^xsd:dateTime',
+        "a transformation needs exactly one prov:endedAtTime, has 2",
     ),
 ]
 

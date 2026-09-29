@@ -12,8 +12,8 @@
 
 <https://w3id.org/forecast-market-ontology/kalshi>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.21.1> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.21.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/kalshi/0.22.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/kalshi/0.21.1> ;
     owl:imports <https://w3id.org/forecast-market-ontology/core> , <https://w3id.org/forecast-market-ontology/weather> ;
     dcterms:title "FMO Kalshi: prediction market listings, trading, and settlement" ;
     dcterms:description """The market half of the ontology, covering Kalshi's series/event/market
@@ -21,7 +21,7 @@ hierarchy, binary contracts, orders and trades, and settlement against an author
 source. Weather markets are the motivating case, so this module also carries the axioms
 that tie a market's proposition to a weather observation target.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.21.1" ;
+    owl:versionInfo "0.22.0" ;
     skos:scopeNote """Field names and enumerations mirror the Kalshi trading API. Enumerations were checked
 against the live API and the published reference on 2026-08-17, field names against Trade
 API 3.31.0 on 2026-09-25. The first check corrected the market status
@@ -473,9 +473,10 @@ ksh:StructuredStrike a fm:Comparator, owl:NamedIndividual ;
 ################################################################
 
 ksh:PriceToProbabilityDerivation a owl:Class ;
-    rdfs:subClassOf fm:InformationProcess ;
+    rdfs:subClassOf fm:Transformation ;
     rdfs:label "price to probability derivation" ;
-    skos:definition "An information process taking a quote as input and yielding a market implied probability, according to a stated transformation." ;
+    skos:definition "A transformation taking a quote as input and yielding a market implied probability, according to a stated rule." ;
+    skos:changeNote "Changed in 0.22.0 (FM-0023): was an information process; now a transformation, and through it a data handling process. Existing data is unaffected." ;
     skos:scopeNote """Kalshi prices yes contracts between zero and one dollar on a per-market tick grid, so
 the naive transformation is the price in cents divided by one hundred. It is naive: it ignores
 the bid-ask spread, trading and settlement fees, the time value of collateral posted until settlement, and

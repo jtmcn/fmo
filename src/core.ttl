@@ -13,8 +13,8 @@
 
 <https://w3id.org/forecast-market-ontology/core>
     a owl:Ontology ;
-    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.21.1> ;
-    owl:priorVersion <https://w3id.org/forecast-market-ontology/core/0.21.0> ;
+    owl:versionIRI <https://w3id.org/forecast-market-ontology/core/0.22.0> ;
+    owl:priorVersion <https://w3id.org/forecast-market-ontology/core/0.21.1> ;
     owl:imports <http://purl.obolibrary.org/obo/bfo.owl> ,
                 <https://w3id.org/forecast-market-ontology/imports/qudt-subset> ,
                 <https://w3id.org/forecast-market-ontology/imports/prov-subset> ;
@@ -30,7 +30,7 @@ standard IRIs for downstream consumers, and the one consumer reads FMO's own. Se
 the comparison. BFO is the upper ontology; QUDT and PROV-O enter as generated subsets,
 bridged under it.""" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.21.1" .
+    owl:versionInfo "0.22.0" .
 
 ################################################################
 # Information content entities
@@ -239,7 +239,8 @@ fm:ProbabilityAssignment a owl:Class ;
 fm:ForecastProbability a owl:Class ;
     rdfs:subClassOf fm:ProbabilityAssignment ;
     rdfs:label "forecast probability" ;
-    skos:definition "A probability assignment produced by a prediction process, such as a numerical weather prediction model run or a human forecaster's judgement." .
+    skos:definition "A probability assignment produced by a prediction process, such as a numerical weather prediction model run or a human forecaster's judgement, or derived by transformation from the output of one." ;
+    skos:changeNote "Changed in 0.22.0 (FM-0023): was only what a prediction process produced; now also what a transformation derives from that output, such as a bracket probability computed from ensemble members. The source, not whether a transformation touched it, separates it from a market implied probability." .
 
 fm:MarketImpliedProbability a owl:Class ;
     rdfs:subClassOf fm:ProbabilityAssignment ;
@@ -416,6 +417,20 @@ fm:RetrievedCopy a owl:Class ;
     rdfs:subClassOf [ a owl:Restriction ;
         owl:onProperty fm:isOutputOf ; owl:someValuesFrom fm:Retrieval ] ;
     skos:scopeNote "The content is the issuer's; the copy is ours. Two fetches of one forecast are two copies of one information content entity, so a decision cites the copy to say which fetch it read." .
+
+fm:Transformation a owl:Class ;
+    rdfs:subClassOf fm:DataHandlingProcess , fm:InformationProcess ;
+    rdfs:label "transformation" ;
+    skos:definition "A data handling process in which an agent derives new information content entities from content it already holds." ;
+    rdfs:subClassOf [ a owl:Restriction ;
+        owl:onProperty fm:hasInput ; owl:someValuesFrom prov:Entity ] ,
+                    [ a owl:Restriction ;
+        owl:onProperty fm:hasOutput ; owl:someValuesFrom fm:InformationContentEntity ] ;
+    skos:scopeNote "Re-encoding the same content, JSON into rows say, is not a transformation: the result is another copy. Converting units, aggregating ensemble members, filtering and deriving a probability are. Inputs are copies, or content an earlier transformation produced, so a chain of them ends at a fetch." ;
+    skos:editorialNote "check_transformations in scripts/validate.py enforces the output and ordering rules. CQ9 walks chains of them back to copies." .
+
+# A step that fetches and converts is two processes; typed as one, the copy boundary is gone.
+fm:Retrieval owl:disjointWith fm:Transformation .
 
 fm:retrievedFrom a owl:DatatypeProperty ;
     rdfs:label "retrieved from" ;

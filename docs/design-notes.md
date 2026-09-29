@@ -294,7 +294,17 @@ a PROV query walks FMO data unchanged. `wx:issuanceTime` is deliberately not
 
 **Copies, not records.** A retrieval's output is a carrier of the issuer's content,
 not new content, which is why `fm:DataHandlingProcess` is not an information
-process. A later transformation step will be, and will sit beside retrieval.
+process. `fm:Transformation` (FM-0023) is both, and sits beside retrieval, disjoint
+from it: a step that fetches and converts is two processes, or the copy boundary is
+gone.
+
+**Derivation through the process, not `prov:wasDerivedFrom`.** A transformation's
+output is linked to what it read by `fm:hasInput` and `fm:hasOutput`, which are
+already `prov:used` and the inverse of `prov:wasGeneratedBy`, so a PROV consumer walks
+entity ← activity ← entity without it. Asserting `wasDerivedFrom` as well would state
+one fact twice, and need a check to hold the two together. A property chain deriving
+it was declined too: it would reach every FMO process, retrieval included, and commit
+to more than lineage needs.
 
 ## Bugs the checks caught
 

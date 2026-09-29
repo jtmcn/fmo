@@ -244,6 +244,15 @@ ex:Derivation-1200Z a ksh:PriceToProbabilityDerivation ;""",
         ("src/fmo.ttl", EXAMPLE, TRADING, LINEAGE),
     ),
     (
+        # FM-0023: fetch-and-convert typed as one process erases the copy boundary.
+        "a process typed both retrieval and transformation",
+        LINEAGE,
+        "lex:Projection-06Z a fm:Transformation ;",
+        "lex:Projection-06Z a fm:Transformation , fm:Retrieval ;",
+        "inconsistent",
+        ("src/fmo.ttl", EXAMPLE, TRADING, LINEAGE),
+    ),
+    (
         # FM-0013: the export fixture is reasoned on its own, so this reasons over
         # the modules and the export alone -- the examples would answer for nothing.
         "an exported market also typed as an event grouping",

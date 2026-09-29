@@ -95,9 +95,18 @@ changes what the content says is a transformation, not ingestion. Say "retrieval
 Turtle, and never mint an ingestion class beside it.
 _Avoid_: "record" for the copy (see **Record**), and "the data" for either.
 
+**Transformation** (`fm:Transformation`): the T of ELT, deriving new content from
+copies or from what an earlier transformation produced. Converting units,
+aggregating ensemble members and deriving a probability are transformations;
+re-encoding is not. Never also a retrieval. The price to probability derivation is
+one.
+_Avoid_: "processing" and "pipeline step" for it, and "derivation" bare, which is
+the market side's name for one kind.
+
 **Data handling process** (`fm:DataHandlingProcess`): what the system does to
-content for its own use. Its parent is not `fm:InformationProcess`, because a
-retrieval produces no new content.
+content for its own use: a retrieval or a transformation. Its parent is not
+`fm:InformationProcess`, because a retrieval produces no new content; a
+transformation is under both.
 
 **Trading decision** (`ksh:TradingDecision`) / **decision statement**
 (`ksh:DecisionStatement`): a decision always has a statement, a

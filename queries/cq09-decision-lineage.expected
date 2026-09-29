@@ -1,4 +1,5 @@
-decision	verdict	copy	endpoint	fetchedAt	issuedAt	newerIssuance
-lex:Decision-Hold	ksh:HoldStatement	lex:Copy-06Z	https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/	2026-08-15T09:47:03+00:00	2026-08-15T09:40:00+00:00	lex:Forecast-GEFS-12Z
-lex:Decision-Hold	ksh:HoldStatement	lex:Copy-Quote-1200Z	https://api.elections.kalshi.com/trade-api/v2/markets/KXHIGHNY-26AUG15-B82.5	2026-08-15T12:00:04+00:00	-	-
-lex:Decision-Trade	ksh:TradeInstruction	lex:Copy-06Z	https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/	2026-08-15T09:47:03+00:00	2026-08-15T09:40:00+00:00	-
+decision	verdict	via	copy	endpoint	fetchedAt	issuedAt	newerIssuance
+lex:Decision-Hold	ksh:HoldStatement	-	lex:Copy-06Z	https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/	2026-08-15T09:47:03+00:00	2026-08-15T09:40:00+00:00	lex:Forecast-GEFS-12Z
+lex:Decision-Hold	ksh:HoldStatement	-	lex:Copy-Quote-1200Z	https://api.elections.kalshi.com/trade-api/v2/markets/KXHIGHNY-26AUG15-B82.5	2026-08-15T12:00:04+00:00	-	-
+lex:Decision-Trade	ksh:TradeInstruction	-	lex:Copy-06Z	https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/	2026-08-15T09:47:03+00:00	2026-08-15T09:40:00+00:00	-
+lex:Decision-Trade	ksh:TradeInstruction	lex:ProjectedProb-06Z-82-83	lex:Copy-06Z	https://nomads.ncep.noaa.gov/pub/data/nccf/com/gens/prod/gefs.20260815/06/	2026-08-15T09:47:03+00:00	2026-08-15T09:40:00+00:00	-
