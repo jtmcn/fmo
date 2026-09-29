@@ -115,7 +115,7 @@ the active lens, or all at once with **all relations**. At rest, the tree is the
 picture. A force layout drew all 147 edges as equal springs, and the 102 subclass links
 knotted the 45 relations into a hairball. The positions are computed by the generator
 (`place()`), not simulated in the page, so `diagram-check` can count the crossings the
-page draws. It caps the count at 5, and rebuilds the layout under two other
+page draws. It caps the count at 12, and rebuilds the layout under two other
 `PYTHONHASHSEED`s to require the same positions, so the cap can't pass by luck of set order. The page is still pannable and zoomable, and
 dragging a class moves it along its row. It is
 one self-contained file with no dependencies and no network calls, so it opens by
@@ -130,6 +130,11 @@ The list is the keyboard route to every term: Tab reaches it, and the arrow keys
 through it. It also shows the branch-depth imbalance as numbers. The line
 above the list gives each module's depth range. BFO's own classes between a borrowed
 class and entity are on both the outline and the map, so the is-a tree has a single root.
+Every bridge is drawn: a subClassOf a minted file asserts of a borrowed class, such as
+`prov:Agent` under continuant or `qudt:QuantityKind` under `fm:Designation`. An imported
+class no minted file mentions, like `prov:SoftwareAgent`, stays off.
+A property's panel lists its super-properties outside FMO (`fm:hasInput` under
+`prov:used`); the map draws no edge between properties.
 A class with two parents is listed under both, and the second
 listing points back to the first. The panel, search and chips work the same in both
 views.

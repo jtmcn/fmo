@@ -124,6 +124,31 @@ def name_like_a_module(d: dict) -> None:
     d["outline"] = d.pop("tree")
 
 
+def drop_bridge(d: dict) -> None:
+    d["edges"] = [e for e in d["edges"] if (e["s"], e["t"]) != ("prov:Entity", "bfo:BFO_0000002")]
+
+
+def forget_prov(d: dict) -> None:
+    # Rebuilt without it, so the IRI leaves the page data too; main() restores NS.
+    del gd.NS["http://www.w3.org/ns/prov#"]
+    d.clear()
+    d.update(gd.build())
+
+
+def unmentioned_import(d: dict) -> None:
+    # Imported and asserted under prov:Agent there, but no minted file mentions it.
+    d["nodes"].append({**node(d, "prov:Agent"), "id": "prov:SoftwareAgent", "label": "SoftwareAgent"})
+    d["edges"].append({"s": "prov:SoftwareAgent", "t": "prov:Agent", "k": "sub"})
+
+
+def unnamed_source(d: dict) -> None:
+    del d["external"]["prov"]
+
+
+def drop_super(d: dict) -> None:
+    d["properties"]["fm:hasInput"]["supers"] = []
+
+
 def export(d: dict) -> dict:
     return next(ln for ln in d["lenses"] if ln["id"] == "export")
 
@@ -192,6 +217,16 @@ CASES: list[tuple[str, Callable[[dict], None], str]] = [
      "properties no question walks not listed"),
     ("a data key named like a viz module", name_like_a_module,
      "data key shares a name with a viz module: ['outline']"),
+    ("a bridge edge dropped", drop_bridge,
+     "subClassOf asserted in a minted file but not drawn: ['http://www.w3.org/ns/prov#Entity"),
+    ("prov missing from the namespaces the map names", forget_prov,
+     "no prefix the map can name: ['http://www.w3.org/ns/prov#"),
+    ("an imported class no minted file mentions, drawn", unmentioned_import,
+     "node set is not the minted classes"),
+    ("a borrowed prefix with no display name", unnamed_source,
+     "borrowed prefix with no display name in the page data: ['prov']"),
+    ("a borrowed super-property dropped from the panel", drop_super,
+     "super-properties outside FMO not carried to the panel"),
 ]
 
 
@@ -268,6 +303,7 @@ def main() -> int:
         print(f"FAIL  the unmodified data does not pass: {e}")
         failed += 1
     cases = CASES + lens_cases(base)
+    ns = dict(gd.NS)
     for name, damage, expect in cases:
         data = copy.deepcopy(base)
         damage(data)
@@ -277,6 +313,9 @@ def main() -> int:
             why: str | None = f"expected {expect!r}, got a pass" if expect else None
         except AssertionError as e:
             why = None if expect and expect in str(e) else f"expected {expect or 'a pass'!r}, got {e}"
+        finally:
+            gd.NS.clear()
+            gd.NS.update(ns)
         print(("FAIL  " if why else "ok    ") + name + (f": {why}" if why else ""))
         failed += bool(why)
     hit_failed = hit_cases() + question_cases()

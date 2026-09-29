@@ -41,13 +41,15 @@
     return '<i class="key key-' + k + '" aria-hidden="true"></i>';
   }
 
-  // Borrowed terms name their own source; not all of them are BFO.
-  var EXTERNAL_NAME = { bfo: 'Basic Formal Ontology', qudt: 'QUDT', owl: 'OWL' };
+  // Borrowed terms name their own source; not all of them are BFO. The names come
+  // with the data, where diagram-check can refuse a prefix that has none.
+  var externalName = {};
 
   function init(data, handlers) {
     nodes = data.nodes;
     edges = data.edges;
     props = data.properties;
+    externalName = data.external || {};
     onSelect = handlers.select;
     nodes.forEach(function (n) { byId[n.id] = n; });
 
@@ -440,7 +442,7 @@
 
     $('panel-kicker').innerHTML = key(chipOf(n)) + esc(n.minted
       ? MODULE_NAME[n.module].replace(' · the pivot', ' module')
-      : (EXTERNAL_NAME[n.module] || n.module));
+      : (externalName[n.module] || n.module));
 
     $('panel-title').textContent = n.label;
     $('panel-curie').textContent = n.id + (n.id in depth ? ' · depth ' + depth[n.id] : '');
@@ -520,6 +522,8 @@
       t.on.forEach(function (c) { end('carried by', c); });
       out.push('<li><span class="lk-via">value</span> <span class="lk-to">' + esc(t.range) + '</span></li>');
     }
+    // Borrowed super-properties: the map draws no property-to-property edge.
+    (t.supers || []).forEach(function (c) { end('sub-property of', c); });
     // An open domain is a decision, not a gap; say so rather than show nothing.
     if (t.open) out.push('<li><span class="lk-via">domain left open on purpose</span></li>');
     field('f-links', out.length);
