@@ -1,11 +1,13 @@
 # CQ9. What did each trading decision read, and was a newer issuance out when it decided?
 #
-# Inputs are reached through rdfs:subPropertyOf* prov:used, not fm:hasInput by
-# name, so this answering at all is what shows the alignment holds. A copy of
-# content with no issuance time -- a quote -- still returns its row. Outputs are
-# read from either end, as the validator reads them.
+# A decision's inputs are reached through rdfs:subPropertyOf* prov:used, not
+# fm:hasInput by name, so this answering at all is what shows the alignment
+# holds. A copy of content with no issuance time -- a quote -- still returns its
+# row. Outputs are read from either end, as the validator reads them. Derived
+# content is walked back through the processes that output it to the copies they
+# read; ?via names it, and is unbound for a copy the decision read itself.
 
-SELECT ?decision ?verdict ?copy ?endpoint ?fetchedAt ?issuedAt ?newerIssuance
+SELECT ?decision ?verdict ?via ?copy ?endpoint ?fetchedAt ?issuedAt ?newerIssuance
 WHERE {
     ?decision a/rdfs:subClassOf* ksh:TradingDecision ;
               prov:endedAtTime ?decidedAt ;
@@ -13,8 +15,15 @@ WHERE {
     ?statement a ?verdict .
     ?verdict rdfs:subClassOf ksh:DecisionStatement .
 
-    ?decision ?uses ?copy .
-    ?uses rdfs:subPropertyOf* prov:used .
+    {
+        ?decision ?uses ?copy .
+        ?uses rdfs:subPropertyOf* prov:used .
+    } UNION {
+        ?decision ?uses ?via .
+        ?uses rdfs:subPropertyOf* prov:used .
+        FILTER NOT EXISTS { ?via a/rdfs:subClassOf* fm:RetrievedCopy }
+        ?via ((fm:isOutputOf|^fm:hasOutput)/fm:hasInput)+ ?copy .
+    }
     ?copy a/rdfs:subClassOf* fm:RetrievedCopy ;
           bfo:BFO_0000101 ?content .
     ?retrieval fm:hasOutput|^fm:isOutputOf ?copy .
@@ -33,4 +42,4 @@ WHERE {
                 && xsd:dateTime(STR(?newerAt)) < xsd:dateTime(STR(?decidedAt)))
     }
 }
-ORDER BY ?decision ?copy ?newerIssuance
+ORDER BY ?decision ?copy ?via ?newerIssuance

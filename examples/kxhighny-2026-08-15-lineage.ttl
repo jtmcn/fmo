@@ -2,7 +2,7 @@
 #
 # Two GEFS forecasts for the Central Park high, issued 09:40Z and 15:40Z, each
 # fetched once, and a quote fetched at noon. A decision at 11:59:30Z trades on the
-# 06Z copy, which was then the latest. A hold at 16:30Z still reads the 06Z copy,
+# 06Z copy, which was then the latest, and on a probability projected from it. A hold at 16:30Z still reads the 06Z copy,
 # though the 12Z forecast had been issued and fetched by then: CQ9 flags it stale.
 #
 # Values are illustrative and are not real fetches, orders, or holdings.
@@ -90,12 +90,31 @@ lex:Copy-Quote-1200Z a fm:RetrievedCopy ;
     bfo:BFO_0000101 ex:Quote-1200Z .
 
 ################################################################
-# 4. Two decisions: a fresh trade and a stale hold
+# 4. A transformation: the bracket projection
+################################################################
+
+# ThermalEdge's own number, computed from the member temperatures in the copy.
+# The 0.52 the base example files under the forecast is the issuer's; this is ours.
+lex:Projection-06Z a fm:Transformation ;
+    rdfs:label "the ingest job projects the GEFS 06Z members onto the 82-83F bracket" ;
+    fm:hasInput lex:Copy-06Z ;
+    fm:hasOutput lex:ProjectedProb-06Z-82-83 ;
+    prov:wasAssociatedWith lex:IngestJob-2.4.0 ;
+    prov:endedAtTime "2026-08-15T09:48:00Z"^^xsd:dateTime .
+
+lex:ProjectedProb-06Z-82-83 a fm:ForecastProbability ;
+    rdfs:label "projected P(82-83F) from the GEFS 06Z copy" ;
+    fm:assignsProbabilityTo ex:Prop-82-83 ;
+    fm:probabilityValue "0.54"^^xsd:decimal ;
+    fm:referenceTime "2026-08-15T09:48:00Z"^^xsd:dateTime .
+
+################################################################
+# 5. Two decisions: a fresh trade and a stale hold
 ################################################################
 
 lex:Decision-Trade a ksh:TradingDecision ;
     rdfs:label "strategy decides to buy yes on 82-83F" ;
-    fm:hasInput lex:Copy-06Z , ex:ForecastProb-82-83 ;
+    fm:hasInput lex:Copy-06Z , lex:ProjectedProb-06Z-82-83 ;
     fm:hasOutput lex:Statement-Trade ;
     prov:wasAssociatedWith lex:Strategy-2.4.0 ;
     prov:endedAtTime "2026-08-15T11:59:30Z"^^xsd:dateTime .

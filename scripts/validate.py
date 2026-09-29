@@ -81,7 +81,7 @@ from __future__ import annotations
 import inspect
 import re
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import date, datetime
 from pathlib import Path
 from types import FunctionType
@@ -1814,6 +1814,15 @@ TRADE_INSTRUCTION = URIRef(KSH + "TradeInstruction")
 HOLD_REASON = URIRef(KSH + "holdReason")
 
 
+def fetch_instants(g: Graph, retrieval: Node) -> Iterator[datetime]:
+    """When a retrieval ended, skipping values check_retrievals already reports."""
+    for fetched in g.objects(retrieval, ENDED_AT):
+        try:
+            yield aware_instant(fetched)
+        except (ValueError, TypeError):
+            continue
+
+
 @check(takes=("data",))
 def check_trading_decisions(g: Graph) -> None:
     """A decision cites the copies it read, states one verdict, and follows every fetch it cites.
@@ -1850,11 +1859,7 @@ def check_trading_decisions(g: Graph) -> None:
                 fail(f"{decision}: cites {copy}, which {len(retrievals)} retrievals produced, "
                      f"so which fetch it read is ambiguous")
             for retrieval in retrievals:
-                for fetched in g.objects(retrieval, ENDED_AT):
-                    try:
-                        fetched_at = aware_instant(fetched)
-                    except (ValueError, TypeError):
-                        continue  # check_retrievals reports it
+                for fetched_at in fetch_instants(g, retrieval):
                     cited += 1
                     if fetched_at > decided:
                         fail(f"{decision} decided at {decided.isoformat()} on {copy}, which "
@@ -1870,6 +1875,89 @@ def check_trading_decisions(g: Graph) -> None:
              "no decision cites a copy whose retrieval has an end time")
     coverage("hold reasons", len(holds), "hold statement(s) checked for one reason",
              "no example asserts a ksh:HoldStatement")
+
+
+TRANSFORMATION = URIRef(FM + "Transformation")
+INFORMATION_BEARING = URIRef(FM + "InformationBearingEntity")
+HAS_CONTINUANT_PART = URIRef(BFO + "BFO_0000178")
+
+
+def carried_by(g: Graph, copy: Node) -> set:
+    """The content a copy carries, and every continuant part of it."""
+    found: set = set()
+    frontier = list(g.objects(copy, CARRIER_OF))
+    while frontier:
+        node = frontier.pop()
+        if node not in found:
+            found.add(node)
+            frontier.extend(g.objects(node, HAS_CONTINUANT_PART))
+    return found
+
+
+@check(takes=("data",))
+def check_transformations(g: Graph) -> None:
+    """A transformation outputs new content, and follows every fetch it read.
+
+    New is the copy boundary: re-encoding content an input copy already carries is
+    another copy, not a transformation, and the disjointness with fm:Retrieval
+    cannot see it when the step is typed only as a transformation.
+    """
+    transformations = instances_of(g, TRANSFORMATION)
+    outputs_checked = 0
+    against_copies = 0
+    content_inputs = 0
+    ordered = 0
+    for transformation in transformations:
+        inputs = set(g.objects(transformation, HAS_INPUT))
+        outputs = outputs_of(g, transformation)
+        if not inputs:
+            fail(f"{transformation}: a transformation has no fm:hasInput")
+        if not outputs:
+            fail(f"{transformation}: a transformation has no output")
+        copies = {i for i in inputs if RETRIEVED_COPY in types_of(g, i)}
+        # Content read without a copy: lineage unrecorded, which the derivations are.
+        content_inputs += len(inputs - copies)
+        carried = {c: carried_by(g, c) for c in copies}
+        for output in outputs:
+            outputs_checked += 1
+            if output in inputs:
+                fail(f"{transformation}: its output {output} is also one of its inputs")
+            for copy, content in carried.items():
+                against_copies += bool(content)
+                if output in content:
+                    fail(f"{transformation}: its output {output} is content {copy} already "
+                         f"carries, so it made a copy, not new content")
+            if INFORMATION_BEARING in types_of(g, output):
+                fail(f"{transformation}: its output {output} is a carrier, not content")
+        # Not every transformation is timed; the price derivations are not.
+        if not list(g.objects(transformation, ENDED_AT)):
+            continue
+        ended = single_end(g, transformation, "transformation")
+        if ended is None:
+            continue
+        for copy in copies:
+            for retrieval in producers_of(g, copy):
+                for fetched_at in fetch_instants(g, retrieval):
+                    ordered += 1
+                    if ended < fetched_at:
+                        fail(f"{transformation} ended at {ended.isoformat()}, before "
+                             f"{retrieval} fetched {copy} at {fetched_at.isoformat()}")
+    coverage("transformations", len(transformations),
+             "transformation(s) checked for an input and an output",
+             "no example asserts an fm:Transformation")
+    coverage("transformation outputs", outputs_checked,
+             "output(s) checked to be new content",
+             "no transformation states an output")
+    coverage("transformation copy boundary", against_copies,
+             "output(s) checked against content an input copy carries",
+             "no transformation reads a copy that carries anything")
+    coverage("transformation content inputs", content_inputs,
+             "input(s) read as content rather than a copy",
+             "no transformation reads content directly -- if the derivations stopped "
+             "being transformations, this is where it shows")
+    coverage("transformation after retrieval", ordered,
+             "fetch(es) ordered before the transformation that read them",
+             "no timed transformation reads a copy whose retrieval has an end time")
 
 
 @check(takes=("schema",), population="example-files",
